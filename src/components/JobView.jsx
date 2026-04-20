@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 
 const TABS = [
   { id: 'steps', label: 'Steps' },
+  { id: 'figures', label: 'Figures' },
   { id: 'torque', label: 'Torque Specs' },
   { id: 'parts', label: 'Parts' },
   { id: 'tools', label: 'Tools' }
@@ -9,6 +10,8 @@ const TABS = [
 
 export default function JobView({ job, bike, onBack }) {
   const [tab, setTab] = useState('steps')
+  const [lightbox, setLightbox] = useState(null)   // figure object or null
+  const figures = job.figures || []
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
@@ -44,9 +47,12 @@ export default function JobView({ job, bike, onBack }) {
       <nav className="mb-4 flex flex-wrap gap-1 border-b border-hd-border">
         {TABS.map((t) => {
           const count = t.id === 'steps' ? job.steps.length
+            : t.id === 'figures' ? figures.length
             : t.id === 'torque' ? job.torque.length
             : t.id === 'parts' ? job.parts.length
             : job.tools.length
+          // Hide Figures tab if there are no figures for this job
+          if (t.id === 'figures' && count === 0) return null
           const active = tab === t.id
           return (
             <button
@@ -67,10 +73,13 @@ export default function JobView({ job, bike, onBack }) {
         })}
       </nav>
 
-      {tab === 'steps' && <StepsPanel steps={job.steps} />}
+      {tab === 'steps' && <StepsPanel steps={job.steps} figures={figures} onOpenFigure={setLightbox} />}
+      {tab === 'figures' && <FiguresPanel figures={figures} onOpen={setLightbox} />}
       {tab === 'torque' && <TorquePanel torque={job.torque} />}
       {tab === 'parts' && <PartsPanel parts={job.parts} />}
       {tab === 'tools' && <ToolsPanel tools={job.tools} />}
+
+      {lightbox && <Lightbox figure={lightbox} onClose={() => setLightbox(null)} />}
 
       <div className="mt-10 rounded-md border border-hd-border bg-hd-dark p-4 text-xs text-hd-muted">
         Always confirm torque values and part numbers against the printed
@@ -81,29 +90,115 @@ export default function JobView({ job, bike, onBack }) {
   )
 }
 
-function StepsPanel({ steps }) {
+function StepsPanel({ steps, figures = [], onOpenFigure }) {
   if (!steps.length) return <EmptyPanel text="No steps recorded yet." />
+  // Build a map: step number -> [figures that reference it]
+  const byStep = {}
+  for (const f of figures) {
+    for (const n of (f.stepRefs || [])) {
+      byStep[n] = byStep[n] || []
+      byStep[n].push(f)
+    }
+  }
   return (
     <ol className="space-y-3">
-      {steps.map((s) => (
-        <li key={s.n} className="card">
-          <div className="flex gap-4">
-            <div className="font-display text-3xl text-hd-orange leading-none w-10 text-right">
-              {s.n}
+      {steps.map((s) => {
+        const figsForStep = byStep[s.n] || []
+        return (
+          <li key={s.n} className="card">
+            <div className="flex gap-4">
+              <div className="font-display text-3xl text-hd-orange leading-none w-10 text-right">
+                {s.n}
+              </div>
+              <div className="flex-1">
+                <div>{s.text}</div>
+                {s.warning && (
+                  <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+                    <strong className="mr-1">Warning:</strong>
+                    {s.warning}
+                  </div>
+                )}
+                {figsForStep.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {figsForStep.map((f) => (
+                      <button
+                        key={f.file}
+                        onClick={() => onOpenFigure(f)}
+                        className="group inline-flex items-center gap-2 rounded border border-hd-border bg-hd-dark px-2 py-1 text-xs text-hd-muted transition hover:border-hd-orange hover:text-hd-text"
+                        title={f.caption}
+                      >
+                        <img
+                          src={f.file}
+                          alt={f.caption}
+                          loading="lazy"
+                          className="h-10 w-14 bg-white object-contain p-0.5"
+                        />
+                        <span className="max-w-[200px] truncate">{f.caption}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex-1">
-              <div>{s.text}</div>
-              {s.warning && (
-                <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-                  <strong className="mr-1">Warning:</strong>
-                  {s.warning}
-                </div>
-              )}
-            </div>
-          </div>
-        </li>
-      ))}
+          </li>
+        )
+      })}
     </ol>
+  )
+}
+
+function FiguresPanel({ figures, onOpen }) {
+  if (!figures.length) return <EmptyPanel text="No figures available for this job yet." />
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {figures.map((f) => (
+        <button
+          key={f.file}
+          onClick={() => onOpen(f)}
+          className="card text-left transition hover:border-hd-orange hover:bg-hd-dark"
+        >
+          <div className="overflow-hidden rounded bg-white">
+            <img
+              src={f.file}
+              alt={f.caption}
+              loading="lazy"
+              className="h-48 w-full object-contain"
+            />
+          </div>
+          <div className="mt-2 text-sm text-hd-text">{f.caption}</div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Lightbox({ figure, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-[92vh] max-w-[92vw] overflow-auto rounded border border-hd-border bg-hd-dark p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-3 text-2xl leading-none text-hd-muted hover:text-hd-orange"
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <img
+          src={figure.file}
+          alt={figure.caption}
+          className="mx-auto max-h-[80vh] bg-white object-contain"
+        />
+        <div className="mt-3 text-center text-sm text-hd-text">
+          {figure.caption}
+        </div>
+      </div>
+    </div>
   )
 }
 
