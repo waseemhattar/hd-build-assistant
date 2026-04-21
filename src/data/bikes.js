@@ -25,6 +25,24 @@ export const bikes = [
     ],
     manualFolder: 'Touring--2020',
     manuals: ['2020 HD Touring Service Manual.pdf', '2020 HD Touring Parts Catalog.pdf']
+  },
+  {
+    id: 'softail-2025',
+    family: 'Softail',
+    year: 2025,
+    label: 'Milwaukee 8 Gen 2 Softail (2024 - 2025)',
+    models: [
+      'FXBB Street Bob',
+      'FXLRS Low Rider S',
+      'FXLRST Low Rider ST',
+      'FXBR Breakout',
+      'FLFB Fat Boy',
+      'FLFBS Fat Boy 114',
+      'FLHC Heritage Classic',
+      'FLHCS Heritage Classic 114'
+    ],
+    manualFolder: 'SOFTAIL--2025',
+    manuals: ['2025 HD Softail Service Manual 94001289.pdf']
   }
 ]
 
