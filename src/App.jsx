@@ -82,6 +82,11 @@ export default function App() {
         <Home
           onOpenGarage={() => setView('garage')}
           onOpenManual={() => setView('picker')}
+          onPickJob={(matchedBike, matchedJob) => {
+            if (matchedBike) setBike(matchedBike)
+            setJob(matchedJob)
+            setView('job')
+          }}
         />
       )}
 

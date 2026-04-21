@@ -11,6 +11,7 @@ import {
   evaluateInterval,
   findLastMatchingEntry
 } from '../data/serviceIntervals.js'
+import { exportServiceBookPDF } from '../data/pdfExport.js'
 
 // ServiceBook = per-bike service history + HD-interval reference panel.
 // Two tabs:
@@ -56,6 +57,27 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
           <div className="mt-1 text-sm text-hd-muted">
             {bike.year} · {bike.model}
           </div>
+          <button
+            onClick={() => exportServiceBookPDF({ bike, log })}
+            className="mt-3 inline-flex items-center gap-2 rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-text hover:border-hd-orange hover:text-hd-orange"
+            title="Download a printable service record"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3v12" />
+              <path d="M7 10l5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+            Download PDF
+          </button>
         </div>
         <div className="rounded border border-hd-border bg-hd-dark p-3">
           <div className="text-xs uppercase tracking-widest text-hd-muted">

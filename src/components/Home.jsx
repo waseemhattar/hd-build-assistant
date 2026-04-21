@@ -1,12 +1,13 @@
 import React from 'react'
 import { getGarage } from '../data/storage.js'
+import SearchBar from './SearchBar.jsx'
 
-export default function Home({ onOpenGarage, onOpenManual }) {
+export default function Home({ onOpenGarage, onOpenManual, onPickJob }) {
   const garage = getGarage()
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mb-10">
+      <div className="mb-8">
         <h1 className="font-display text-4xl tracking-wider text-hd-orange sm:text-5xl">
           HD BUILD ASSISTANT
         </h1>
@@ -15,6 +16,10 @@ export default function Home({ onOpenGarage, onOpenManual }) {
           bikes in your garage, keep a service log, and dig into step-by-step
           procedures from the factory service manuals.
         </p>
+      </div>
+
+      <div className="mb-10">
+        <SearchBar onPickJob={onPickJob} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
