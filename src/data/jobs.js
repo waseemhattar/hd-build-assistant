@@ -224,7 +224,7 @@ export const jobs = [
   {
     id: 't20-primary-chaincase',
     bikeIds: ['touring-2020'],
-    system: 'drive',
+    system: 'drivetrain',
     title: 'Primary Chaincase Lubricant — Change',
     summary:
       'Drain chaincase, replace drain plug O-ring, refill ~34 oz (1.0 L) dry fill / ~30 oz (0.9 L) wet fill, reinstall clutch inspection cover in torque sequence.',
@@ -666,7 +666,7 @@ export const jobs = [
   {
     id: 't20-drive-belt-deflection',
     bikeIds: ['touring-2020'],
-    system: 'drive',
+    system: 'drivetrain',
     title: 'Drive Belt — Inspect & Measure Deflection',
     summary:
       'Inspect belt for cuts, cracks, stone damage, hook wear, bevel wear. Measure deflection with Belt Tension Gauge (HD-35381-A) to spec (1/4–7/16 in or 3/8–9/16 in per model and shock type).',
@@ -758,7 +758,7 @@ export const jobs = [
   {
     id: 't20-rear-sprocket-isolator',
     bikeIds: ['touring-2020'],
-    system: 'drive',
+    system: 'drivetrain',
     title: 'Rear Sprocket Isolator — Inspect Wear',
     summary:
       'Hang weighted string on left axle spacer. Rotate sprocket both directions, mark limits on tape. Measure distance between marks; replace isolator if exceeds 0.400 in (10.2 mm).',
@@ -920,7 +920,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Wheel — Remove & Install',
     summary: 'Remove and install rear wheel with axle torque: 1st pass 15-20 ft-lbs, final 135-145 ft-lbs. Includes belt management, compensator sprocket, brake disc, and ABS WSS sensor.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 75,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 114 },
     figures: [
@@ -1026,7 +1026,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Wheel Compensator',
     summary: 'Remove and install rear wheel compensator sprocket with isolator and bearings. Use bearing remover/installer tool (HD-48921). Replace isolator and bearings every removal.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 60,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 119 },
     figures: [
@@ -1077,7 +1077,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Sealed Wheel Bearings — Remove & Install',
     summary: 'Remove and install sealed wheel bearings using bearing installer/remover tool (HD-44060D). Replace both bearings as a set. Includes inspection, cleaning, and bearing orientation.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 121 },
     figures: [
@@ -1226,7 +1226,7 @@ export const jobs = [
     system: 'brakes',
     title: 'Front Brake Master Cylinder — Remove, Rebuild & Install',
     summary: 'Remove, disassemble, clean, and reassemble front brake master cylinder. Includes reservoir cover, piston assembly, and seals. Torque: clamp screw 60-80 in-lbs, banjo bolt 17-19 ft-lbs.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 131 },
     figures: [
@@ -1313,7 +1313,7 @@ export const jobs = [
     system: 'brakes',
     title: 'Rear Brake Master Cylinder — Remove, Rebuild & Install',
     summary: 'Remove, disassemble, clean, and reassemble rear brake master cylinder. Includes brake pedal assembly integration. Torque: master cylinder screws 126-150 in-lbs, pedal locknut 180-240 in-lbs.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 136 },
     figures: [
@@ -1449,7 +1449,7 @@ export const jobs = [
     system: 'brakes',
     title: 'Brake Lines — Rear (Non-ABS)',
     summary: 'Remove and install rear brake line on non-ABS models. Route under frame rail with clips and retainers. Install stop lamp switch. Torque banjo bolts 17-19 ft-lbs.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 60,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 141 },
     figures: [
@@ -1619,7 +1619,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Front Fork — Disassemble',
     summary: 'Disassemble front fork tube and slider including removal of spring, damper tube, seals, and internal components. Use soft jaws in vise. Inspect for damage and measure runout.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 152 },
     figures: [
@@ -1659,7 +1659,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Front Fork — Assemble',
     summary: 'Reassemble fork tube, slider, damper tube with seals and bearings. Apply fork oil and set proper oil level. Tighten slider assembly screw with threadlocker.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 152 },
     figures: [
@@ -1728,7 +1728,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Steering Head/Fork Stem — Remove',
     summary: 'Remove upper and lower fork brackets, handlebar, and steering stem assembly. Disconnect all wiring and brake lines. Remove bearing cones from upper and lower stems.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 158 },
     figures: [
@@ -1756,7 +1756,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Steering Head/Fork Stem — Install',
     summary: 'Install new bearing cups and cones into steering head. Assemble upper and lower steering stems, install front forks, and tighten to specification based on model type.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 158 },
     figures: [
@@ -1794,7 +1794,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Fork (Swingarm) — Remove',
     summary: 'Remove swingarm assembly by disconnecting brake lines, wheel speed sensor cable (ABS), removing pivot shaft screws and shock absorbers. Requires work on both sides of frame.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 161 },
     figures: [
@@ -1826,7 +1826,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Fork (Swingarm) — Install',
     summary: 'Install swingarm assembly by guiding pivot shaft through fork and frame, installing rubber mounts, left bracket components, and shock absorbers. Apply threadlocker to all screws.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 90,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 161 },
     figures: [
@@ -1857,7 +1857,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Fork Bearings — Remove',
     summary: 'Remove front and rear bearings from swingarm assembly using a bearing remover tool. Bearings must be replaced when removed.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 45,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 163 },
     figures: [
@@ -1884,7 +1884,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Fork Bearings — Install',
     summary: 'Install new bearings and spacers into swingarm assembly using bearing installer tool. Press bearing until specified shoulder contact is achieved.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 45,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 163 },
     figures: [
@@ -2329,7 +2329,7 @@ export const jobs = [
     system: 'chassis',
     title: 'Rear Frame — Remove & Install',
     summary: 'Remove and install rear subframe. Requires removal of seat, Tour-Pak, saddlebags, battery, shock absorbers, and rear fender. Extensive disassembly needed.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 120,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 151 },
     figures: [
@@ -2754,7 +2754,7 @@ export const jobs = [
   system: 'bodywork',
   title: 'Fairing Lowers (Twin-Cooled) — Remove and Install',
   summary: 'Remove and install lower fairing assembly on twin-cooled models. Includes disconnecting radiator hoses, draining coolant, and cooling system components.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 45,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 113 },
   figures: [
@@ -3302,7 +3302,7 @@ export const jobs = [
   system: 'engine',
   title: 'Cylinder Leakdown Test',
   summary: 'Perform cylinder leakdown test to diagnose piston ring, valve, or head gasket condition. Requires CYLINDER LEAKDOWN TESTER (HD-35667-A).',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 60,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 13 },
   figures: [],
@@ -3482,7 +3482,7 @@ export const jobs = [
   system: 'engine',
   title: 'Oil Coolant Lines — Remove',
   summary: 'Remove oil/coolant line assembly from cylinder heads. Requires extensive preparation and disconnection of multiple components.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 20 },
   figures: [],
@@ -3515,7 +3515,7 @@ export const jobs = [
   system: 'engine',
   title: 'Oil Coolant Lines — Install',
   summary: 'Install oil/coolant line assembly to cylinder heads. Must reconnect all components after installation.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 20 },
   figures: [],
@@ -3856,7 +3856,7 @@ export const jobs = [
   system: 'engine',
   title: 'Rocker Arms — Remove',
   summary: 'Remove rocker arms from rocker shafts for inspection or replacement.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 30 },
   figures: [],
@@ -3892,7 +3892,7 @@ export const jobs = [
   system: 'engine',
   title: 'Rocker Arms — Install',
   summary: 'Install rocker arms on rocker shafts. Lifters must bleed down before rotating crankshaft.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 30 },
   figures: [],
@@ -4035,7 +4035,7 @@ export const jobs = [
     system: 'engine',
     title: 'Replace Engine',
     summary: 'Remove and install complete engine assembly (engine swap).',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 360,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 61 },
     figures: [],
@@ -4082,7 +4082,7 @@ export const jobs = [
     system: 'engine',
     title: 'Crankcase — Separate Halves',
     summary: 'Separate crankcase halves and remove internal components.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 120,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 63 },
     figures: [],
@@ -4115,7 +4115,7 @@ export const jobs = [
     system: 'engine',
     title: 'Crankcase — Assemble Halves',
     summary: 'Assemble crankcase halves and install internal components.',
-    difficulty: 'Hard',
+    difficulty: 'Advanced',
     timeMinutes: 180,
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 63 },
     figures: [],
@@ -4255,7 +4255,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Drive Belt — Remove',
   summary: 'Disconnect battery, remove saddlebags, rear wheel, and rear fork. Remove primary chain, clutch, compensating sprocket, and chaincase housing before removing drive belt from transmission sprocket.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 94 },
   figures: [],
@@ -4282,7 +4282,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Drive Belt — Install',
   summary: 'Install belt over transmission sprocket, then install primary chaincase housing, primary chain, clutch, compensating sprocket, adjuster, rear fork, wheel, saddlebags, and reconnect battery.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 94 },
   figures: [],
@@ -4378,7 +4378,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Drive Components — Remove (Primary Chain/Tensioner/Sprocket/Clutch)',
   summary: 'Disconnect battery, remove footboards and shifter lever. Drain primary chaincase oil. Remove clutch release bearing, then primary chain, tensioner, clutch assembly, and compensating sprocket as a unit.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 101 },
   figures: [],
@@ -4417,7 +4417,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Drive Components — Install (Primary Chain/Tensioner/Sprocket/Clutch)',
   summary: 'Install spring washers, primary chain and compensating sprocket assembly, mainshaft nut with threadlocker, compensating sprocket bolt, and chain tensioner with tension adjustment.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 101 },
   figures: [],
@@ -4575,7 +4575,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Clutch Hub Assembly — Disassemble',
   summary: 'Remove clutch hub retaining ring, press hub from bearing, remove bearing retaining ring, and press bearing from clutch shell.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 90,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 113 },
   figures: [],
@@ -4604,7 +4604,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Clutch Hub Assembly — Assemble',
   summary: 'Install new bearing in clutch shell with correct press placement and new retaining ring, then press hub into bearing with new retaining ring.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 90,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 114 },
   figures: [],
@@ -4641,7 +4641,7 @@ export const jobs = [
   system: 'drivetrain',
   title: 'Primary Chaincase Housing — Remove',
   summary: 'Disconnect battery, drain oil, remove starter and drive components. Remove primary chaincase housing screws and discard gasket.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 120,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 120 },
   figures: [],
@@ -4723,7 +4723,7 @@ export const jobs = [
 {
   id: 't20-transmission-sprocket-remove',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission Sprocket — Remove',
   summary: 'Loosen drive belt. Remove lockplate screws, install sprocket locking tool and pilot, remove sprocket nut using special wrench tool.',
   difficulty: 'Moderate',
@@ -4752,7 +4752,7 @@ export const jobs = [
 {
   id: 't20-transmission-sprocket-inspect',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission Sprocket — Clean and Inspect',
   summary: 'Clean sprocket of grease and dirt. Inspect belt and sprocket, main drive gear, and mainshaft seals.',
   difficulty: 'Easy',
@@ -4774,10 +4774,10 @@ export const jobs = [
 {
   id: 't20-transmission-sprocket-install',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission Sprocket — Install',
   summary: 'Place sprocket in position, install and torque nut to 100 ft-lbs, loosen one full turn, torque to 35 ft-lbs, then final torque with angle gauge to 35-40 degrees. Install lockplate and screws.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 75,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 128 },
   figures: [],
@@ -4820,10 +4820,10 @@ export const jobs = [
 {
   id: 't20-transmission-remove',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission — Remove from Motorcycle',
   summary: 'Disconnect battery, drain transmission and engine oil. Remove exhaust, side covers, push rod, footboards, shifter lever. Remove primary components. Remove transmission bearing housing screws and pry assembly free.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 180,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 131 },
   figures: [],
@@ -4864,10 +4864,10 @@ export const jobs = [
 {
   id: 't20-transmission-disassemble',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission — Disassemble (Shift Cam/Forks/Shafts/Gears)',
   summary: 'Remove shift fork shafts, shift forks, lock plate, shift cam, and detent assembly. Remove mainshaft and countershaft locknuts. Press out mainshaft and countershaft with gears.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 180,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 133 },
   figures: [],
@@ -4909,10 +4909,10 @@ export const jobs = [
 {
   id: 't20-transmission-assemble',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission — Assemble (Shift Cam/Forks/Shafts/Gears)',
   summary: 'Install bearings in bearing housing, install countershaft with gears, install mainshaft with gears, install locknuts, install detent assembly, shift cam, lock plate, and shift fork shafts.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 240,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 140 },
   figures: [],
@@ -4994,10 +4994,10 @@ export const jobs = [
 {
   id: 't20-transmission-install',
   bikeIds: ['touring-2020'],
-  system: 'drivetrain',
+  system: 'transmission',
   title: 'Transmission — Install in Motorcycle',
   summary: 'Install transmission in case with gasket, install bearing housing screws, install top cover, install bearing inner race, push rod, side covers, exhaust, and all removed components.',
-  difficulty: 'Hard',
+  difficulty: 'Advanced',
   timeMinutes: 180,
   source: { manual: '2020 HD Touring Service Manual.pdf', page: 131 },
   figures: [],
@@ -6397,7 +6397,7 @@ export const jobs = [
     source: { manual: '2020 HD Touring Service Manual.pdf', page: 6 },
     figures: [],
     tools: ['PROPANE ENRICHMENT KIT — HD-41417'],
-    parts: ['Small propane cylinder'],
+    parts: [{ number: '', description: 'Small propane cylinder', qty: 1 }],
     torque: [],
     steps: [
       {
@@ -6783,8 +6783,8 @@ export const jobs = [
 {"id":"t20-power-disconnect-disconnect-battery","bikeIds":["touring-2020"],"system":"electrical","title":"Power Disconnect — Disconnect Negative Battery Cable","summary":"Disconnect negative battery cable from battery to prevent starter engagement and engine rotation. Used before major electrical work.","difficulty":"Easy","timeMinutes":10,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":8},"figures":[],"tools":[],"parts":[],"torque":[{"fastener":"Negative battery cable screw","value":"60-70 in-lbs (6.8-7.9 N·m)","note":""}],"steps":[{"n":1,"text":"Models with security: Disable security system. Verify that fob is present. Turn OFF/RUN switch to RUN. Turn ignition switch ON."},{"n":2,"text":"Remove seat."},{"n":3,"text":"Detach ECM (Electronic control module) from top caddy."},{"n":4,"text":"Disconnect negative battery cable.","warning":"To prevent accidental vehicle start-up, which could cause death or serious injury, disconnect negative (−) battery cable before proceeding."},{"n":5,"text":"Models with security: Turn ignition switch OFF."}]},
 {"id":"t20-power-disconnect-connect-battery","bikeIds":["touring-2020"],"system":"electrical","title":"Power Disconnect — Connect Negative Battery Cable","summary":"Reconnect negative battery cable after electrical work is complete. Restore battery connection and secure ECM.","difficulty":"Easy","timeMinutes":5,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":8},"figures":[],"tools":[],"parts":[],"torque":[{"fastener":"Negative battery cable screw","value":"60-70 in-lbs (6.8-7.9 N·m)","note":""}],"steps":[{"n":1,"text":"Connect negative battery cable. Tighten. Torque: 60-70 in-lbs (6.8-7.9 N·m)."},{"n":2,"text":"Attach ECM to top caddy."},{"n":3,"text":"Install seat."}]},
 {"id":"t20-starter-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Starter — Remove and Install","summary":"Remove and install electric starter motor. Disconnect battery cable first. Replace O-ring and apply grease. Torque 22-24 ft-lbs.","difficulty":"Moderate","timeMinutes":60,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":11},"figures":[],"tools":[],"parts":[{"number":"99857-97A","description":"SPECIAL PURPOSE GREASE","qty":1},{"number":"99642-97","description":"LOCTITE 243 MEDIUM STRENGTH THREADLOCKER AND SEALANT (BLUE)","qty":1}],"torque":[{"fastener":"Starter mounting screw","value":"22-24 ft-lbs (29.8-32.5 N·m)","note":""},{"fastener":"Starter solenoid stud nut","value":"70-104 in-lbs (7.9-11.8 N·m)","note":""}],"steps":[{"n":1,"text":"Disconnect negative battery cable."},{"n":2,"text":"Remove engine oil filler cap/dipstick. Cover fill spout with clean shop cloth."},{"n":3,"text":"Remove starter. Remove battery positive cable from starter solenoid stud. Disconnect starter solenoid connector. Remove starter mounting screws.","warning":"Do not allow ring dowels to drop when removing starter."},{"n":4,"text":"Discard O-ring."},{"n":5,"text":"Install starter. Apply a light coat of grease on new O-ring. SPECIAL PURPOSE GREASE (99857-97A). Install new O-ring. Apply a light coat of threadlocker to starter mounting screws. LOCTITE 243 MEDIUM STRENGTH THREADLOCKER AND SEALANT (BLUE)."},{"n":6,"text":"Install starter. Verify that ring dowels are installed. Install starter. Install starter mounting screws. Tighten. Torque: 22-24 ft-lbs (29.8-32.5 N·m)."},{"n":7,"text":"Install battery positive cable on starter solenoid stud. Install starter solenoid nut. Tighten. Torque: 70-104 in-lbs (7.9-11.8 N·m)."},{"n":8,"text":"Pull down rubber boot over terminal connection."},{"n":9,"text":"Install starter solenoid connector."},{"n":10,"text":"Install engine oil filler cap/dipstick."},{"n":11,"text":"Connect negative battery cable."}]},
-{"id":"t20-ignition-switch-remove-install-fairing","bikeIds":["touring-2020"],"system":"electrical","title":"Ignition Switch — Remove and Install (Fairing Models)","summary":"Remove and install ignition switch on fairing models. Complex knob removal and installation procedure using alignment tool. Torque 85-115 in-lbs.","difficulty":"Hard","timeMinutes":45,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":16},"figures":[],"tools":["IGNITION SWITCH ALIGNMENT TOOL (HD-51198)"],"parts":[],"torque":[{"fastener":"Ignition switch housing screws: Fairing models","value":"85-115 in-lbs (9.6-13 N·m)","note":""}],"steps":[{"n":1,"text":"Remove left side cover."},{"n":2,"text":"Remove main fuse."},{"n":3,"text":"Fork mounted fairing models: Remove dash panel."},{"n":4,"text":"Frame mounted fairing models: Remove instrument bezel."},{"n":5,"text":"Remove ignition switch knob. Insert key and turn to UNLOCK position. Rotate knob to FORK LOCK. Press and hold release button at bottom of knob, and turn key 60 degrees counterclockwise. Lift knob to remove."},{"n":6,"text":"Disconnect ignition switch connector."},{"n":7,"text":"Remove two screws and flat washers securing ignition switch assembly."},{"n":8,"text":"Remove ignition switch."},{"n":9,"text":"Place ignition switch into position."},{"n":10,"text":"Install two screws and flat washers. Tighten. Torque: 85-115 in-lbs (9.6-13 N·m)."},{"n":11,"text":"Install ignition switch connector."},{"n":12,"text":"Fork mounted fairing models: Install dash panel."},{"n":13,"text":"Frame mounted fairing models: Install instrument bezel."},{"n":14,"text":"Place spring into bore at underside of knob. Install ignition switch knob. Verify button at bottom of knob is pressed and key is turned 60 degrees counterclockwise. With knob pointing toward FORK LOCK, insert shaft into ignition switch. Hold knob down and turn key clockwise to UNLOCK position. Audible click indicates proper engagement. Release knob. Rotate through all four positions to verify operation."},{"n":15,"text":"Install main fuse."},{"n":16,"text":"Install left side cover."}]},
-{"id":"t20-spark-plug-cables-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Spark Plug Cables — Remove and Install","summary":"Remove and install spark plug cables. Drain fuel tank first. Use special wire puller tool. Route cables through caddy retainers.","difficulty":"Hard","timeMinutes":60,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":19},"figures":[],"tools":["ADJUSTABLE SPARK PLUG WIRE PULLER (HD-52006)"],"parts":[],"torque":[],"steps":[{"n":1,"text":"Purge fuel line."},{"n":2,"text":"Disconnect fuel line from tank."},{"n":3,"text":"Remove left saddlebag."},{"n":4,"text":"Remove left side cover."},{"n":5,"text":"Remove main fuse."},{"n":6,"text":"Remove seat."},{"n":7,"text":"Remove console."},{"n":8,"text":"Remove fuel tank."},{"n":9,"text":"Remove cables from ignition coil."},{"n":10,"text":"Release cables retainers."},{"n":11,"text":"Using the wire puller, remove boots from spark plugs. Special Tool: ADJUSTABLE SPARK PLUG WIRE PULLER (HD-52006)."},{"n":12,"text":"Connect long cables to front spark plugs."},{"n":13,"text":"Connect short cables to rear spark plugs."},{"n":14,"text":"Adjust spark plug boots to avoid contact with fuel tank."},{"n":15,"text":"Right cables: Secure cable straps. Route front cable through caddy retainers."},{"n":16,"text":"Left cables: Secure left side anchored cable straps to frame backbone."},{"n":17,"text":"Connect cables to ignition coil."},{"n":18,"text":"Install fuel tank."},{"n":19,"text":"Connect fuel line to tank."},{"n":20,"text":"Install console."},{"n":21,"text":"Install seat."},{"n":22,"text":"Install main fuse."},{"n":23,"text":"Install left side cover."},{"n":24,"text":"Install left saddlebag."}]},
+{"id":"t20-ignition-switch-remove-install-fairing","bikeIds":["touring-2020"],"system":"electrical","title":"Ignition Switch — Remove and Install (Fairing Models)","summary":"Remove and install ignition switch on fairing models. Complex knob removal and installation procedure using alignment tool. Torque 85-115 in-lbs.","difficulty":"Advanced","timeMinutes":45,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":16},"figures":[],"tools":["IGNITION SWITCH ALIGNMENT TOOL (HD-51198)"],"parts":[],"torque":[{"fastener":"Ignition switch housing screws: Fairing models","value":"85-115 in-lbs (9.6-13 N·m)","note":""}],"steps":[{"n":1,"text":"Remove left side cover."},{"n":2,"text":"Remove main fuse."},{"n":3,"text":"Fork mounted fairing models: Remove dash panel."},{"n":4,"text":"Frame mounted fairing models: Remove instrument bezel."},{"n":5,"text":"Remove ignition switch knob. Insert key and turn to UNLOCK position. Rotate knob to FORK LOCK. Press and hold release button at bottom of knob, and turn key 60 degrees counterclockwise. Lift knob to remove."},{"n":6,"text":"Disconnect ignition switch connector."},{"n":7,"text":"Remove two screws and flat washers securing ignition switch assembly."},{"n":8,"text":"Remove ignition switch."},{"n":9,"text":"Place ignition switch into position."},{"n":10,"text":"Install two screws and flat washers. Tighten. Torque: 85-115 in-lbs (9.6-13 N·m)."},{"n":11,"text":"Install ignition switch connector."},{"n":12,"text":"Fork mounted fairing models: Install dash panel."},{"n":13,"text":"Frame mounted fairing models: Install instrument bezel."},{"n":14,"text":"Place spring into bore at underside of knob. Install ignition switch knob. Verify button at bottom of knob is pressed and key is turned 60 degrees counterclockwise. With knob pointing toward FORK LOCK, insert shaft into ignition switch. Hold knob down and turn key clockwise to UNLOCK position. Audible click indicates proper engagement. Release knob. Rotate through all four positions to verify operation."},{"n":15,"text":"Install main fuse."},{"n":16,"text":"Install left side cover."}]},
+{"id":"t20-spark-plug-cables-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Spark Plug Cables — Remove and Install","summary":"Remove and install spark plug cables. Drain fuel tank first. Use special wire puller tool. Route cables through caddy retainers.","difficulty":"Advanced","timeMinutes":60,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":19},"figures":[],"tools":["ADJUSTABLE SPARK PLUG WIRE PULLER (HD-52006)"],"parts":[],"torque":[],"steps":[{"n":1,"text":"Purge fuel line."},{"n":2,"text":"Disconnect fuel line from tank."},{"n":3,"text":"Remove left saddlebag."},{"n":4,"text":"Remove left side cover."},{"n":5,"text":"Remove main fuse."},{"n":6,"text":"Remove seat."},{"n":7,"text":"Remove console."},{"n":8,"text":"Remove fuel tank."},{"n":9,"text":"Remove cables from ignition coil."},{"n":10,"text":"Release cables retainers."},{"n":11,"text":"Using the wire puller, remove boots from spark plugs. Special Tool: ADJUSTABLE SPARK PLUG WIRE PULLER (HD-52006)."},{"n":12,"text":"Connect long cables to front spark plugs."},{"n":13,"text":"Connect short cables to rear spark plugs."},{"n":14,"text":"Adjust spark plug boots to avoid contact with fuel tank."},{"n":15,"text":"Right cables: Secure cable straps. Route front cable through caddy retainers."},{"n":16,"text":"Left cables: Secure left side anchored cable straps to frame backbone."},{"n":17,"text":"Connect cables to ignition coil."},{"n":18,"text":"Install fuel tank."},{"n":19,"text":"Connect fuel line to tank."},{"n":20,"text":"Install console."},{"n":21,"text":"Install seat."},{"n":22,"text":"Install main fuse."},{"n":23,"text":"Install left side cover."},{"n":24,"text":"Install left saddlebag."}]},
 {"id":"t20-ignition-coil-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Ignition Coil — Remove and Install","summary":"Remove and install ignition coil mounted on battery hold-down bracket. Replace spark plug cables. Torque 32-40 in-lbs.","difficulty":"Moderate","timeMinutes":45,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":20},"figures":[],"tools":[],"parts":[],"torque":[{"fastener":"Ignition coil screws","value":"32-40 in-lbs (3.6-4.5 N·m)","note":""},{"fastener":"Battery hold-down screws","value":"32-40 in-lbs (3.6-4.5 N·m)","note":""},{"fastener":"Harness ground stud flange nut","value":"50-90 in-lbs (5.7-10.2 N·m)","note":""}],"steps":[{"n":1,"text":"Remove left saddlebag."},{"n":2,"text":"Remove left side cover."},{"n":3,"text":"Remove main fuse."},{"n":4,"text":"Remove seat."},{"n":5,"text":"Remove top caddy."},{"n":6,"text":"Remove battery."},{"n":7,"text":"Remove spark plug wires from ignition coil towers."},{"n":8,"text":"Remove ignition coil connector."},{"n":9,"text":"Remove screws."},{"n":10,"text":"Loosen ground terminal nut."},{"n":11,"text":"Hold ground terminal wires out of the way."},{"n":12,"text":"Remove battery hold-down bracket and ignition coil."},{"n":13,"text":"Remove screws and ignition coil."},{"n":14,"text":"Install screws through ignition coil into battery hold-down bracket. Tighten. Torque: 32-40 in-lbs (3.6-4.5 N·m)."},{"n":15,"text":"Hold ground terminal wires out of the way."},{"n":16,"text":"Place ignition coil and battery hold-down bracket into position."},{"n":17,"text":"Install screws. Tighten. Torque: 32-40 in-lbs (3.6-4.5 N·m)."},{"n":18,"text":"Tighten ground terminal nut. Torque: 50-90 in-lbs (5.7-10.2 N·m)."},{"n":19,"text":"Install battery."},{"n":20,"text":"Install top caddy."},{"n":21,"text":"Install seat."},{"n":22,"text":"Install main fuse."},{"n":23,"text":"Install left side cover."},{"n":24,"text":"Install left saddlebag."}]},
 {"id":"t20-lhcm-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Left Hand Control Module (LHCM) — Remove and Install","summary":"Remove and install left handlebar control module. Replace switch housings and connectors carefully. Never install different model switch. Torque 35-44 in-lbs.","difficulty":"Moderate","timeMinutes":45,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":22},"figures":[],"tools":[],"parts":[],"torque":[{"fastener":"LHCM housing screw","value":"35-44 in-lbs (4-5 N·m)","note":""}],"steps":[{"n":1,"text":"Remove left side cover."},{"n":2,"text":"Remove main fuse."},{"n":3,"text":"FLHRXS: Remove turn signal lamp and mirror."},{"n":4,"text":"Remove clutch handle assembly."},{"n":5,"text":"Remove trigger finger switch cap. Lightly lift to elevate from normal position. Using small screwdriver, carefully pry between cap and plunger. Slide cap off."},{"n":6,"text":"Remove LHCM housing. Loosen screws. Remove front housing."},{"n":7,"text":"Remove connectors. Using a pick, carefully press connector latch down. Use prying motion on latch while pulling on connector."},{"n":8,"text":"FLHRXS: Disconnect turn signal lamp."},{"n":9,"text":"Release connector latch and rotate switch down."},{"n":10,"text":"Remove hand control module from handlebar. Release wires from hand control module. Remove hand control module."},{"n":11,"text":"Connect LHCM connector. Route harness through fingers and into channel. Connect LHCM connectors."},{"n":12,"text":"Install LHCM on handlebar. Rotate switch up and snap latch into place."},{"n":13,"text":"Route wires close to the wire retainer."},{"n":14,"text":"Verify that wire harness is in the recess at bottom of handlebar."},{"n":15,"text":"FLHRXS: Connect turn signal lamp."},{"n":16,"text":"Install front housing. Align switch housing on LHCM. Install screws until snug."},{"n":17,"text":"Install clutch control assembly."},{"n":18,"text":"Tighten screws. Torque: 35-44 in-lbs (4-5 N·m)."},{"n":19,"text":"Install trigger finger switch cap. Raise switch to elevated position. Slide switch cap onto switch until fully seated. Press cap into normal position."}]},
 {"id":"t20-battery-remove-inspect","bikeIds":["touring-2020"],"system":"electrical","title":"Battery — Remove and Inspect","summary":"Remove and inspect 28Ah/405 CCA battery. Check for damage and cleanliness before reinstalling.","difficulty":"Easy","timeMinutes":20,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":46},"figures":[],"tools":[],"parts":[],"torque":[],"steps":[{"n":1,"text":"Remove seat."},{"n":2,"text":"Disconnect negative battery cable."},{"n":3,"text":"Disconnect positive battery cable."},{"n":4,"text":"Remove battery hold-down."},{"n":5,"text":"Remove battery."},{"n":6,"text":"Inspect battery for physical damage, cracks, and cleanliness."},{"n":7,"text":"Clean battery terminals if necessary."},{"n":8,"text":"Install battery."},{"n":9,"text":"Install battery hold-down."},{"n":10,"text":"Connect positive battery cable."},{"n":11,"text":"Connect negative battery cable."},{"n":12,"text":"Install seat."}]},
@@ -6793,7 +6793,4360 @@ export const jobs = [
 {"id":"t20-ambient-air-temperature-sensor-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Ambient Air Temperature Sensor — Remove and Install","summary":"Remove and install ambient air temperature sensor. Disconnect connector and remove from mounting location.","difficulty":"Easy","timeMinutes":10,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":96},"figures":[],"tools":[],"parts":[],"torque":[],"steps":[{"n":1,"text":"Remove main fuse."},{"n":2,"text":"Remove left saddlebag."},{"n":3,"text":"Remove left side cover."},{"n":4,"text":"Disconnect ambient air temperature sensor connector."},{"n":5,"text":"Remove sensor from mounting location."},{"n":6,"text":"Install new sensor in mounting location."},{"n":7,"text":"Connect sensor connector."},{"n":8,"text":"Install left side cover."},{"n":9,"text":"Install left saddlebag."},{"n":10,"text":"Install main fuse."}]},
 {"id":"t20-crankshaft-position-sensor-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Crankshaft Position Sensor (CKP) — Remove and Install","summary":"Remove and install crankshaft position sensor. Disconnect connector and remove retaining screw.","difficulty":"Moderate","timeMinutes":20,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":97},"figures":[],"tools":[],"parts":[],"torque":[],"steps":[{"n":1,"text":"Remove main fuse."},{"n":2,"text":"Remove left saddlebag."},{"n":3,"text":"Remove left side cover."},{"n":4,"text":"Disconnect CKP sensor connector."},{"n":5,"text":"Remove retaining screw."},{"n":6,"text":"Remove sensor."},{"n":7,"text":"Install new sensor. Position sensor properly for rotor clearance."},{"n":8,"text":"Install retaining screw. Tighten."},{"n":9,"text":"Connect sensor connector."},{"n":10,"text":"Install left side cover."},{"n":11,"text":"Install left saddlebag."},{"n":12,"text":"Install main fuse."}]},
 {"id":"t20-knock-sensor-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Knock Sensor (KS) — Remove and Install","summary":"Remove and install knock sensor on engine block. Disconnect connector and remove sensor.","difficulty":"Moderate","timeMinutes":30,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":99},"figures":[],"tools":[],"parts":[],"torque":[],"steps":[{"n":1,"text":"Remove seat."},{"n":2,"text":"Remove main fuse."},{"n":3,"text":"Remove fuel tank to access knock sensor on engine."},{"n":4,"text":"Disconnect knock sensor connector."},{"n":5,"text":"Remove retaining fastener."},{"n":6,"text":"Remove sensor from engine block."},{"n":7,"text":"Install new knock sensor on engine block."},{"n":8,"text":"Install retaining fastener. Tighten."},{"n":9,"text":"Connect sensor connector."},{"n":10,"text":"Install fuel tank."},{"n":11,"text":"Install main fuse."},{"n":12,"text":"Install seat."}]},
-{"id":"t20-jiffy-stand-sensor-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Jiffy Stand Sensor (JSS) — Remove and Install","summary":"Remove and install jiffy stand sensor. Disconnect connector and remove retaining screw.","difficulty":"Easy","timeMinutes":15,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":107},"figures":[],"tools":[],"parts":[],"torque":[],"steps":[{"n":1,"text":"Remove main fuse."},{"n":2,"text":"Disconnect JSS connector."},{"n":3,"text":"Remove retaining screw."},{"n":4,"text":"Remove sensor from jiffy stand."},{"n":5,"text":"Install new sensor on jiffy stand."},{"n":6,"text":"Install retaining screw. Tighten."},{"n":7,"text":"Connect sensor connector."},{"n":8,"text":"Test stand sensor operation. Sensor should trigger when stand is down."},{"n":9,"text":"Install main fuse."}]}
+{"id":"t20-jiffy-stand-sensor-remove-install","bikeIds":["touring-2020"],"system":"electrical","title":"Jiffy Stand Sensor (JSS) — Remove and Install","summary":"Remove and install jiffy stand sensor. Disconnect connector and remove retaining screw.","difficulty":"Easy","timeMinutes":15,"source":{"manual":"2020 HD Touring Service Manual.pdf","page":107},"figures":[],"tools":[],"parts":[],"torque":[],"steps":[{"n":1,"text":"Remove main fuse."},{"n":2,"text":"Disconnect JSS connector."},{"n":3,"text":"Remove retaining screw."},{"n":4,"text":"Remove sensor from jiffy stand."},{"n":5,"text":"Install new sensor on jiffy stand."},{"n":6,"text":"Install retaining screw. Tighten."},{"n":7,"text":"Connect sensor connector."},{"n":8,"text":"Test stand sensor operation. Sensor should trigger when stand is down."},{"n":9,"text":"Install main fuse."}]},
+
+{
+    id: 't20-maint-schedule',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Maintenance Schedule',
+    summary: 'Regular service intervals for all maintenance and inspection tasks.',
+    difficulty: 'Easy',
+    timeMinutes: 5,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-4'
+    },
+    figures: [],
+    tools: [],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'Every 1,000 miles (1,600 km): Check operation of electrical equipment and switches, check front tire pressure, inspect front brake fluid level, inspect clutch fluid system for leaks, check DOT4 clutch and front brake fluid for moisture, replace engine oil and filter, check engine coolant freeze point, clean radiators or oil cooler, inspect oil lines and brake system for leaks.'
+      },
+      {
+        n: 2,
+        text: 'Every 5,000 miles (8,000 km): Repeat 1,000 mile checks, inspect air cleaner and service as required, inspect fuel lines and fittings for leaks, inspect brake pads and discs for wear, check rear tire pressure and inspect tread, inspect and adjust drive belt and sprockets, inspect exhaust system.'
+      },
+      {
+        n: 3,
+        text: 'Every 10,000 miles (16,000 km): Perform check and replace brake fluid (drain and replace DOT4 fluid), check front wheel spoke tightness if equipped.'
+      },
+      {
+        n: 4,
+        text: 'Every 15,000 miles (24,000 km): Repeat 5,000 mile checks, replace primary chaincase lubricant, inspect and lubricate jiffy stand, check front axle nut torque, check rear axle nut torque.'
+      },
+      {
+        n: 5,
+        text: 'Every 20,000 miles (32,000 km): Inspect, lubricate and adjust steering head bearings, replace transmission lubricant, check rear wheel spoke tightness if equipped.'
+      },
+      {
+        n: 6,
+        text: 'Every 30,000 miles (48,000 km): Replace coolant every 30,000 mi, replace spark plugs every two years or 30,000 mi whichever comes first.'
+      },
+      {
+        n: 7,
+        text: 'Every 50,000 miles (80,000 km): Rebuild front forks and replace fork oil. After 50,000 miles, repeat the service schedule starting at the 8,000 km (5,000 mi) interval.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-fuel-oil-specs',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Fuel and Oil Specifications',
+    summary: 'Recommended fuel grades, oil specifications, and cold-weather considerations.',
+    difficulty: 'Easy',
+    timeMinutes: 5,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-7'
+    },
+    figures: [],
+    tools: [],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'FUEL: Always use good quality unleaded gasoline with octane rating of 91 (95 RON) pump octane (R+M)/2.'
+      },
+      {
+        n: 2,
+        text: 'Use reformulated or oxygenated gasolines (RFG) whenever possible to reduce emissions. Do not use racing fuel or fuel containing methanol.'
+      },
+      {
+        n: 3,
+        text: 'Ethanol fuel with up to 10 percent ethanol content may be used without affecting vehicle performance. E15 (15% ethanol) is currently restricted from use in motorcycles.'
+      },
+      {
+        n: 4,
+        text: 'Use only Harley-Davidson approved fuel additives. Other additives may damage the engine, fuel system and other components.'
+      },
+      {
+        n: 5,
+        text: 'ENGINE OIL: Originally equipped with Genuine Harley-Davidson H-D 360 Motorcycle Oil 20W50. Recommended: Screamin\' Eagle SYN3 Full Synthetic Motorcycle Lubricant 20W50.'
+      },
+      {
+        n: 6,
+        text: 'Use proper oil grade for lowest temperature expected before next oil change. SAE 20W50 for above 30.2°F (-1°C), SAE 20W50 for above 39.2°F (4°C), SAE 50 for above 60.8°F (16°C), SAE 60 for above 80.6°F (27°C).'
+      },
+      {
+        n: 7,
+        text: 'If H-D 360 or SYN3 is unavailable, use diesel engine oil certified as CH-4, CI-4 or CJ-4 with preferred viscosities 20W50, 15W40, or 10W40.'
+      },
+      {
+        n: 8,
+        text: 'COLD WEATHER: Change engine oil more frequently in colder climates. For temperatures below 60°F (16°C) with short runs (less than 15 mi/24 km), reduce oil change interval to 1500 mi (2,400 km).'
+      },
+      {
+        n: 9,
+        text: 'Cold weather operation: Water vapor from combustion condenses on cool engine surfaces. Keep engine at operating temperature to evaporate water and prevent sludge accumulation.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-oil-filter-change',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Replace Engine Oil and Filter',
+    summary: 'Change engine oil and oil filter at regular intervals to maintain engine performance.',
+    difficulty: 'Easy',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-9'
+    },
+    figures: [],
+    tools: [
+      'Oil filter wrench HD-94686-00',
+      'Oil filter wrench HD-94863-10'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'Engine oil (Screamin Eagle SYN3 20W50 or equivalent)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Oil filter',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Oil drain plug O-ring',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Engine oil drain plug',
+        value: '14-21 ft-lbs (19-28.5 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Run motorcycle until engine is at normal operating temperature, then turn off engine.'
+      },
+      {
+        n: 2,
+        text: 'Remove filler plug/dipstick.'
+      },
+      {
+        n: 3,
+        text: 'Remove the oil drain plug (left side) and O-ring. Allow oil to drain completely.'
+      },
+      {
+        n: 4,
+        text: 'Remove the oil filter using oil filter wrench and hand tools. Do not use air tools.'
+      },
+      {
+        n: 5,
+        text: 'Clean the oil filter mount flange.'
+      },
+      {
+        n: 6,
+        text: 'Clean any residual oil from crankcase and transmission housing.'
+      },
+      {
+        n: 7,
+        text: 'Install new oil filter: Lubricate gasket with thin film of clean engine oil, install new filter, hand-tighten one-half to three-quarters turn after gasket contacts mounting surface. Do NOT use wrench for installation.'
+      },
+      {
+        n: 8,
+        text: 'Install engine oil drain plug and new O-ring. Torque 14-21 ft-lbs (19-28.5 N·m).'
+      },
+      {
+        n: 9,
+        text: 'Add initial volume of engine oil: 4.0 qt (3.8 L).'
+      },
+      {
+        n: 10,
+        text: 'Verify proper oil level: Perform engine oil level cold check, start engine and check for oil leaks around drain plug and filter, then perform engine oil level hot check.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-primary-lubricant',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Replace Primary Chaincase Lubricant',
+    summary: 'Drain and refill primary chaincase with proper lubricant to maintain clutch operation.',
+    difficulty: 'Moderate',
+    timeMinutes: 45,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-11'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Primary chaincase lubricant (Formula+ or Screamin\' Eagle SYN3 20W50)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Primary chaincase drain plug O-ring',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Clutch inspection cover seal',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Primary chaincase drain plug',
+        value: '14-21 ft-lbs (19-28.5 N·m)'
+      },
+      {
+        fastener: 'Clutch inspection cover screws',
+        value: '84-108 in-lbs (9.5-12.2 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Run motorcycle until engine is at normal operating temperature, then turn off engine.'
+      },
+      {
+        n: 2,
+        text: 'Secure motorcycle upright (not on jiffy stand) on a level surface.'
+      },
+      {
+        n: 3,
+        text: 'Drain primary chaincase by removing drain plug (bottom).'
+      },
+      {
+        n: 4,
+        text: 'Clean drain plug magnet. If excessive debris, inspect chaincase components condition.'
+      },
+      {
+        n: 5,
+        text: 'Install drain plug and new O-ring. Torque 14-21 ft-lbs (19-28.5 N·m).'
+      },
+      {
+        n: 6,
+        text: 'Remove screws and clutch inspection cover. Remove seal and wipe oil from groove.'
+      },
+      {
+        n: 7,
+        text: 'Wipe all lubricant from cover mounting surface and groove in chaincase cover.'
+      },
+      {
+        n: 8,
+        text: 'Add lubricant: Pour specified amount (dry fill 34 oz/1.0 L or wet fill 30 oz/0.9 L) of Formula+ or Screamin\' Eagle SYN3 through clutch inspection cover opening. Proper level is approximately at bottom of pressure plate OD.'
+      },
+      {
+        n: 9,
+        text: 'Install clutch inspection cover: Position new seal in groove, press nubs into groove, secure cover with screws and captive washers, tighten in sequence to 84-108 in-lbs (9.5-12.2 N·m).'
+      },
+      {
+        n: 10,
+        text: 'WARNING: Do not overfill the primary chaincase. Overfilling can cause rough clutch engagement, incomplete disengagement, clutch drag and difficulty finding neutral at engine idle.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-transmission-lubricant',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Replace Transmission Lubricant',
+    summary: 'Drain and refill transmission with proper lubricant for smooth operation.',
+    difficulty: 'Easy',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-13'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Transmission lubricant (Formula+ or Screamin\' Eagle SYN3 20W50)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Transmission drain plug O-ring',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Transmission drain plug',
+        value: '14-21 ft-lbs (19-28.5 N·m)'
+      },
+      {
+        fastener: 'Transmission filler plug/dipstick',
+        value: '25-75 in-lbs (2.8-8.5 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Remove transmission filler plug/dipstick.'
+      },
+      {
+        n: 2,
+        text: 'See Figure 2-11. Remove transmission drain plug (left side). Drain transmission.'
+      },
+      {
+        n: 3,
+        text: 'Clean and inspect drain plug and O-ring.'
+      },
+      {
+        n: 4,
+        text: 'Install drain plug with new O-ring. Torque 14-21 ft-lbs (19-28.5 N·m). Do not over-tighten.'
+      },
+      {
+        n: 5,
+        text: 'Fill transmission to specification with recommended Harley-Davidson lubricant (Formula+ or Screamin\' Eagle SYN3). Volume: 28 fl oz (0.83 L).'
+      },
+      {
+        n: 6,
+        text: 'Check lubricant level. Add enough to bring level between the add (A) and full (F) marks.'
+      },
+      {
+        n: 7,
+        text: 'Install filler plug/dipstick. Torque 25-75 in-lbs (2.8-8.5 N·m).'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-tires-wheels',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Tires and Wheels',
+    summary: 'Check tire pressure, tread wear, and wheel bearing condition.',
+    difficulty: 'Easy',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-15'
+    },
+    figures: [],
+    tools: [
+      'Tire pressure gauge'
+    ],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'Check tire pressures when tires are cold. Specified pressures: Front 36 psi (248 kPa), Rear 40 psi (276 kPa).'
+      },
+      {
+        n: 2,
+        text: 'Inspect each tire for wear: Replace tires before tread wear indicators appear (when 0.031 in/0.8 mm or less tread remains).'
+      },
+      {
+        n: 3,
+        text: 'Inspect each tire for punctures, cuts, breaks, damage to tire that cannot be repaired, tire cords or fabric visible, bumps, bulges or splits in tire.'
+      },
+      {
+        n: 4,
+        text: 'Replace tire immediately when wear bars become visible or only 1/32 in (1 mm) tread depth remains.'
+      },
+      {
+        n: 5,
+        text: 'WHEEL BEARINGS: Inspect when wheels are removed. Check for play by hand, rotate inner bearing race and check for abnormal noise, ensure bearing rotates smoothly, inspect for wear and corrosion.'
+      },
+      {
+        n: 6,
+        text: 'Replace bearings if excessive play exceeds 0.002 in (0.051 mm) service wear limit. Replace bearings in sets only.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-wheel-spokes',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Adjust Wheel Spokes',
+    summary: 'Check and tighten wheel spokes to proper torque specification.',
+    difficulty: 'Advanced',
+    timeMinutes: 90,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-16'
+    },
+    figures: [],
+    tools: [
+      'Spoke torque wrench HD-48985',
+      'Spoke wrench HD-94681-80'
+    ],
+    parts: [],
+    torque: [
+      {
+        fastener: 'Spoke nipple',
+        value: '55 in-lbs (6.2 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Raise wheel and identify spoke groups: Starting at valve stem, mark first group of four spokes (1-4) using different colors for each spoke on nipple and rim.'
+      },
+      {
+        n: 2,
+        text: 'Continue around wheel marking remaining spokes same as first group.'
+      },
+      {
+        n: 3,
+        text: 'Loosen spoke (1) one-quarter turn using Spoke Wrench HD-94681-80.'
+      },
+      {
+        n: 4,
+        text: 'Tighten spoke (1) to 55 in-lbs (6.2 N·m) using Spoke Torque Wrench HD-48985. While tightening, if torque wrench clicks before alignment marks align, continue turning until marks align. If marks align and torque not reached, tighten until correct torque achieved. Do not turn more than one-quarter turn past alignment mark.'
+      },
+      {
+        n: 5,
+        text: 'Repeat for spoke (4) in same group.'
+      },
+      {
+        n: 6,
+        text: 'Continue around wheel checking spokes 1 and 4 until all groups done.'
+      },
+      {
+        n: 7,
+        text: 'Repeat procedure for spokes (2, 3) in each group.'
+      },
+      {
+        n: 8,
+        text: 'True the wheel. See CHECKING AND TRUING WHEELS (Page 3-17).'
+      },
+      {
+        n: 9,
+        text: 'WARNING: Do not over-tighten spoke nipples. Spokes too tight can draw nipples through rim or distort hub flanges. Spokes too loose can continue loosening in service, affecting stability and handling.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-cables-chassis-lube',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Lubricate Cables and Chassis',
+    summary: 'Lubricate control cables, pivots, hinges and mechanical components.',
+    difficulty: 'Easy',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-18'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Harley Lube',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Anti-Seize Lubricant',
+        qty: 1
+      }
+    ],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'Inspect and lubricate components according to maintenance schedule.'
+      },
+      {
+        n: 2,
+        text: 'Lubricate the following items with Harley Lube: Throttle cable, Choke cable, Brake line routing, Clutch cable, Front brake lever pivot, Clutch control hand lever pivot, Foot shift lever pivot, Rear brake lever pivot, Hinges and latches (fuel door, footrests), Locks as required.'
+      },
+      {
+        n: 3,
+        text: 'Use Anti-Seize Lubricant for Jiffy stand lubrication.'
+      },
+      {
+        n: 4,
+        text: 'If motorcycle is operated on muddy or dusty roads, clean and lubricate more frequently.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-brake-disc-inspect',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Brake Discs',
+    summary: 'Check brake disc thickness and runout for wear and damage.',
+    difficulty: 'Moderate',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-19'
+    },
+    figures: [],
+    tools: [
+      'Micrometer',
+      'Dial indicator'
+    ],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'For FRONT DISC: Measure thickness with micrometer. Minimum acceptable thickness is stamped on side of disc.'
+      },
+      {
+        n: 2,
+        text: 'Replace disc if disc is scored or measured thickness is less than minimum.'
+      },
+      {
+        n: 3,
+        text: 'Measure runout near outside diameter of disc using dial indicator. Replace disc if runout meets or exceeds 0.008 in (0.2 mm).'
+      },
+      {
+        n: 4,
+        text: 'Replace disc if warped, badly scored or worn beyond service limit.'
+      },
+      {
+        n: 5,
+        text: 'For REAR DISC: Same inspection procedure as front disc.'
+      },
+      {
+        n: 6,
+        text: 'NOTE: Minimum acceptable thickness is stamped on side of disc. If replacing disc, order replacement from authorized Harley-Davidson dealer with correct specifications.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-brake-pads-front',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Replace Front Brake Pads',
+    summary: 'Remove and install front brake pads with proper installation sequence.',
+    difficulty: 'Moderate',
+    timeMinutes: 45,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-20'
+    },
+    figures: [],
+    tools: [
+      'C-clamp'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'Front brake pads',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Pad pin (metric)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Pad spring (if damaged)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Brake pad pin',
+        value: '75-102 in-lbs (8.5-11.5 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Remove caliper. See FRONT BRAKE CALIPER (Page 3-34).'
+      },
+      {
+        n: 2,
+        text: 'Loosen master cylinder reservoir cap.'
+      },
+      {
+        n: 3,
+        text: 'Remove grit and debris from caliper piston area: Rinse area with warm soapy water, dry using low-pressure compressed air.'
+      },
+      {
+        n: 4,
+        text: 'Remove pads: Remove screen from caliper, using old brake pad and C-clamp retract pistons fully into caliper, remove retaining clip, discard old pad pin, remove brake pads, inspect pad spring and replace if needed.'
+      },
+      {
+        n: 5,
+        text: 'Install pad spring: Install on flat in caliper so clips on spring engage indentations in caliper. Make sure forked end is on pad pin side of caliper.'
+      },
+      {
+        n: 6,
+        text: 'Install new brake pads: Insert each pad with square corner in slot of caliper, push pad pin tab into caliper.'
+      },
+      {
+        n: 7,
+        text: 'Install new pad pin. Torque 75-102 in-lbs (8.5-11.5 N·m).'
+      },
+      {
+        n: 8,
+        text: 'Install retaining clip.'
+      },
+      {
+        n: 9,
+        text: 'Install screen: Engage prongs of screen on forked end of pad spring. Push on opposite side until engaged.'
+      },
+      {
+        n: 10,
+        text: 'Tighten master cylinder reservoir cap.'
+      },
+      {
+        n: 11,
+        text: 'Install caliper.'
+      },
+      {
+        n: 12,
+        text: 'Pump brakes to move pistons out until brake pads contact rotor. Verify piston location against pads.'
+      },
+      {
+        n: 13,
+        text: 'Check fluid level in brake master cylinder reservoir.'
+      },
+      {
+        n: 14,
+        text: 'Test brakes: Turn ignition ON, check operation of front lamp, test ride at low speed. If brakes feel spongy, bleed brakes.'
+      },
+      {
+        n: 15,
+        text: 'WARNING: After repairing brakes, test at low speed. If not operating properly, high speed testing can cause loss of control and death or serious injury.'
+      },
+      {
+        n: 16,
+        text: 'NOTE: Avoid hard stops for first 100 mi (160 km) to wear in brakes properly. Always replace both pads as a set for correct and safe brake operation.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-brake-pads-rear',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Replace Rear Brake Pads',
+    summary: 'Remove and install rear brake pads with proper installation sequence.',
+    difficulty: 'Moderate',
+    timeMinutes: 45,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-21'
+    },
+    figures: [],
+    tools: [
+      'C-clamp'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'Rear brake pads',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Brake pad paste',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Pad pin (metric)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Pad spring (if damaged)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Brake pad pin',
+        value: '75-102 in-lbs (8.5-11.5 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Remove caliper. See FRONT BRAKE CALIPER (Page 3-34).'
+      },
+      {
+        n: 2,
+        text: 'Loosen master cylinder reservoir cap.'
+      },
+      {
+        n: 3,
+        text: 'Remove grit and debris from caliper piston area: Rinse area with warm soapy water, dry using low-pressure compressed air.'
+      },
+      {
+        n: 4,
+        text: 'Remove pads: Using old brake pad and C-clamp retract pistons fully into caliper, remove retaining clip, discard old pad pin, remove brake pads, inspect pad spring and replace if needed.'
+      },
+      {
+        n: 5,
+        text: 'Install pad spring: Install on flat in caliper so clips on spring engage indentations in caliper. Make sure forked end is on pad pin side of caliper.'
+      },
+      {
+        n: 6,
+        text: 'Install new brake pads: Apply paste supplied in kit to back of brake pads, insert each pad with square corner in slot of caliper, push pad pin tab into caliper.'
+      },
+      {
+        n: 7,
+        text: 'Install new pad pin. Torque 75-102 in-lbs (8.5-11.5 N·m).'
+      },
+      {
+        n: 8,
+        text: 'Install retaining clip.'
+      },
+      {
+        n: 9,
+        text: 'Tighten front master cylinder reservoir cap.'
+      },
+      {
+        n: 10,
+        text: 'Install caliper.'
+      },
+      {
+        n: 11,
+        text: 'Pump brakes to move pistons out until brake pads contact rotor. Verify piston location against pads.'
+      },
+      {
+        n: 12,
+        text: 'Check fluid level in brake master cylinder reservoir.'
+      },
+      {
+        n: 13,
+        text: 'Test brakes: Turn ignition ON, check operation of rear lamp, test ride at low speed. If brakes feel spongy, bleed brakes.'
+      },
+      {
+        n: 14,
+        text: 'WARNING: After repairing brakes, test at low speed. If not operating properly, high speed testing can cause loss of control and death or serious injury.'
+      },
+      {
+        n: 15,
+        text: 'NOTE: Avoid hard stops for first 100 mi (160 km) to wear in brakes properly. Always replace both pads as a set for correct and safe brake operation.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-brake-fluid',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Check and Replace Brake Fluid',
+    summary: 'Check brake fluid level, test moisture content, and perform drain and replace procedure.',
+    difficulty: 'Advanced',
+    timeMinutes: 90,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-24'
+    },
+    figures: [],
+    tools: [
+      'DOT 4 Brake Fluid Moisture Tester HD-48497-A',
+      'Basic Vacuum Brake Bleeder BB200A',
+      'Digital Technician II HD-48650 (ABS models)'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'DOT 4 Brake Fluid (41800219)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Brake bleeder screw, front',
+        value: '72-108 in-lbs (8.1-12.2 N·m)'
+      },
+      {
+        fastener: 'Brake bleeder screw, rear',
+        value: '75-102 in-lbs (8.5-11.5 N·m)'
+      },
+      {
+        fastener: 'Brake master cylinder, front, reservoir cover screws',
+        value: '12-15 in-lbs (1.4-1.7 N·m)'
+      },
+      {
+        fastener: 'Brake master cylinder, rear, reservoir cover screws',
+        value: '12-15 in-lbs (1.4-1.7 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'CHECK BRAKE FLUID LEVEL:'
+      },
+      {
+        n: 2,
+        text: 'Clean reservoir filler cap or cover before removing. Use only DOT 4 brake fluid from sealed container.'
+      },
+      {
+        n: 3,
+        text: 'At every service, check moisture content of fluid using DOT 4 Brake Fluid Moisture Tester HD-48497-A. Follow instructions included with tool.'
+      },
+      {
+        n: 4,
+        text: 'Flush brake system and replace DOT 4 fluid every two years or sooner if brake fluid test shows moisture content is 3% or greater.'
+      },
+      {
+        n: 5,
+        text: 'Fluid should never need to be added or removed during normal wear, except for fluid replacement as specified.'
+      },
+      {
+        n: 6,
+        text: 'Fluid level in reservoir will decrease with brake pad wear. Reservoir volume is adequate to provide fluid to wear limits.'
+      },
+      {
+        n: 7,
+        text: 'Position vehicle on flat level surface.'
+      },
+      {
+        n: 8,
+        text: 'Front brake: Position motorcycle and handlebar so master cylinder reservoir is level.'
+      },
+      {
+        n: 9,
+        text: 'Rear brake: Position motorcycle so master cylinder reservoir is level.'
+      },
+      {
+        n: 10,
+        text: 'View reservoir sight glass. Fluid level must be at or above minimum mark. If below minimum: Check brake system for leaks, check pads and rotors are properly installed and not worn beyond limits, add DOT 4 brake fluid if necessary.'
+      },
+      {
+        n: 11,
+        text: 'DRAIN AND REPLACE FLUID:'
+      },
+      {
+        n: 12,
+        text: 'Remove bleeder screw cap. Install Basic Vacuum Brake Bleeder BB200A to bleeder screw.'
+      },
+      {
+        n: 13,
+        text: 'Wrap clean shop towel around master cylinder reservoir to protect paint.'
+      },
+      {
+        n: 14,
+        text: 'Clean reservoir cover before removal.'
+      },
+      {
+        n: 15,
+        text: 'Remove cover from master cylinder reservoir.'
+      },
+      {
+        n: 16,
+        text: 'Add brake fluid as necessary. Verify proper operation of master cylinder relief port by actuating brake pedal or lever.'
+      },
+      {
+        n: 17,
+        text: 'Operate vacuum bleeder while maintaining fluid level. Open bleeder screw about 3/4 turn. Continue until specified volume replaced (non-ABS: front left 3 fl oz, front right 3 fl oz, rear 3 fl oz; ABS: front left 6 fl oz, front right 3 fl oz, rear 3 fl oz).'
+      },
+      {
+        n: 18,
+        text: 'Tighten bleeder screw. Install bleeder screw cap.'
+      },
+      {
+        n: 19,
+        text: 'Repeat with each caliper following sequence until all brake lines serviced.'
+      },
+      {
+        n: 20,
+        text: 'Fill reservoir to specified level.'
+      },
+      {
+        n: 21,
+        text: 'Clean gasket and sealing surfaces. Install master cylinder reservoir covers: Front cover with vent holes facing rear, rear cover as-is. Tighten to specification.'
+      },
+      {
+        n: 22,
+        text: 'ABS models: Use Digital Technician II HD-48650 and perform ABS Service procedure.'
+      },
+      {
+        n: 23,
+        text: 'Apply brakes to check proper lamp operation.'
+      },
+      {
+        n: 24,
+        text: 'Test brakes: Turn ignition ON, test ride. If feel spongy, perform bleeding procedure.'
+      },
+      {
+        n: 25,
+        text: 'INSPECT BRAKE LINES: Inspect for leaks, contact or abrasion. Steel lines okay if no marks or slight paint mark, replace if worn to bare material. Flexible lines replace if worn through cover or to bottom of ribs.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-clutch-fluid',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Check and Replace Hydraulic Clutch Fluid',
+    summary: 'Check clutch fluid level and perform drain and replace of DOT 4 fluid.',
+    difficulty: 'Advanced',
+    timeMinutes: 75,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-27'
+    },
+    figures: [],
+    tools: [
+      'DOT 4 Brake Fluid Moisture Tester HD-48497-A',
+      'Basic Vacuum Brake Bleeder BB200A'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'DOT 4 Hydraulic Brake Fluid',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Clutch actuator bleeder screw',
+        value: '56-75 in-lbs (6.3-8.5 N·m)'
+      },
+      {
+        fastener: 'Clutch reservoir cover screws',
+        value: '12-15 in-lbs (1.4-1.7 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'GENERAL: Clutch is hydraulically actuated. Master cylinder creates pressure in clutch fluid line. Pressure activates secondary clutch actuator. Actuator piston extends and contacts pushrod to disengage clutch.'
+      },
+      {
+        n: 2,
+        text: 'Check that clutch hand lever returns completely. If lever does not return completely, problems similar to over-filling can result.'
+      },
+      {
+        n: 3,
+        text: 'Inspect hydraulic clutch system for wear and leakage: Follow hydraulic line routing for abnormal wear, verify retaining clips and cable straps secure line adequately, look for evidence of leakage.'
+      },
+      {
+        n: 4,
+        text: 'CHECK HYDRAULIC CLUTCH FLUID:'
+      },
+      {
+        n: 5,
+        text: 'At every service, check moisture content of fluid using DOT 4 Brake Fluid Moisture Tester HD-48497-A. Follow instructions included with tool.'
+      },
+      {
+        n: 6,
+        text: 'Flush clutch system and replace DOT 4 fluid every two years or sooner if brake fluid test shows moisture content is 3% or greater.'
+      },
+      {
+        n: 7,
+        text: 'Adding or removing fluid should never be required during normal wear, except for replacement. Fluid level in reservoir will rise with clutch wear.'
+      },
+      {
+        n: 8,
+        text: 'REPLACE HYDRAULIC CLUTCH FLUID:'
+      },
+      {
+        n: 9,
+        text: 'Remove transmission outer side cover. See TRANSMISSION SIDE COVERS: HYDRAULIC CLUTCH (Page 5-9).'
+      },
+      {
+        n: 10,
+        text: 'Install Basic Vacuum Brake Bleeder BB200A to bleeder screw.'
+      },
+      {
+        n: 11,
+        text: 'Position vehicle or handlebar so master cylinder reservoir is level.'
+      },
+      {
+        n: 12,
+        text: 'Wrap clean shop towel around master cylinder reservoir to protect paint.'
+      },
+      {
+        n: 13,
+        text: 'Clean master cylinder reservoir cover before removal.'
+      },
+      {
+        n: 14,
+        text: 'Remove cover from master cylinder reservoir.'
+      },
+      {
+        n: 15,
+        text: 'WARNING: A plugged or covered relief port can cause clutch drag, which could lead to loss of control.'
+      },
+      {
+        n: 16,
+        text: 'Verify master cylinder operation: Add DOT 4 fluid as necessary, operate clutch lever.'
+      },
+      {
+        n: 17,
+        text: 'Carefully monitor fluid level in master cylinder reservoir. Add fluid before it empties to avoid drawing air.'
+      },
+      {
+        n: 18,
+        text: 'A slight bulge of fluid will break surface in reservoir if internal components working properly.'
+      },
+      {
+        n: 19,
+        text: 'Operate vacuum bleeder while maintaining fluid level: Open bleeder screw about 3/4 turn, continue until 3 fl oz (89 ml) replaced, tighten bleeder screw to 56-75 in-lbs (6.3-8.5 N·m).'
+      },
+      {
+        n: 20,
+        text: 'Install transmission outer side cover.'
+      },
+      {
+        n: 21,
+        text: 'Fill reservoir to specified level.'
+      },
+      {
+        n: 22,
+        text: 'Install master cylinder reservoir cover. Tighten to 12-15 in-lbs (1.4-1.7 N·m).'
+      },
+      {
+        n: 23,
+        text: 'Verify clutch operation.'
+      },
+      {
+        n: 24,
+        text: 'NOTE: Flush clutch system and replace DOT 4 fluid every two years per maintenance schedule. This procedure replaces fluid without introducing air. If air enters lines, revert to BLEED CLUTCH CONTROL SYSTEM (Page 3-84).'
+      },
+      {
+        n: 25,
+        text: 'DOT 4 hydraulic brake fluid is used in hydraulic clutch. Do not use other types as they are not compatible and could cause equipment damage.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-front-fork-rebuild',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Rebuild Front Fork and Replace Oil',
+    summary: 'Disassemble, inspect, and rebuild front forks with new fork oil.',
+    difficulty: 'Advanced',
+    timeMinutes: 180,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-29'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Type E Hydraulic Fork Oil (62600026)',
+        qty: 1
+      }
+    ],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'For detailed scheduled maintenance procedure for front fork rebuild and oil replacement, see FRONT FORK (Page 3-60).'
+      },
+      {
+        n: 2,
+        text: 'This is a complex procedure requiring disassembly of fork legs, cleaning internal components, replacing worn seals and springs, filling with Type E Hydraulic Fork Oil (16 oz bottle), and reassembly.'
+      },
+      {
+        n: 3,
+        text: 'Schedule this procedure every 50,000 miles (80,000 km) or as indicated in maintenance schedule.'
+      },
+      {
+        n: 4,
+        text: 'Refer to Chapter 3, Section on FRONT FORK for complete procedure.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-steering-bearings-check',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Adjust and Lubricate Steering Head Bearings - Check and Adjust',
+    summary: 'Check fork stem bearings for proper adjustment and perform swing-back measurement.',
+    difficulty: 'Advanced',
+    timeMinutes: 120,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-30'
+    },
+    figures: [],
+    tools: [
+      'Level',
+      'Cardboard and tape',
+      'Markers (3 colors)',
+      'Measuring tape'
+    ],
+    parts: [],
+    torque: [
+      {
+        fastener: 'Upper steering stem pinch screw',
+        value: '22-26 ft-lbs (29.8-35.2 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'WARNING: Properly adjust fork stem bearings. Improper adjustments can affect stability and handling, resulting in death or serious injury.'
+      },
+      {
+        n: 2,
+        text: 'MEASURE SWING-BACK (front end freely oscillates side to side):'
+      },
+      {
+        n: 3,
+        text: 'Remove all accessory weight such as windshield bag contents or handlebar-mounted navigation unit.'
+      },
+      {
+        n: 4,
+        text: 'Models with cable clutch: Disconnect clutch cable from hand control and secure out of way.'
+      },
+      {
+        n: 5,
+        text: 'Models with hydraulic clutch: Leave fully assembled.'
+      },
+      {
+        n: 6,
+        text: 'Lower frame rails MUST be level in both directions for valid check.'
+      },
+      {
+        n: 7,
+        text: 'Raise vehicle until tires are off ground. Place block under rear tire. Lower vehicle until tire contacts block.'
+      },
+      {
+        n: 8,
+        text: 'Using level, verify lower frame rails are level front to rear and left to right.'
+      },
+      {
+        n: 9,
+        text: 'Swing front end from stop-to-stop to check for smooth movement.'
+      },
+      {
+        n: 10,
+        text: 'Attach lightweight cardboard (8-10 in/20-25 cm) to front fender centered and even with fender tip.'
+      },
+      {
+        n: 11,
+        text: 'Place stationary pointer tip near cardboard. With front wheel straight forward, center pointer on cardboard.'
+      },
+      {
+        n: 12,
+        text: 'Make initial marks: Use first color to mark point where front end just begins to swing back toward center after tapping tire left and right.'
+      },
+      {
+        n: 13,
+        text: 'Measure outboard specified distance from each mark (1 in/25.4 mm). Use second color to mark these points.'
+      },
+      {
+        n: 14,
+        text: 'Repeat two more times in each direction to validate marks.'
+      },
+      {
+        n: 15,
+        text: 'Mark swing-back stops: Turn front end until pointer is at left mark and release. Using third color, mark where swing-back stops. Repeat for right side.'
+      },
+      {
+        n: 16,
+        text: 'Repeat two more times in each direction to validate marks.'
+      },
+      {
+        n: 17,
+        text: 'Measure distance between final swing-back marks. Readings must be within specification. See Table 2-14 for model-specific specifications.'
+      },
+      {
+        n: 18,
+        text: 'NOTE: A clunk indicates loose fork stem. Grasp both forks near front axle and shake front to rear checking for clunk. If heard, perform lubrication procedure.'
+      },
+      {
+        n: 19,
+        text: 'NOTE: A measurement greater than specification indicates steering stem too tight. A measurement less indicates steering stem too loose. To adjust, see Adjusting Swing-Back procedure.'
+      },
+      {
+        n: 20,
+        text: 'This procedure is for 2-wheel vehicles only. Trike does not require this check due to steering damper use.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-steering-bearings-adjust',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Adjust and Lubricate Steering Head Bearings - Adjust Swing-Back',
+    summary: 'Adjust steering stem bearings to achieve proper swing-back specification.',
+    difficulty: 'Advanced',
+    timeMinutes: 120,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-31'
+    },
+    figures: [],
+    tools: [
+      '1/4 inch drive extension 6 inches long'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'Special Purpose Grease (99857-97A)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Upper steering stem pinch screw',
+        value: '22-26 ft-lbs (29.8-35.2 N·m)'
+      },
+      {
+        fastener: 'Upper steering stem, first torque',
+        value: '35 ft-lbs (47.5 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'Disassemble motorcycle: Road King models remove headlamp. Fork-mounted fairing models remove outer fairing. Frame-mounted fairing models remove instrument nacelle. Protect front fender from damage.'
+      },
+      {
+        n: 2,
+        text: 'Loosen upper steering stem pinch screw.'
+      },
+      {
+        n: 3,
+        text: 'Adjust steering stem: Engage 1/4 inch drive extension 6 inches long into bottom of upper steering stem. Based on swing-back dimension, tighten (to increase dimension) or loosen (to decrease dimension) upper steering stem a few degrees.'
+      },
+      {
+        n: 4,
+        text: 'It is important that all original mass be in place to accurately measure swing-back.'
+      },
+      {
+        n: 5,
+        text: 'Tighten steering stem pinch screw to 22-26 ft-lbs (29.8-35.2 N·m).'
+      },
+      {
+        n: 6,
+        text: 'Temporarily install all removed original equipment components. Do not tighten fasteners.'
+      },
+      {
+        n: 7,
+        text: 'Check swing-back. Repeat until swing-back is within specification.'
+      },
+      {
+        n: 8,
+        text: 'Assemble motorcycle: Road King models install headlamp. Fork-mounted fairing models install outer fairing. Frame-mounted fairing models install instrument nacelle.'
+      },
+      {
+        n: 9,
+        text: 'Install any accessories removed earlier.'
+      },
+      {
+        n: 10,
+        text: 'LUBRICATE: Disassemble motorcycle same as above.'
+      },
+      {
+        n: 11,
+        text: 'Remove upper fork bracket and handlebar as assembly. Support out of way. See STEERING HEAD (Page 3-67).'
+      },
+      {
+        n: 12,
+        text: 'Remove upper steering stem. See STEERING HEAD (Page 3-67).'
+      },
+      {
+        n: 13,
+        text: 'Remove grease with clean cloth or finger. Do not use solvent.'
+      },
+      {
+        n: 14,
+        text: 'Raise motorcycle until lower stem bearing has exited far enough to clean grease from bearing cup and cone.'
+      },
+      {
+        n: 15,
+        text: 'Wipe grease from upper and lower bearing cups and cones. Inspect parts for wear or damage.'
+      },
+      {
+        n: 16,
+        text: 'Pack bearings with Special Purpose Grease (99857-97A).'
+      },
+      {
+        n: 17,
+        text: 'Lower motorcycle until lower bearing just seats. Do not place entire weight of vehicle on bearing.'
+      },
+      {
+        n: 18,
+        text: 'Apply Special Purpose Grease to threads of upper and lower steering stems.'
+      },
+      {
+        n: 19,
+        text: 'Install upper steering stem. Tighten to 35 ft-lbs (47.5 N·m).'
+      },
+      {
+        n: 20,
+        text: 'Lower vehicle until forks begin to compress.'
+      },
+      {
+        n: 21,
+        text: 'Loosen upper steering stem 90-100 degrees. Tighten to specification per Table 2-15 (varies by model).'
+      },
+      {
+        n: 22,
+        text: 'Install upper fork bracket and handlebar. Assemble motorcycle.'
+      },
+      {
+        n: 23,
+        text: 'Check swing-back. Repeat until within specification.'
+      },
+      {
+        n: 24,
+        text: 'NOTE: A steering head too tight can interfere with ability to absorb weave. Too loose interferes with ability to absorb wobble.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-radiator-coolant',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Radiator and Coolant',
+    summary: 'Clean radiator fins and inspect coolant for proper concentration and leaks.',
+    difficulty: 'Moderate',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-33'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Genuine Harley-Davidson Extended Life Antifreeze and Coolant',
+        qty: 1
+      }
+    ],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'CLEAN RADIATOR:'
+      },
+      {
+        n: 2,
+        text: 'Remove grille panel from lower fairing: Carefully pry on curved edge of panel to release latches, remove from fascia.'
+      },
+      {
+        n: 3,
+        text: 'Clean debris from radiator fins.'
+      },
+      {
+        n: 4,
+        text: 'Install grille panel back into place.'
+      },
+      {
+        n: 5,
+        text: 'CHECK FREEZE POINT: For this scheduled maintenance procedure, see DIAGNOSE AND TEST (Page 7-5).'
+      },
+      {
+        n: 6,
+        text: 'CHECK FOR LEAKS: For this scheduled maintenance procedure, see DIAGNOSE AND TEST (Page 7-5).'
+      },
+      {
+        n: 7,
+        text: 'DRAIN AND FILL COOLING SYSTEM: For this scheduled maintenance procedure, see COOLANT (Page 7-8).'
+      },
+      {
+        n: 8,
+        text: 'NOTICE: Use only Genuine Harley-Davidson Extended Life Antifreeze and Coolant. Use of other coolants/mixtures may lead to motorcycle damage.'
+      },
+      {
+        n: 9,
+        text: 'Genuine Harley-Davidson Extended Life Antifreeze and Coolant is pre-diluted and ready to use full strength. It provides temperature protection to -34°F (-36.7°C). DO NOT add water.'
+      },
+      {
+        n: 10,
+        text: 'De-ionized water must be used with antifreeze in cooling system. Hard water can cause scale accumulation in water passages reducing cooling efficiency, leading to overheating and motorcycle damage.'
+      },
+      {
+        n: 11,
+        text: 'If Genuine Harley-Davidson Extended Life Antifreeze and Coolant unavailable, mixture of de-ionized water and ethylene glycol-based antifreeze may be used. At first opportunity, change back to Genuine Harley-Davidson product.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-fuel-lines',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Fuel Lines and Fittings',
+    summary: 'Inspect fuel lines and fittings for leaks, contact or abrasion damage.',
+    difficulty: 'Easy',
+    timeMinutes: 15,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-34'
+    },
+    figures: [],
+    tools: [],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'For this scheduled maintenance procedure, see FUEL LINE (Page 6-7).'
+      },
+      {
+        n: 2,
+        text: 'Visually inspect all fuel lines and connections for leaks.'
+      },
+      {
+        n: 3,
+        text: 'Check for signs of abrasion, contact with other components, cracks or damage.'
+      },
+      {
+        n: 4,
+        text: 'Verify that fuel line routing is secure and does not contact sharp edges or hot surfaces.'
+      },
+      {
+        n: 5,
+        text: 'Check fuel line clamps and fittings are tight and secure.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-jiffy-stand',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect and Lubricate Jiffy Stand',
+    summary: 'Inspect jiffy stand pivot for wear and lubricate for smooth operation.',
+    difficulty: 'Easy',
+    timeMinutes: 15,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-35'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Anti-Seize Lubricant (98960-97)',
+        qty: 1
+      }
+    ],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'For this scheduled maintenance procedure, see JIFFY STAND (Page 3-146).'
+      },
+      {
+        n: 2,
+        text: 'Inspect jiffy stand for proper operation: Stand should extend and retract smoothly, spring should return stand to up position with firm pressure.'
+      },
+      {
+        n: 3,
+        text: 'Clean stand of debris and corrosion.'
+      },
+      {
+        n: 4,
+        text: 'Lubricate stand pivot point with Anti-Seize Lubricant.'
+      },
+      {
+        n: 5,
+        text: 'Check stand switch operation: Stand switch should cut engine ignition when stand is down and transmission is in gear.'
+      },
+      {
+        n: 6,
+        text: 'Verify that stand does not contact tires or fender when deployed or retracted.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-belt-inspect',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Drive Belt and Sprockets - Inspect Belt',
+    summary: 'Inspect drive belt for wear, damage, and proper tension.',
+    difficulty: 'Moderate',
+    timeMinutes: 45,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-36'
+    },
+    figures: [],
+    tools: [
+      'Belt Tension Gauge HD-35381-A',
+      'Sharp object for chrome plating test'
+    ],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'GENERAL: In case of stone damage to belt, inspect sprockets for damage and replace as required. If replacing belt, always replace both transmission and rear sprockets.'
+      },
+      {
+        n: 2,
+        text: 'Keep dirt, grease, oil, and debris off drive belt and sprockets. Clean belt with rag slightly dampened with light cleaning agent.'
+      },
+      {
+        n: 3,
+        text: 'SPROCKETS:'
+      },
+      {
+        n: 4,
+        text: 'Inspect each tooth of rear sprocket for: Major tooth damage, large chrome chips with sharp edges, gouges caused by hard objects, excessive loss of chrome plating.'
+      },
+      {
+        n: 5,
+        text: 'Check for worn chrome plating: Drag sharp object across bottom of groove using medium pressure. If object slides without digging or leaving mark, chrome is still good. If object digs in and leaves mark, chrome plating is worn.'
+      },
+      {
+        n: 6,
+        text: 'Replace rear sprocket if major tooth damage or loss of chrome exists.'
+      },
+      {
+        n: 7,
+        text: 'DRIVE BELT:'
+      },
+      {
+        n: 8,
+        text: 'Inspect drive belt for: Cuts or unusual wear patterns, outside bevel wear (some beveling common but indicates misalignment), outside ribbed surface for stone damage, inside (toothed) portion for exposed tensile cords, puncture or cracking at base of teeth.'
+      },
+      {
+        n: 9,
+        text: 'Replace belt immediately if cracks extend to edge of belt as failure is imminent.'
+      },
+      {
+        n: 10,
+        text: 'Conditions requiring replacement: External tooth cracks, missing teeth, hook wear, stone damage on edge.'
+      },
+      {
+        n: 11,
+        text: 'Monitor conditions (not immediate replacement): Internal tooth cracks, chipping not serious, fuzzy edge cord, bevel wear outboard edge only.'
+      },
+      {
+        n: 12,
+        text: 'MEASURE DRIVE BELT DEFLECTION:'
+      },
+      {
+        n: 13,
+        text: 'Always use Belt Tension Gauge HD-35381-A to measure deflection. Failure to use gauge may cause under-tensioned belts.'
+      },
+      {
+        n: 14,
+        text: 'Check deflection: With transmission in neutral, motorcycle at ambient temperature, motorcycle upright or on jiffy stand with rear wheel on ground.'
+      },
+      {
+        n: 15,
+        text: 'Disarm security system. Remove main fuse. Shift transmission to neutral.'
+      },
+      {
+        n: 16,
+        text: 'When adjusting new belt, rotate rear wheel few revolutions prior to setting tension.'
+      },
+      {
+        n: 17,
+        text: 'Measure belt deflection: Slide O-ring to zero mark, fit belt cradle against bottom of drive belt (in belt deflection window if equipped, or halfway between drive pulleys if not), press upward on knob until O-ring slides down to 10 lb mark.'
+      },
+      {
+        n: 18,
+        text: 'Models with belt deflection window: Measure deflection as viewed through window (each graduation approximately 1/16 in/1.6 mm). All other models: Measure amount of deflection.'
+      },
+      {
+        n: 19,
+        text: 'Service belt tension specification is for belts with more than 1000 mi (1,600 km). Set to new belt tension if less than 1000 mi.'
+      },
+      {
+        n: 20,
+        text: 'Compare with specifications (Table 2-17): FLHX, FLHXS, FLTRX models 1/4-7/16 in (6.4-11.1 mm), all others 3/8-9/16 in (9.5-14.3 mm).'
+      },
+      {
+        n: 21,
+        text: 'If not within specifications, consult authorized Harley-Davidson dealer.'
+      },
+      {
+        n: 22,
+        text: 'Install main fuse.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-belt-adjust',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Drive Belt and Sprockets - Adjust Belt',
+    summary: 'Adjust drive belt tension to proper specification.',
+    difficulty: 'Advanced',
+    timeMinutes: 90,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-37'
+    },
+    figures: [],
+    tools: [
+      'Axle Nut Torque Adapter HD-47925',
+      'Belt Tension Gauge HD-35381-A',
+      'Breaker bar',
+      'Torque wrench'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'E-clip (new)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Muffler to saddlebag support screws',
+        value: '14-18 ft-lbs (19-24.4 N·m)'
+      },
+      {
+        fastener: 'Rear axle cone nut, 1st torque',
+        value: '15-20 ft-lbs (20-27 N·m)'
+      },
+      {
+        fastener: 'Rear axle cone nut, final torque',
+        value: '135-145 ft-lbs (183-196.6 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'PREPARE:'
+      },
+      {
+        n: 2,
+        text: 'Disarm security system. Remove main fuse.'
+      },
+      {
+        n: 3,
+        text: 'Remove both saddlebags.'
+      },
+      {
+        n: 4,
+        text: 'If Axle Nut Torque Adapter HD-47925 not available, remove both mufflers. See MUFFLERS (Page 6-33).'
+      },
+      {
+        n: 5,
+        text: 'ADJUST:'
+      },
+      {
+        n: 6,
+        text: 'Remove and discard E-clip from groove at end of axle.'
+      },
+      {
+        n: 7,
+        text: 'Install adapter perpendicular to breaker bar. For best clearance with muffler, install torque adapter on outboard side. Special Tool: Axle Nut Torque Adapter HD-47925.'
+      },
+      {
+        n: 8,
+        text: 'NOTE: Torque wrench must be perpendicular to torque adapter to obtain proper torque.'
+      },
+      {
+        n: 9,
+        text: 'Loosen cone nut.'
+      },
+      {
+        n: 10,
+        text: 'Install adapter on torque wrench, perpendicular to torque wrench. Special Tool: Axle Nut Torque Adapter HD-47925.'
+      },
+      {
+        n: 11,
+        text: 'Push wheel forward. Verify that cam contacts boss on both sides of rear fork.'
+      },
+      {
+        n: 12,
+        text: 'Snug cone nut. Torque 15-20 ft-lbs (20-27 N·m) Rear axle cone nut, 1st torque.'
+      },
+      {
+        n: 13,
+        text: 'NOTE: It is beneficial to use second Axle Nut Torque Adapter to rotate and hold weld nut. Position of breaker bar or ratchet in relation to tool not important. Check belt deflection as adjustment is made.'
+      },
+      {
+        n: 14,
+        text: 'Adjust belt tension: Rotate weld nut on left side to adjust belt tension. Turn clockwise to tighten or counterclockwise to loosen. If loosening belt tension, push wheel forward. Verify both cams touch bosses on both sides after weld nut rotated.'
+      },
+      {
+        n: 15,
+        text: 'ASSEMBLE:'
+      },
+      {
+        n: 16,
+        text: 'Hold weld nut and tighten cone nut. Torque 135-145 ft-lbs (183-196.6 N·m) Rear axle cone nut, final torque.'
+      },
+      {
+        n: 17,
+        text: 'Again, verify cams touch bosses on both sides of rear fork and belt deflection still within specification.'
+      },
+      {
+        n: 18,
+        text: 'With flat side out, install new E-clip in groove on right side of axle.'
+      },
+      {
+        n: 19,
+        text: 'COMPLETE:'
+      },
+      {
+        n: 20,
+        text: 'If removed, install fasteners that attach mufflers to saddlebag frames and tighten. Torque 14-18 ft-lbs (19-24.4 N·m) Muffler to saddlebag support screws.'
+      },
+      {
+        n: 21,
+        text: 'Install saddlebags.'
+      },
+      {
+        n: 22,
+        text: 'Install main fuse. See POWER DISCONNECT (Page 8-8).'
+      },
+      {
+        n: 23,
+        text: 'NOTE: Do not allow weld nut to rotate once belt tension is correct.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-rear-sprocket-isolator',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Rear Sprocket Isolator',
+    summary: 'Check rear sprocket compensator for excessive wear and deterioration.',
+    difficulty: 'Moderate',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-41'
+    },
+    figures: [],
+    tools: [
+      'Weighted string',
+      'Masking tape',
+      'Measuring tape'
+    ],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'Support vehicle in upright position in neutral. Do not lift wheels off ground.'
+      },
+      {
+        n: 2,
+        text: 'Remove left saddlebag.'
+      },
+      {
+        n: 3,
+        text: 'Hang weighted string on left axle spacer as close as possible to, but not touching, rear sprocket.'
+      },
+      {
+        n: 4,
+        text: 'Place masking tape on face of sprocket where marks will be drawn.'
+      },
+      {
+        n: 5,
+        text: 'WARNING: Do not allow rear wheel to rotate when rotating sprocket or false measurement will occur.'
+      },
+      {
+        n: 6,
+        text: 'Rotate rear sprocket by hand in one direction until it stops.'
+      },
+      {
+        n: 7,
+        text: 'While holding sprocket in place, mark masking tape in line with string.'
+      },
+      {
+        n: 8,
+        text: 'Rotate rear sprocket in opposite direction until it stops.'
+      },
+      {
+        n: 9,
+        text: 'While holding sprocket in place, make second mark in line with string.'
+      },
+      {
+        n: 10,
+        text: 'Measure distance along edge of sprocket between marks. If measurement exceeds 0.400 in (10.2 mm), replace rubber isolator.'
+      },
+      {
+        n: 11,
+        text: 'NOTE: Excessive play in compensator components caused by deteriorated rubber segments. Wear on raised nubs or small amounts of rubber debris are normal and do not indicate worn out isolator.'
+      },
+      {
+        n: 12,
+        text: 'Visually inspect components when disassembled. See REAR WHEEL COMPENSATOR (Page 3-19) to repair rear wheel compensator.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-suspension-adjust',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Adjust Suspension',
+    summary: 'Adjust shock absorber preload for total weight the motorcycle will carry.',
+    difficulty: 'Easy',
+    timeMinutes: 15,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-42'
+    },
+    figures: [],
+    tools: [],
+    parts: [],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'Remove left saddlebag.'
+      },
+      {
+        n: 2,
+        text: 'A preload table wallet card is provided at back of owner\'s manual for convenience.'
+      },
+      {
+        n: 3,
+        text: 'Rotate preload adjustment knob to desired setting for expected load. Knob will click after each half turn. Refer to Table 2-18 (Standard Length Shocks with Tour-Pak), Table 2-19 (Standard Length without Tour-Pak), or Table 2-20 (Low Length Shocks with or without Tour-Pak).'
+      },
+      {
+        n: 4,
+        text: 'Adjust total weight = rider weight + passenger weight + cargo and accessories.'
+      },
+      {
+        n: 5,
+        text: 'Turn knob half turns to fine tune ride if desired.'
+      },
+      {
+        n: 6,
+        text: 'Install left saddlebag.'
+      },
+      {
+        n: 7,
+        text: 'NOTE: Increase preload to accommodate more weight. Reduce preload if carrying less weight.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-exhaust-system',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Exhaust System',
+    summary: 'Check exhaust system for leaks, cracks, and loose fasteners.',
+    difficulty: 'Moderate',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-44'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Permatex Ultra Copper or Loctite 5920 Flange Sealant (if needed)',
+        qty: 1
+      }
+    ],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'LEAK CHECK:'
+      },
+      {
+        n: 2,
+        text: 'Check exhaust system for obvious signs of leakage such as carbon tracks and marks at pipe joints.'
+      },
+      {
+        n: 3,
+        text: 'a. Check for loose or missing fasteners.'
+      },
+      {
+        n: 4,
+        text: 'b. Check for cracked pipe clamps or brackets.'
+      },
+      {
+        n: 5,
+        text: 'c. Check for loose or cracked exhaust shields.'
+      },
+      {
+        n: 6,
+        text: 'Check exhaust system for audible signs of leakage: Start engine, cover end of muffler with clean dry shop towel, listen for signs of exhaust leakage.'
+      },
+      {
+        n: 7,
+        text: 'CORRECT LEAKS:'
+      },
+      {
+        n: 8,
+        text: 'Correct any detected leaks: See EXHAUST SYSTEM (Page 6-34). Disassemble exhaust system. Clean all mating surfaces. Repair or replace damaged components. Assemble exhaust system.'
+      },
+      {
+        n: 9,
+        text: 'NOTE: If leak continues, disassemble and apply Permatex Ultra Copper or Loctite 5920 Flange Sealant or equivalent oxygen sensor/catalyst-safe alternative to mating surfaces.'
+      },
+      {
+        n: 10,
+        text: 'Inspect for missing or damaged fasteners and retighten as necessary.'
+      },
+      {
+        n: 11,
+        text: 'Check that all exhaust shields are properly positioned and secured.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-air-filter',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Air Filter',
+    summary: 'Remove, clean, and inspect air filter element and components.',
+    difficulty: 'Easy',
+    timeMinutes: 30,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-45'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Air filter element (if replacement needed)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Loctite 243 Medium Strength Threadlocker (blue)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Air cleaner cover screw',
+        value: '36-60 in-lbs (4.1-6.8 N·m)'
+      },
+      {
+        fastener: 'Air filter element screws',
+        value: '40-60 in-lbs (4.5-6.8 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'REMOVE:'
+      },
+      {
+        n: 2,
+        text: 'Remove air cleaner cover: Remove screw, remove cover.'
+      },
+      {
+        n: 3,
+        text: 'Remove filter element: Remove screws, remove filter element while pulling breather tube from element.'
+      },
+      {
+        n: 4,
+        text: 'CLEAN AND INSPECT:'
+      },
+      {
+        n: 5,
+        text: 'Remove breather tube from breather bolts.'
+      },
+      {
+        n: 6,
+        text: 'WARNING: Do not strike filter element on hard surface to dislodge dirt. Do not use air cleaner filter oil on Harley-Davidson paper/wire mesh air filter element.'
+      },
+      {
+        n: 7,
+        text: 'Inspect breather tube and fittings for damage.'
+      },
+      {
+        n: 8,
+        text: 'WARNING: Do not use gasoline or solvents to clean filter element. Flammable cleaning agents can cause intake system fire.'
+      },
+      {
+        n: 9,
+        text: 'Clean filter element: Wash filter element and breather tubes in lukewarm water with mild detergent. Allow to air dry or use low-pressure compressed air from inside. Hold filter element up to strong light source. Element is sufficiently clean when light is uniformly visible through media. Replace element if damaged or cannot be adequately cleaned.'
+      },
+      {
+        n: 10,
+        text: 'Verify that rubber seal is properly seated and not damaged.'
+      },
+      {
+        n: 11,
+        text: 'INSTALL:'
+      },
+      {
+        n: 12,
+        text: 'Install filter element: Install breather tube, install filter element while pushing breather tube into element, install screws and tighten to 40-60 in-lbs (4.5-6.8 N·m).'
+      },
+      {
+        n: 13,
+        text: 'Install air cleaner cover: Apply Loctite 243 Medium Strength Threadlocker (blue) to threads of screw, install cover, install screw and tighten to 36-60 in-lbs (4.1-6.8 N·m).'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-battery',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Inspect Battery',
+    summary: 'Clean battery terminals, check voltage, test charge condition, and perform battery maintenance.',
+    difficulty: 'Moderate',
+    timeMinutes: 45,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-46'
+    },
+    figures: [],
+    tools: [
+      'Voltmeter',
+      'Wire brush or sandpaper'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'Electrical Contact Lubricant (11300004)',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Baking soda solution (5 tsp per liter water)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Battery cables screws',
+        value: '60-70 in-lbs (6.8-7.9 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'PREPARE:'
+      },
+      {
+        n: 2,
+        text: 'Remove seat. See SEAT (Page 3-148).'
+      },
+      {
+        n: 3,
+        text: 'Move top caddy away from battery.'
+      },
+      {
+        n: 4,
+        text: 'REMOVE:'
+      },
+      {
+        n: 5,
+        text: 'Disconnect both battery cables, negative cable first.'
+      },
+      {
+        n: 6,
+        text: 'Pull up on battery strap to raise battery.'
+      },
+      {
+        n: 7,
+        text: 'Remove battery.'
+      },
+      {
+        n: 8,
+        text: 'INSTALL:'
+      },
+      {
+        n: 9,
+        text: 'Run battery strap rearward across bottom of battery tray, then up and across frame crossmember.'
+      },
+      {
+        n: 10,
+        text: 'Place battery into battery tray, terminal side forward.'
+      },
+      {
+        n: 11,
+        text: 'WARNING: Connect positive (+) battery cable first. If cable contacts ground with negative cable connected, sparks can cause battery explosion.'
+      },
+      {
+        n: 12,
+        text: 'Connect both battery cables, positive battery cable first. Tighten. Torque 60-70 in-lbs (6.8-7.9 N·m) Battery cables screws.'
+      },
+      {
+        n: 13,
+        text: 'WARNING: Connect cables to correct battery terminals. Failure to do so could result in damage to electrical system.'
+      },
+      {
+        n: 14,
+        text: 'WARNING: Do not over-tighten bolts on battery terminals. Use recommended torque values.'
+      },
+      {
+        n: 15,
+        text: 'NOTICE: Keep battery clean and lightly coat terminals with petroleum jelly to prevent corrosion.'
+      },
+      {
+        n: 16,
+        text: 'Apply light coat of petroleum or electrical contact lubricant to both battery terminals.'
+      },
+      {
+        n: 17,
+        text: 'Fold battery strap over top of battery.'
+      },
+      {
+        n: 18,
+        text: 'CLEAN AND INSPECT:'
+      },
+      {
+        n: 19,
+        text: 'Battery top must be clean and dry. Dirt and electrolyte on top causes self-discharge.'
+      },
+      {
+        n: 20,
+        text: 'Clean battery top: Mix solution of 5 teaspoons baking soda per liter/quart water, apply to battery top, when solution stops bubbling rinse off battery with clean water.'
+      },
+      {
+        n: 21,
+        text: 'Clean cable connectors and battery terminals with wire brush or sandpaper. Remove any oxidation.'
+      },
+      {
+        n: 22,
+        text: 'Inspect battery terminal screws and cables for breakage, loose connections, and corrosion.'
+      },
+      {
+        n: 23,
+        text: 'Check battery terminals for melting or damage.'
+      },
+      {
+        n: 24,
+        text: 'Inspect battery for discoloration, raised top, or warped or distorted case. Replace as necessary.'
+      },
+      {
+        n: 25,
+        text: 'Inspect battery case for cracks or leaks.'
+      },
+      {
+        n: 26,
+        text: 'VOLTAGE TEST:'
+      },
+      {
+        n: 27,
+        text: 'Voltage test provides general indicator of battery condition. Check battery voltage to verify fully charged.'
+      },
+      {
+        n: 28,
+        text: 'If open circuit (disconnected) voltage reading below 12.6V: Charge battery, check voltage after battery sets for at least one hour.'
+      },
+      {
+        n: 29,
+        text: 'If voltage reading 12.7V or above: Perform battery diagnostic test. See electrical diagnostic manual for load test procedure.'
+      },
+      {
+        n: 30,
+        text: 'Voltage specifications: 12.7V = 100% charge, 12.6V = 75% charge, 12.3V = 50% charge, 12.0V = 25% charge, 11.8V = 0% charge.'
+      },
+      {
+        n: 31,
+        text: 'STORAGE:'
+      },
+      {
+        n: 32,
+        text: 'Battery is affected by self-discharge whether stored in or out of vehicle. Battery in vehicle also affected by parasitic loads.'
+      },
+      {
+        n: 33,
+        text: 'Batteries self-discharge faster at higher ambient temperatures. Store battery in cool, dry place to reduce self-discharge rate.'
+      },
+      {
+        n: 34,
+        text: 'Charge battery every two weeks if stored in vehicle. Charge battery once per month if removed from vehicle.'
+      },
+      {
+        n: 35,
+        text: 'Use Harley-Davidson constant monitoring battery charger/tender for extended storage to maintain charge without overcharging or boiling.'
+      },
+      {
+        n: 36,
+        text: 'COMPLETE:'
+      },
+      {
+        n: 37,
+        text: 'Install top caddy.'
+      },
+      {
+        n: 38,
+        text: 'Install seat.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-spark-plugs',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Clean and Inspect Spark Plugs',
+    summary: 'Remove, clean, inspect, and reinstall spark plugs with proper gap.',
+    difficulty: 'Moderate',
+    timeMinutes: 45,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-48'
+    },
+    figures: [],
+    tools: [
+      'HD-52006 Adjustable Spark Plug Wire Puller (if needed)',
+      'Wire-type feeler gauge',
+      'Electrode bending tool'
+    ],
+    parts: [
+      {
+        number: '',
+        description: 'Spark plugs HD-6R10 (if replacement needed)',
+        qty: 1
+      }
+    ],
+    torque: [
+      {
+        fastener: 'Spark plug',
+        value: '89-133 in-lbs (10-15 N·m)'
+      }
+    ],
+    steps: [
+      {
+        n: 1,
+        text: 'PREPARE:'
+      },
+      {
+        n: 2,
+        text: 'Remove main fuse. See POWER DISCONNECT (Page 8-8).'
+      },
+      {
+        n: 3,
+        text: 'NOTE: Fuel tank removal improves access to right spark plugs.'
+      },
+      {
+        n: 4,
+        text: 'Remove fuel tank. See FUEL TANK (Page 6-9).'
+      },
+      {
+        n: 5,
+        text: 'REMOVE:'
+      },
+      {
+        n: 6,
+        text: 'WARNING: Disconnecting spark plug cable with engine running can result in electric shock and death or serious injury.'
+      },
+      {
+        n: 7,
+        text: 'NOTE: Never remove spark plugs until heads have cooled. Use HD-52006 (Adjustable Spark Plug Wire Puller) to remove stubborn spark plug boots.'
+      },
+      {
+        n: 8,
+        text: 'Disconnect spark plug cables.'
+      },
+      {
+        n: 9,
+        text: 'Remove spark plugs.'
+      },
+      {
+        n: 10,
+        text: 'CLEAN AND INSPECT:'
+      },
+      {
+        n: 11,
+        text: 'NOTE: Discard plugs with eroded electrodes, heavy deposits, or cracked insulator.'
+      },
+      {
+        n: 12,
+        text: 'Compare plug deposits to Table 2-22. Wet black and shiny (worn pistons/rings/valves/seals/weak battery/faulty ignition), dry fluffy sooty black (rich air-fuel mixture), light brown glassy (lean mixture/hot engine/valves not seating/improper timing - may crack insulator), white gray tan powdery (balanced combustion - clean off deposits).'
+      },
+      {
+        n: 13,
+        text: 'INSTALL:'
+      },
+      {
+        n: 14,
+        text: 'Verify proper gap before installing new or cleaned spark plugs: Select wire-type feeler gauge within specification (0.031-0.035 in/0.8-0.9 mm for all models), pass wire gauge between electrodes, use proper tool to bend outer electrode to bring gap within specification.'
+      },
+      {
+        n: 15,
+        text: 'Verify spark plug threads are clean and dry.'
+      },
+      {
+        n: 16,
+        text: 'Install spark plug. Tighten. Torque 89-133 in-lbs (10-15 N·m).'
+      },
+      {
+        n: 17,
+        text: 'Connect spark plug cables. Check connections at coil, spark plugs, and anchor clips or harness caddies.'
+      },
+      {
+        n: 18,
+        text: 'Spark plug specification: Type HD-6R10, gap 0.031-0.035 in (0.8-0.9 mm), torque 89-133 in-lbs (10-15 N·m).'
+      },
+      {
+        n: 19,
+        text: 'COMPLETE:'
+      },
+      {
+        n: 20,
+        text: 'Install fuel tank.'
+      },
+      {
+        n: 21,
+        text: 'Install main fuse.'
+      }
+    ]
+  },
+
+{
+    id: 't20-maint-storage',
+    bikeIds: [
+      'touring-2020'
+    ],
+    system: 'maintenance',
+    title: 'Motorcycle Storage',
+    summary: 'Prepare motorcycle for storage and perform pre-riding checks when returning to service.',
+    difficulty: 'Advanced',
+    timeMinutes: 180,
+    source: {
+      manual: '2020 HD Touring Service Manual',
+      page: '2-50'
+    },
+    figures: [],
+    tools: [],
+    parts: [
+      {
+        number: '',
+        description: 'Fuel stabilizer',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Engine oil',
+        qty: 1
+      },
+      {
+        number: '',
+        description: 'Storage cover (breathable material)',
+        qty: 1
+      }
+    ],
+    torque: [],
+    steps: [
+      {
+        n: 1,
+        text: 'PLACE IN STORAGE:'
+      },
+      {
+        n: 2,
+        text: 'WARNING: Do not store motorcycle with gasoline in tank within home or garage where open flames, pilot lights, sparks or electric motors present. Gasoline extremely flammable and explosive.'
+      },
+      {
+        n: 3,
+        text: 'Change engine oil and filter. See REPLACE ENGINE OIL AND FILTER (Page 2-9).'
+      },
+      {
+        n: 4,
+        text: 'Check transmission lubricant level. See REPLACE TRANSMISSION LUBRICANT (Page 2-13).'
+      },
+      {
+        n: 5,
+        text: 'Prepare fuel tank: Fill fuel tank, add fuel stabilizer.'
+      },
+      {
+        n: 6,
+        text: 'WARNING: Avoid spills. Slowly remove filler cap. Do not fill above bottom of filler neck insert. Gasoline extremely flammable and explosive.'
+      },
+      {
+        n: 7,
+        text: 'WARNING: Use care when refueling. Pressurized air in fuel tank can force gasoline to escape through filler tube.'
+      },
+      {
+        n: 8,
+        text: 'Lubricate cylinders: Remove spark plugs (see CLEAN AND INSPECT SPARK PLUGS Page 2-48), inject few squirts of engine oil into each cylinder, crank engine 5-6 revolutions, install spark plugs.'
+      },
+      {
+        n: 9,
+        text: 'Inspect drive belt deflection. See INSPECT AND ADJUST DRIVE BELT AND SPROCKETS (Page 2-36).'
+      },
+      {
+        n: 10,
+        text: 'Inspect drive belt and sprockets. See INSPECT AND ADJUST DRIVE BELT AND SPROCKETS (Page 2-36).'
+      },
+      {
+        n: 11,
+        text: 'Inspect air cleaner filter. See INSPECT AIR FILTER (Page 2-45).'
+      },
+      {
+        n: 12,
+        text: 'Lubricate controls. See LUBRICATE CABLES AND CHASSIS (Page 2-18).'
+      },
+      {
+        n: 13,
+        text: 'Check tire inflation and inspect tires for wear or damage. See INSPECT TIRES AND WHEELS (Page 2-15).'
+      },
+      {
+        n: 14,
+        text: 'If motorcycle will be stored for extended period, securely support under frame so all weight is off tires.'
+      },
+      {
+        n: 15,
+        text: 'Inspect operation of all electrical equipment and switches.'
+      },
+      {
+        n: 16,
+        text: 'WARNING: Be sure brake fluid or other lubricants do not contact brake pads or discs. Such contact can adversely affect braking ability.'
+      },
+      {
+        n: 17,
+        text: 'Wash painted and chrome-plated surfaces. Apply light film of oil to exposed unpainted surfaces.'
+      },
+      {
+        n: 18,
+        text: 'Battery maintenance:'
+      },
+      {
+        n: 19,
+        text: 'WARNING: Unplug or turn OFF battery charger before connecting cables to battery. Connecting with charger ON can cause spark and battery explosion.'
+      },
+      {
+        n: 20,
+        text: 'Remove battery from vehicle. See INSPECT BATTERY (Page 2-46).'
+      },
+      {
+        n: 21,
+        text: 'Charge battery until correct voltage obtained.'
+      },
+      {
+        n: 22,
+        text: 'If stored at temperatures below 60°F (16°C): Charge battery every other month.'
+      },
+      {
+        n: 23,
+        text: 'If stored at temperatures above 60°F (16°C): Charge battery once a month.'
+      },
+      {
+        n: 24,
+        text: 'WARNING: Explosive hydrogen gas escapes during charging, could cause death or serious injury. Charge in well-ventilated area. Keep open flames, electrical sparks and smoking materials away from battery.'
+      },
+      {
+        n: 25,
+        text: 'WARNING: Unplug or turn OFF battery charger before disconnecting cables from battery. Disconnecting with charger ON can cause spark and battery explosion.'
+      },
+      {
+        n: 26,
+        text: 'Covering motorcycle:'
+      },
+      {
+        n: 27,
+        text: 'If motorcycle to be covered, use material that will breathe, such as Harley-Davidson storage cover or light canvas.'
+      },
+      {
+        n: 28,
+        text: 'Plastic materials that do not breathe promote condensation formation, leading to corrosion.'
+      },
+      {
+        n: 29,
+        text: 'REMOVE FROM STORAGE:'
+      },
+      {
+        n: 30,
+        text: 'WARNING: Clutch failing to disengage can cause loss of control. Prior to starting after extended storage, place transmission in gear and push vehicle back and forth several times to assure proper clutch disengagement.'
+      },
+      {
+        n: 31,
+        text: 'Charge battery.'
+      },
+      {
+        n: 32,
+        text: 'Install battery. See INSPECT BATTERY (Page 2-46).'
+      },
+      {
+        n: 33,
+        text: 'Inspect spark plugs. See CLEAN AND INSPECT SPARK PLUGS (Page 2-48).'
+      },
+      {
+        n: 34,
+        text: 'Fill fuel tank if empty.'
+      },
+      {
+        n: 35,
+        text: 'Start engine. Run until reaches normal operating temperature.'
+      },
+      {
+        n: 36,
+        text: 'Check engine oil level. See REPLACE ENGINE OIL AND FILTER (Page 2-9).'
+      },
+      {
+        n: 37,
+        text: 'Check transmission lubricant level. See REPLACE TRANSMISSION LUBRICANT (Page 2-13).'
+      },
+      {
+        n: 38,
+        text: 'Perform all checks in PRE-RIDING CHECKLIST in owner\'s manual.'
+      }
+    ]
+  },
+
+{
+  id: 't20-alternator-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Alternator - Remove and Install',
+  summary: 'Remove and install alternator stator and rotor assembly with proper torque specifications.',
+  difficulty: 'Moderate',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 12 },
+  figures: [],
+  tools: ["ALTERNATOR ROTOR REMOVER AND INSTALLER (HD-52073)"],
+  parts: [
+    { number: '', description: 'Stator mounting screws (new)', qty: 3 },
+    { number: '', description: 'Grommet', qty: 1 },
+  ],
+  torque: [
+    { fastener: 'Stator mounting screws', value: '55-75 in-lbs (6.2-8.5 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove primary chaincase cover and chain/sprocket components.' },
+    { n: 2, text: 'Remove starter.' },
+    { n: 3, text: 'Remove rotor using HD-52073 tool. CAUTION: Powerful magnets - prevent hand injury.' },
+    { n: 4, text: 'Remove stator screws (discard) and grommet. Apply alcohol cleaner to crankcase.' },
+    { n: 5, text: 'Install new stator screws. Torque: 55-75 in-lbs (6.2-8.5 N·m).' },
+    { n: 6, text: 'Install grommet and cable strap. Verify stator wire clearance from engine.' },
+    { n: 7, text: 'Apply dielectric grease to connector. ELECTRICAL CONTACT LUBRICANT (11300004).' },
+    { n: 8, text: 'Install rotor slowly using tool. Reassemble primary case and components.' },
+  ],
+},
+{
+  id: 't20-voltage-regulator-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Voltage Regulator - Remove and Install',
+  summary: 'Remove and install voltage regulator with coolant downtube assembly.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 14 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'Voltage regulator screws', value: '96-120 in-lbs (10.8-13.6 N·m)' },
+    { fastener: 'Coolant downtube upper screws', value: '90-110 in-lbs (10.2-12.4 N·m)' },
+    { fastener: 'Coolant downtube lower screws', value: '20-22 ft-lbs (27.1-29.8 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove lower cover. Release stator connector latch and disconnect.' },
+    { n: 2, text: 'Remove downtube securing screws and disconnect upper hoses.' },
+    { n: 3, text: 'Release voltage regulator cable clip and connector latch.' },
+    { n: 4, text: 'Remove regulator screws. Install new regulator and screws. Torque: 96-120 in-lbs.' },
+    { n: 5, text: 'Apply dielectric grease to connectors. Reconnect and secure with latches.' },
+    { n: 6, text: 'Install downtube screws. Torque upper: 90-110 in-lbs, lower: 20-22 ft-lbs.' },
+    { n: 7, text: 'Reconnect stator with dielectric grease. Install lower cover.' },
+  ],
+},
+{
+  id: 't20-ignition-switch-remove-install-road-king',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Ignition Switch - Remove and Install (Road King)',
+  summary: 'Remove and install ignition switch on non-fairing Road King models.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 16 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'Ignition switch screws', value: '25-35 in-lbs (2.8-3.9 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove seat and console.' },
+    { n: 2, text: 'Disconnect ignition switch connector.' },
+    { n: 3, text: 'Release conduit from plastic clip if needed.' },
+    { n: 4, text: 'Remove switch screws and switch.' },
+    { n: 5, text: 'Install switch with screws in cross-wise pattern. Torque: 25-35 in-lbs.' },
+    { n: 6, text: 'Connect connector. Reinstall conduit clip. Reinstall console and seat.' },
+  ],
+},
+{
+  id: 't20-rhcm-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Right Hand Control Module (RHCM) - Remove and Install',
+  summary: 'Remove and install right hand control module with switch positioning.',
+  difficulty: 'Moderate',
+  timeMinutes: 50,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 25 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'RHCM housing screw', value: '35-44 in-lbs (4-5 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove brake master cylinder assembly (without draining).' },
+    { n: 2, text: 'Loosen RHCM housing screws and remove front housing.' },
+    { n: 3, text: 'Using pick, carefully press connector latch and remove connectors.' },
+    { n: 4, text: 'Release connector latch and rotate switch down.' },
+    { n: 5, text: 'Remove hand control module from handlebar.' },
+    { n: 6, text: 'Install throttle hand grip with proper engagement and alignment.' },
+    { n: 7, text: 'Attach harness connectors, route through fingers and channel.' },
+    { n: 8, text: 'Install RHCM on handlebar with switch arm rotated up to engage latch.' },
+    { n: 9, text: 'Verify wire harness in recess. Connect turn signal (FLHRXS models).' },
+    { n: 10, text: 'Install switch housings finger tight. Set end play 0.039-0.079 in (1-2 mm).' },
+    { n: 11, text: 'Tighten RHCM housing screws. Torque: 35-44 in-lbs. Verify grip movement.' },
+    { n: 12, text: 'Reinstall brake master cylinder assembly.' },
+  ],
+},
+{
+  id: 't20-accessory-switches-fork-mounted',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Accessory Switches - Remove and Install (Fork-Mounted Fairing)',
+  summary: 'Remove and install accessory switches on fork-mounted fairing dashboard.',
+  difficulty: 'Easy',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 28 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'Accessory switch module screw', value: '12-17 in-lbs (1.4-1.9 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove dash panel. See FAIRING: FORK MOUNTED (Page 3-88).' },
+    { n: 2, text: 'Remove switch module or hole plug screws.' },
+    { n: 3, text: 'Release lock and pry out switch plunger. Record switch positions.' },
+    { n: 4, text: 'Note: Max 2A per switch. Install plunger into module and push lock into place.' },
+    { n: 5, text: 'Align switch module to dash panel and install screws. Torque: 12-17 in-lbs.' },
+    { n: 6, text: 'Reinstall dash panel. Operate switches to verify.' },
+  ],
+},
+{
+  id: 't20-instrument-module-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Instrument Module (IM) - Remove and Install',
+  summary: 'Remove and install instrument module (speedometer) for fork or frame-mounted fairings.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 31 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'IM screw (fork-mounted)', value: '10-20 in-lbs (1.1-2.3 N·m)' },
+    { fastener: 'IM screw (frame-mounted)', value: '12-17 in-lbs (1.4-1.9 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Fork-mounted: Remove outer fairing, vent, and upper support bracket.' },
+    { n: 2, text: 'Frame-mounted: Remove ignition switch knob. Non-fairing: Remove seat and console.' },
+    { n: 3, text: 'Disconnect IM connector. Remove IM screws and remove IM.' },
+    { n: 4, text: 'Remove bezel if necessary. Non-fairing: Remove anchored cable strap and lock ring.' },
+    { n: 5, text: 'Install IM and bezel. Fork: Torque 10-20 in-lbs. Frame: Torque 12-17 in-lbs.' },
+    { n: 6, text: 'Connect IM connector. Non-fairing: Install lock ring, cable strap, gasket.' },
+    { n: 7, text: 'Reinstall fairing or dashboard components.' },
+  ],
+},
+{
+  id: 't20-fairing-gauge-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Fairing Gauges - Remove and Install',
+  summary: 'Remove and install voltmeter and fuel gauge on fairing. Fuel (left, black clamp), voltmeter (right, tan clamp).',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 34 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'Fairing gauge screw', value: '8-15 in-lbs (0.9-1.7 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Fork-mounted: Remove outer fairing, vent, upper support bracket.' },
+    { n: 2, text: 'Frame-mounted: Remove outer fairing and vent.' },
+    { n: 3, text: 'Disconnect gauge connector.' },
+    { n: 4, text: 'Remove gauge screws. Remove gauge assembly, back clamp, and bezel.' },
+    { n: 5, text: 'Assemble new gauge: Install back clamp and bezel.' },
+    { n: 6, text: 'Install gauge assembly and screws. Torque: 8-15 in-lbs.' },
+    { n: 7, text: 'Connect gauge connector. Reinstall fairing components.' },
+  ],
+},
+{
+  id: 't20-fuel-level-gauge-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Fuel Level Gauge - Remove and Install',
+  summary: 'Remove and install fuel level gauge from fuel tank on non-fairing models.',
+  difficulty: 'Moderate',
+  timeMinutes: 25,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 35 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect fuel level gauge connector and draw out from tunnel under fuel tank.' },
+    { n: 2, text: 'Extract terminals from connector (see Electrical Diagnostic Manual).' },
+    { n: 3, text: 'Remove convoluted tubing. NOTE: Do not twist during removal.' },
+    { n: 4, text: 'Pull gauge up carefully and feed wires up through tube. Inspect gasket for damage.' },
+    { n: 5, text: 'For new gauge: Measure original wire length. Cut new wires to same length. Crimp new terminals.' },
+    { n: 6, text: 'Install rubber gasket (flat side contacting gauge edge) over wiring.' },
+    { n: 7, text: 'Feed wires down fuel tank tube while lowering gauge. Press gauge down until snap.' },
+    { n: 8, text: 'Install convoluted tubing and connector. Route connector between crossover hose and tank bottom.' },
+  ],
+},
+{
+  id: 't20-oil-pressure-switch-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Oil Pressure Switch - Remove and Install',
+  summary: 'Remove and install oil pressure switch.',
+  difficulty: 'Easy',
+  timeMinutes: 10,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 36 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'Oil Pressure Switch', value: '13-17 ft-lbs (17-23 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect connector.' },
+    { n: 2, text: 'Remove switch.' },
+    { n: 3, text: 'Install new switch. Torque: 13-17 ft-lbs (17-23 N·m).' },
+    { n: 4, text: 'Connect connector.' },
+  ],
+},
+{
+  id: 't20-neutral-indicator-switch-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Neutral Indicator Switch - Remove and Install',
+  summary: 'Remove and install neutral indicator switch on transmission.',
+  difficulty: 'Easy',
+  timeMinutes: 10,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 37 },
+  figures: [],
+  tools: [],
+  parts: [
+  ],
+  torque: [
+    { fastener: 'Neutral Indicator Switch', value: '120-180 in-lbs (13.6-20.3 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Place transmission in NEUTRAL.' },
+    { n: 2, text: 'Remove connectors from switch posts.' },
+    { n: 3, text: 'Remove neutral switch and O-ring.' },
+    { n: 4, text: 'Verify transmission in NEUTRAL. Install new switch and O-ring. Torque: 120-180 in-lbs.' },
+    { n: 5, text: 'Connect harness wires (wires are interchangeable).' },
+  ],
+},
+{
+  id: 't20-horn-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Horn - Remove and Install',
+  summary: 'Remove and install horn assembly with bracket and mounting hardware.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 38 },
+  figures: [],
+  tools: [],
+  parts: [
+    { number: 'Loctite 271', description: 'LOCTITE 271 HIGH STRENGTH THREADLOCKER (RED)', qty: 1 },
+  ],
+  torque: [
+    { fastener: 'Horn bracket acorn nut', value: '80-120 in-lbs (9-13.6 N·m)' },
+    { fastener: 'Horn bracket to cylinder head screws', value: '35-40 ft-lbs (47.5-54.2 N·m)' },
+    { fastener: 'Horn rubber mount', value: '120-180 in-lbs (13.6-20.3 N·m)' },
+    { fastener: 'Horn cover to bracket', value: '35-40 in-lbs (3.9-4.5 N·m)' },
+    { fastener: 'Horn stud flange nut', value: '80-100 in-lbs (9-11.3 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove screws (9) and washers (10). Rotate assembly for access.' },
+    { n: 2, text: 'Remove wiring from J-clamp (12). Disconnect horn connectors.' },
+    { n: 3, text: 'Horn assembly: Remove nut (4), washer (5), wiring. Disconnect connectors.' },
+    { n: 4, text: 'Install rubber mount (7) with threadlocker on stud. Torque: 120-180 in-lbs.' },
+    { n: 5, text: 'Install horn bracket (6) onto rubber mount with washer (5) and acorn nut (4). Torque: 80-120 in-lbs.' },
+    { n: 6, text: 'Attach horn connectors and install wiring in J-clamp.' },
+    { n: 7, text: 'Install bracket (8) to cylinder heads with screws (9), washers (10). Torque: 35-40 ft-lbs.' },
+    { n: 8, text: 'Horn disassembly/assembly: Remove nut (13). Remove horn (1). Remove J-clamp screws (11).' },
+    { n: 9, text: 'Reassemble: Install speednuts on cover. Insert horn stud through cover and bracket.' },
+    { n: 10, text: 'Install flange nut (13). Torque: 80-100 in-lbs. Mount cover to bracket with screws.' },
+    { n: 11, text: 'Torque cover screws: 35-40 in-lbs. Reinstall wiring in J-clamp.' },
+  ],
+},
+{
+  id: 't20-headlamp-halogen-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Headlamp (Halogen) - Remove and Install',
+  summary: 'Remove and install halogen headlamp bulb and housing.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 41 },
+  figures: [],
+  tools: [],
+  parts: [
+    { number: '', description: 'Halogen headlamp bulb', qty: 1 },
+  ],
+  torque: [
+    { fastener: 'Headlamp door screw', value: '9-18 in-lbs (1-2 N·m)' },
+    { fastener: 'Headlamp retaining ring screws (single)', value: '23-26 in-lbs (2.6-2.9 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'Remove screw at bottom of headlamp door (chrome ring).' },
+    { n: 2, text: 'Remove door with bulb.' },
+    { n: 3, text: 'Rotate bulb counterclockwise and remove from socket.' },
+    { n: 4, text: 'Install new halogen bulb carefully (do not touch bulb surface).' },
+    { n: 5, text: 'Reinstall door and tighten screw. Torque: 9-18 in-lbs.' },
+  ],
+},
+{
+  id: 't20-headlamp-led-remove-install',
+  bikeIds: ["touring-2020"],
+  system: 'electrical',
+  title: 'Headlamp (LED) - Remove and Install',
+  summary: 'Remove and install LED headlamp assembly (not serviceable for bulb replacement).',
+  difficulty: 'Moderate',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 41 },
+  figures: [],
+  tools: [],
+  parts: [
+    { number: '', description: 'LED headlamp complete assembly', qty: 1 },
+  ],
+  torque: [
+    { fastener: 'Headlamp bezel (dual)', value: '8-15 in-lbs (0.9-1.7 N·m)' },
+    { fastener: 'Headlamp screws (dual)', value: '48-60 in-lbs (5.4-6.8 N·m)' },
+  ],
+  steps: [
+    { n: 1, text: 'NOTE: LED headlamp contains no service parts. Replace entire assembly if failure occurs.' },
+    { n: 2, text: 'Disconnect headlamp electrical connector.' },
+    { n: 3, text: 'Remove screws securing headlamp to frame.' },
+    { n: 4, text: 'Remove headlamp assembly.' },
+    { n: 5, text: 'Install new LED headlamp assembly. Install screws. Torque: 48-60 in-lbs.' },
+    { n: 6, text: 'Connect electrical connector.' },
+  ],
+},
+{
+  id: 't20-headlamp-adjust',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Headlamp — Adjust',
+  summary: 'Adjust headlamp beam aim using horizontal and vertical adjusters or frame-mounted adjuster.',
+  difficulty: 'Easy',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 42 },
+  figures: [],
+  tools: ['5/32 in ball end hex wrench'],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Set headlamp beam. Quartz halogen: Set to high beam. LED fork-mounted: Set to low beam. LED frame-mounted: Set to high beam.' },
+    { n: 2, text: 'All except frame-mounted: Insert 5/32 in ball end hex wrench through adjuster slots in trim ring.' },
+    { n: 3, text: 'Horizontal: Turn horizontal adjusting screw to adjust light beam left or right.' },
+    { n: 4, text: 'Vertical: Turn vertical adjusting screw to adjust light beam up or down.' },
+    { n: 5, text: 'See Figure 8-49 or 8-50. Adjust headlamp light beam to proper position.' },
+    { n: 6, text: 'Frame-mounted fairing models: See Figure 8-48. Turn adjuster to adjust light beam up or down.' },
+    { n: 7, text: 'Frame-mounted fairing models: See Figure 8-51. Adjust headlamp light beam.' },
+    { n: 8, text: 'Verify alignment is complete and beam pattern matches specifications.' }
+  ]
+},
+{
+  id: 't20-auxiliary-lamps-bulb-replace',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Auxiliary Lamps — Replace Bulb',
+  summary: 'Replace quartz halogen or LED bulbs in auxiliary/fog lamps.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 46 },
+  figures: [],
+  tools: [],
+  parts: [
+    { number: '11300004', description: 'electrical contact lubricant', qty: 1 }
+  ],
+  torque: [
+    { fastener: 'auxiliary/fog lamp door screw', value: '10-14 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'WARNING: Handle bulb carefully and wear eye protection. Bulb contains pressurized gas.' },
+    { n: 2, text: 'NOTICE: Never touch quartz bulb. Fingerprints etch glass and decrease bulb life. Handle with paper or clean cloth.' },
+    { n: 3, text: 'See Figure 8-52. Loosen screw. Pull door from lamp housing.' },
+    { n: 4, text: 'Disconnect auxiliary/fog lamp connector. Remove lamp.' },
+    { n: 5, text: 'Remove nesting ring.' },
+    { n: 6, text: 'Quartz halogen: Rotate bulb housing 1/4 turn counterclockwise to remove from lamp.' },
+    { n: 7, text: 'Install new bulb/housing assembly. Rotate 1/4 turn clockwise.' },
+    { n: 8, text: 'Place nesting ring on back of lamp with tab facing away.' },
+    { n: 9, text: 'Mate connector.' },
+    { n: 10, text: 'Engage nesting ring index tab in slot at bottom of lamp housing.' },
+    { n: 11, text: 'Rotate lamp so index tabs engage slots in nesting ring.' },
+    { n: 12, text: 'Install lamp door on housing with screw centered at bottom. Tighten to 10-14 in-lbs.' }
+  ]
+},
+{
+  id: 't20-auxiliary-lamps-housing-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Auxiliary Lamps — Housing Remove and Install',
+  summary: 'Remove and install complete auxiliary/fog lamp housing assembly.',
+  difficulty: 'Moderate',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 46 },
+  figures: [],
+  tools: ['flare nut socket'],
+  parts: [],
+  torque: [
+    { fastener: 'auxiliary/fog lamp stud locknut', value: '20-24 ft-lbs' },
+    { fastener: 'front turn signal mounting screw: bullet style', value: '96-120 in-lbs' },
+    { fastener: 'turn/aux/fog lamp bracket acorn nut, fairing models', value: '120-180 in-lbs' },
+    { fastener: 'turn/aux/fog lamp bracket acorn nut, road king models', value: '72-108 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Road King Models: Disconnect both lamp connectors on left steering head.' },
+    { n: 2, text: 'Cut cable straps securing harnesses to lower fork bracket.' },
+    { n: 3, text: 'Pull harnesses down through openings in lower fork bracket.' },
+    { n: 4, text: 'Loosen acorn nuts securing lamp bracket.' },
+    { n: 5, text: 'Fairing Models: Remove acorn nuts securing lamp brackets.' },
+    { n: 6, text: 'Pull lamp bracket away from fork and separate electrical connector.' },
+    { n: 7, text: 'Remove auxiliary/fog lamp bracket.' },
+    { n: 8, text: 'Lay old lamp next to new and cut wire to length.' },
+    { n: 9, text: 'Strip specified length of insulation off wire and crimp on new socket terminal.' },
+    { n: 10, text: 'Install rubber washer on stud.' },
+    { n: 11, text: 'Position lamp housing on bracket. Install clamp block, lockwasher and locknut.' },
+    { n: 12, text: 'Use flare nut socket to tighten locknut. Torque: 20-24 ft-lbs.' },
+    { n: 13, text: 'Route wire through passage in bracket and protective conduit.' },
+    { n: 14, text: 'Install terminals into connector housing.' },
+    { n: 15, text: 'Install turn signal lamp. Secure with screw. Tighten to 96-120 in-lbs.' },
+    { n: 16, text: 'Fairing Models: Mate electrical connectors.' },
+    { n: 17, text: 'Attach lamp bracket with acorn nuts. Tighten to 120-180 in-lbs.' },
+    { n: 18, text: 'Road King Models: Install bracket with bushings outside bracket.' },
+    { n: 19, text: 'Install acorn nuts. Tighten to 72-108 in-lbs.' },
+    { n: 20, text: 'Pull harnesses up through openings in lower fork bracket.' },
+    { n: 21, text: 'Connect both lamp connectors.' },
+    { n: 22, text: 'Install cable straps securing harnesses to lower fork bracket.' }
+  ]
+},
+{
+  id: 't20-front-turn-signal-lamps-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Front Turn Signal Lamps — Remove and Install',
+  summary: 'Remove and install front turn signal lamp housings with electrical connections.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 49 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Locate front turn signal lamp assembly on fork bracket.' },
+    { n: 2, text: 'Disconnect electrical connector from turn signal lamp.' },
+    { n: 3, text: 'Remove mounting screws or acorn nuts securing lamp bracket.' },
+    { n: 4, text: 'Remove turn signal lamp assembly from bracket.' },
+    { n: 5, text: 'Inspect lamp housing for damage. If LED lamp fails, replace entire assembly.' },
+    { n: 6, text: 'Position new turn signal lamp on bracket.' },
+    { n: 7, text: 'Install mounting screws or acorn nuts. Tighten securely.' },
+    { n: 8, text: 'Connect electrical connector.' },
+    { n: 9, text: 'Verify turn signal lamp operation before completing repair.' }
+  ]
+},
+{
+  id: 't20-front-fender-tip-lamp-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Front Fender Tip Lamp — Remove and Install',
+  summary: 'Remove and install front fender tip lamp including bulb and housing.',
+  difficulty: 'Easy',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 52 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'fender tip lamp, front', value: '20-25 in-lbs' },
+    { fastener: 'fender trim strips, front', value: '10-15 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Remove fender trim strips if necessary for lamp access.' },
+    { n: 2, text: 'Loosen mounting screws securing fender tip lamp to fender bracket.' },
+    { n: 3, text: 'Disconnect lamp connector.' },
+    { n: 4, text: 'Remove fender tip lamp assembly.' },
+    { n: 5, text: 'If bulb replacement only: Push bulb in and rotate counterclockwise. Install new bulb.' },
+    { n: 6, text: 'Position new lamp on fender bracket.' },
+    { n: 7, text: 'Install mounting screws. Tighten to 20-25 in-lbs.' },
+    { n: 8, text: 'Connect electrical connector.' },
+    { n: 9, text: 'Install fender trim strips. Tighten to 10-15 in-lbs.' },
+    { n: 10, text: 'Test lamp operation.' }
+  ]
+},
+{
+  id: 't20-rear-turn-signal-lamps-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Rear Turn Signal Lamps — Remove and Install',
+  summary: 'Remove and install rear turn signal lamps with bracket and electrical connections.',
+  difficulty: 'Moderate',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 54 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'license plate bracket screws', value: '60-80 in-lbs' },
+    { fastener: 'rear lightbar screw', value: '84-120 in-lbs' },
+    { fastener: 'rear turn signal to lightbar screw', value: '30-50 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect electrical connectors from rear turn signal lamps.' },
+    { n: 2, text: 'Remove mounting screws securing turn signal lamp brackets to rear fender.' },
+    { n: 3, text: 'Remove turn signal lamp assembly.' },
+    { n: 4, text: 'For bulb-only replacement: Push bulb in and rotate counterclockwise to remove.' },
+    { n: 5, text: 'Install new bulb by rotating clockwise until seated.' },
+    { n: 6, text: 'For housing replacement: Install new housing on bracket.' },
+    { n: 7, text: 'Install mounting screws and tighten to specification.' },
+    { n: 8, text: 'Connect electrical connectors.' },
+    { n: 9, text: 'Test turn signal operation both directions.' }
+  ]
+},
+{
+  id: 't20-tail-lamp-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Tail Lamp — Remove and Install',
+  summary: 'Remove and install tail/stop lamp housing on rear fender.',
+  difficulty: 'Easy',
+  timeMinutes: 25,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 59 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'tail lamp base screw', value: '40-48 in-lbs' },
+    { fastener: 'tail lamp screws', value: '20-24 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'For bulb replacement only: Remove tail lamp lens screws.' },
+    { n: 2, text: 'Push bulb in and rotate counterclockwise to remove bulb socket.' },
+    { n: 3, text: 'Install new bulb by rotating clockwise.' },
+    { n: 4, text: 'Install lens screws. Tighten to 20-24 in-lbs.' },
+    { n: 5, text: 'For complete housing removal: Disconnect electrical connector.' },
+    { n: 6, text: 'Remove mounting screws securing lamp base to fender.' },
+    { n: 7, text: 'Remove tail lamp assembly.' },
+    { n: 8, text: 'Position new lamp base on fender.' },
+    { n: 9, text: 'Install mounting screws. Tighten to 40-48 in-lbs.' },
+    { n: 10, text: 'Connect electrical connector and test lamp operation.' }
+  ]
+},
+{
+  id: 't20-rear-fender-tip-lamp-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Rear Fender Tip Lamp — Remove and Install',
+  summary: 'Remove and install rear fender tip lamp with fascia assembly.',
+  difficulty: 'Easy',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 61 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'fascia lamp screw', value: '18-22 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Locate rear fender tip lamp at rear of fender.' },
+    { n: 2, text: 'Disconnect lamp electrical connector.' },
+    { n: 3, text: 'Remove fascia lamp mounting screws.' },
+    { n: 4, text: 'Remove lamp assembly from fender.' },
+    { n: 5, text: 'If bulb replacement: Push bulb in and rotate counterclockwise. Install new bulb.' },
+    { n: 6, text: 'Position new lamp assembly on fender bracket.' },
+    { n: 7, text: 'Install mounting screws. Tighten to 18-22 in-lbs.' },
+    { n: 8, text: 'Connect electrical connector.' },
+    { n: 9, text: 'Test rear fender tip lamp operation.' }
+  ]
+},
+{
+  id: 't20-tour-pak-lighting-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Tour-Pak Lighting — Remove and Install',
+  summary: 'Remove and install Tour-Pak side marker lamps, tether lamp, and wrap-around lamp assemblies.',
+  difficulty: 'Moderate',
+  timeMinutes: 50,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 62 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'AM/FM antenna stud nut', value: '16-19 in-lbs' },
+    { fastener: 'CB antenna stud nut', value: '14-16 in-lbs' },
+    { fastener: 'ground plate/marker lamp screws', value: '20-25 in-lbs' },
+    { fastener: 'wrap-around lamp screws', value: '20-25 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect all Tour-Pak lamp electrical connectors.' },
+    { n: 2, text: 'For side marker lamps: Remove mounting screws from marker lamps.' },
+    { n: 3, text: 'Disconnect marker lamp connectors and remove assembly.' },
+    { n: 4, text: 'For wrap-around rear lamps: Remove mounting screws securing lamp assembly.' },
+    { n: 5, text: 'Disconnect electrical connectors from wrap-around lamps.' },
+    { n: 6, text: 'Remove lamp assembly from Tour-Pak.' },
+    { n: 7, text: 'For antenna bases: Loosen antenna stud nuts.' },
+    { n: 8, text: 'Remove antenna base set screws.' },
+    { n: 9, text: 'Remove antenna and bracket assembly.' },
+    { n: 10, text: 'Position new wrap-around lamp on Tour-Pak.' },
+    { n: 11, text: 'Install mounting screws. Tighten to 20-25 in-lbs.' },
+    { n: 12, text: 'Position marker lamps on Tour-Pak bracket.' },
+    { n: 13, text: 'Install marker lamp mounting screws. Tighten to 20-25 in-lbs.' },
+    { n: 14, text: 'Install antenna base. Tighten stud nuts to 16-19 in-lbs (AM/FM) or 14-16 in-lbs (CB).' },
+    { n: 15, text: 'Connect all lamp electrical connectors.' },
+    { n: 16, text: 'Test all Tour-Pak lighting functions.' }
+  ]
+},
+{
+  id: 't20-rear-stoplamp-switch-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Rear Stoplamp Switch — Remove and Install',
+  summary: 'Remove and install rear brake stop lamp switch activated by brake pedal.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 65 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'rear stop lamp switch', value: '144 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Remove main fuse. See POWER DISCONNECT.' },
+    { n: 2, text: 'Disconnect stop lamp switch electrical connector.' },
+    { n: 3, text: 'Loosen switch mounting fastener from brake bracket.' },
+    { n: 4, text: 'Remove switch assembly.' },
+    { n: 5, text: 'Inspect switch contacts and plunger for damage or corrosion.' },
+    { n: 6, text: 'Position new stop lamp switch on brake bracket.' },
+    { n: 7, text: 'Install mounting fastener. Tighten to 144 in-lbs.' },
+    { n: 8, text: 'Connect switch electrical connector.' },
+    { n: 9, text: 'Install main fuse.' },
+    { n: 10, text: 'Test rear stop lamp illumination when brake pedal is depressed.' }
+  ]
+},
+{
+  id: 't20-license-plate-lamp-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'License Plate Lamp — Remove and Install',
+  summary: 'Remove and install license plate lamp housing.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 66 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Disconnect license plate lamp electrical connector.' },
+    { n: 2, text: 'Remove screws securing license plate lamp housing.' },
+    { n: 3, text: 'Remove lamp assembly from bracket.' },
+    { n: 4, text: 'If bulb replacement: Push bulb in and rotate to remove. Install new bulb.' },
+    { n: 5, text: 'For housing replacement: Position new lamp on bracket.' },
+    { n: 6, text: 'Install mounting screws.' },
+    { n: 7, text: 'Connect electrical connector.' },
+    { n: 8, text: 'Test license plate lamp illumination.' }
+  ]
+},
+{
+  id: 't20-radio-remove-install-fork-mounted',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Radio — Remove and Install (Fork Mounted Fairing)',
+  summary: 'Remove and install Boom Box radio head unit from fork-mounted fairing.',
+  difficulty: 'Moderate',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 67 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'radio-to-upper support bracket screw', value: '60-84 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect all electrical connectors from radio.' },
+    { n: 2, text: 'Remove radio mounting screws from upper support bracket.' },
+    { n: 3, text: 'Remove radio assembly from fairing.' },
+    { n: 4, text: 'If installing new radio: Position radio on support bracket.' },
+    { n: 5, text: 'Install mounting screws. Tighten to 60-84 in-lbs.' },
+    { n: 6, text: 'Connect all electrical connectors to radio head unit.' },
+    { n: 7, text: 'Connect antenna cable to radio.' },
+    { n: 8, text: 'Test radio operation and verify all controls function properly.' }
+  ]
+},
+{
+  id: 't20-radio-remove-install-frame-mounted',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Radio — Remove and Install (Frame Mounted Fairing)',
+  summary: 'Remove and install Boom Box radio head unit from frame-mounted fairing support bracket.',
+  difficulty: 'Moderate',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 67 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'radio to fairing support bracket screws', value: '60-84 in-lbs' },
+    { fastener: 'radio upper bracket: FLTR', value: '25-35 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect all electrical connectors from radio.' },
+    { n: 2, text: 'Remove upper support bracket screws.' },
+    { n: 3, text: 'Remove radio mounting screws from fairing support bracket.' },
+    { n: 4, text: 'Remove radio assembly.' },
+    { n: 5, text: 'If installing new radio: Position radio on support bracket.' },
+    { n: 6, text: 'Install lower mounting screws. Tighten to 60-84 in-lbs.' },
+    { n: 7, text: 'Install upper bracket screws. Tighten to 25-35 in-lbs.' },
+    { n: 8, text: 'Connect all electrical connectors.' },
+    { n: 9, text: 'Connect antenna cable.' },
+    { n: 10, text: 'Test radio operation and all control functions.' }
+  ]
+},
+{
+  id: 't20-front-speakers-remove-install-fork-mounted',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Front Speakers — Remove and Install (Fork Mounted Fairing)',
+  summary: 'Remove and install front speaker enclosures in fork-mounted fairing.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 70 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'fairing speaker enclosure to fairing screws', value: '48-60 in-lbs' },
+    { fastener: 'fairing speaker grille screws', value: '9-13 in-lbs' },
+    { fastener: 'fairing speaker screws', value: '9-13 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect speaker electrical connectors.' },
+    { n: 2, text: 'Remove speaker grille screws.' },
+    { n: 3, text: 'Remove speaker grille.' },
+    { n: 4, text: 'Remove speaker mounting screws.' },
+    { n: 5, text: 'Remove speaker from enclosure.' },
+    { n: 6, text: 'If speaker replacement: Position new speaker in enclosure.' },
+    { n: 7, text: 'Install speaker mounting screws. Tighten to 9-13 in-lbs.' },
+    { n: 8, text: 'Install speaker grille. Tighten screws to 9-13 in-lbs.' },
+    { n: 9, text: 'Connect speaker electrical connector.' },
+    { n: 10, text: 'Test speaker sound quality.' }
+  ]
+},
+{
+  id: 't20-front-speakers-remove-install-frame-mounted',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Front Speakers — Remove and Install (Frame Mounted Fairing)',
+  summary: 'Remove and install front speaker enclosures mounted in frame-mounted fairing bracket.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 70 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'speaker enclosure mounting screws, front, FLTR', value: '48-60 in-lbs' },
+    { fastener: 'speaker mounting screws', value: '9-13 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect speaker electrical connectors from audio harness.' },
+    { n: 2, text: 'Remove speaker enclosure mounting screws from fairing bracket.' },
+    { n: 3, text: 'Remove speaker enclosure assembly.' },
+    { n: 4, text: 'Remove speaker grille if equipped.' },
+    { n: 5, text: 'Remove speaker mounting screws.' },
+    { n: 6, text: 'Remove speaker from enclosure.' },
+    { n: 7, text: 'If speaker replacement: Install new speaker in enclosure.' },
+    { n: 8, text: 'Install speaker mounting screws. Tighten to 9-13 in-lbs.' },
+    { n: 9, text: 'Install speaker grille.' },
+    { n: 10, text: 'Position enclosure on fairing bracket.' },
+    { n: 11, text: 'Install mounting screws. Tighten to 48-60 in-lbs.' },
+    { n: 12, text: 'Connect speaker electrical connectors.' },
+    { n: 13, text: 'Test speaker sound quality.' }
+  ]
+},
+{
+  id: 't20-rear-speakers-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Rear Speakers — Remove and Install',
+  summary: 'Remove and install rear speakers in Tour-Pak audio enclosure.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 73 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'rear speaker enclosure to Tour-Pak screws', value: '20-25 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect rear speaker electrical connectors from main harness.' },
+    { n: 2, text: 'Remove speaker enclosure mounting screws from Tour-Pak.' },
+    { n: 3, text: 'Remove speaker enclosure.' },
+    { n: 4, text: 'Remove speaker grille if equipped.' },
+    { n: 5, text: 'Remove speaker mounting screws.' },
+    { n: 6, text: 'Remove speaker from enclosure.' },
+    { n: 7, text: 'Install new speaker in enclosure.' },
+    { n: 8, text: 'Install speaker mounting screws.' },
+    { n: 9, text: 'Install speaker grille.' },
+    { n: 10, text: 'Position enclosure on Tour-Pak.' },
+    { n: 11, text: 'Install mounting screws. Tighten to 20-25 in-lbs.' },
+    { n: 12, text: 'Connect speaker electrical connectors.' },
+    { n: 13, text: 'Test rear speaker sound quality.' }
+  ]
+},
+{
+  id: 't20-passenger-audio-controls-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Passenger Audio Controls — Remove and Install',
+  summary: 'Remove and install passenger audio control panel mounted on Tour-Pak or frame bracket.',
+  difficulty: 'Easy',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 76 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'passenger audio switch screws', value: '25-30 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect passenger audio control electrical connector.' },
+    { n: 2, text: 'Remove mounting screws securing control panel to bracket.' },
+    { n: 3, text: 'Remove control panel assembly.' },
+    { n: 4, text: 'If control replacement: Position new control panel on bracket.' },
+    { n: 5, text: 'Install mounting screws. Tighten to 25-30 in-lbs.' },
+    { n: 6, text: 'Connect electrical connector.' },
+    { n: 7, text: 'Test passenger audio controls for proper operation.' }
+  ]
+},
+{
+  id: 't20-rider-headset-connector-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Rider Headset Connector — Remove and Install',
+  summary: 'Remove and install rider audio headset connector on handlebar.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 77 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'rider headset connector nut', value: '7-9 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect headset from connector.' },
+    { n: 2, text: 'Remove connector mounting screws or nuts from handlebar bracket.' },
+    { n: 3, text: 'Disconnect connector from main audio harness.' },
+    { n: 4, text: 'Remove connector assembly.' },
+    { n: 5, text: 'Install new connector on handlebar bracket.' },
+    { n: 6, text: 'Install mounting screws/nuts. Tighten to 7-9 in-lbs.' },
+    { n: 7, text: 'Connect connector to main audio harness.' },
+    { n: 8, text: 'Test headset connectivity and audio quality.' }
+  ]
+},
+{
+  id: 't20-cb-module-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'CB Module — Remove and Install',
+  summary: 'Remove and install CB radio module and associated mounting bracket.',
+  difficulty: 'Moderate',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 78 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'CB module bracket to speaker enclosure screw', value: '25-35 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect CB module electrical connectors from harness.' },
+    { n: 2, text: 'Remove mounting screws securing CB module bracket to speaker enclosure.' },
+    { n: 3, text: 'Remove CB module and bracket assembly.' },
+    { n: 4, text: 'If module replacement: Remove CB module from bracket.' },
+    { n: 5, text: 'Install new CB module on bracket.' },
+    { n: 6, text: 'Position bracket assembly on speaker enclosure.' },
+    { n: 7, text: 'Install mounting screws. Tighten to 25-35 in-lbs.' },
+    { n: 8, text: 'Connect CB module electrical connectors.' },
+    { n: 9, text: 'Test CB module operation and channel scanning.' }
+  ]
+},
+{
+  id: 't20-gps-antenna-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'GPS Antenna — Remove and Install',
+  summary: 'Remove and install GPS antenna from fairing or Tour-Pak mounting location.',
+  difficulty: 'Easy',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 79 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Disconnect GPS antenna cable from connector.' },
+    { n: 2, text: 'Remove antenna mounting bracket screws.' },
+    { n: 3, text: 'Carefully remove antenna from mounting location.' },
+    { n: 4, text: 'Position new GPS antenna on bracket.' },
+    { n: 5, text: 'Install mounting screws. Tighten securely.' },
+    { n: 6, text: 'Route antenna cable through fairing or Tour-Pak interior.' },
+    { n: 7, text: 'Connect antenna cable to GPS receiver connector.' },
+    { n: 8, text: 'Test GPS antenna signal reception and positioning accuracy.' }
+  ]
+},
+{
+  id: 't20-antenna-cables-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Antenna Cables — Remove and Install',
+  summary: 'Remove and install AM/FM radio and CB antenna cable assemblies.',
+  difficulty: 'Moderate',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 80 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'AM/FM antenna stud nut', value: '16-19 in-lbs' },
+    { fastener: 'CB antenna stud nut', value: '14-16 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Disconnect antenna cable connectors from radio head units.' },
+    { n: 2, text: 'Remove antenna cable base mounting nuts from Tour-Pak or fairing bracket.' },
+    { n: 3, text: 'Route antenna cable through fairing or Tour-Pak interior.' },
+    { n: 4, text: 'Remove cable from motorcycle structure.' },
+    { n: 5, text: 'Install new antenna cable through fairing or Tour-Pak interior.' },
+    { n: 6, text: 'Position antenna cable base on mounting bracket.' },
+    { n: 7, text: 'Install mounting nuts. Tighten to specification (16-19 in-lbs for AM/FM, 14-16 in-lbs for CB).' },
+    { n: 8, text: 'Connect antenna cable connectors to radio head units.' },
+    { n: 9, text: 'Test antenna signal strength and radio reception.' }
+  ]
+},
+{
+  id: 't20-electronic-control-module-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Electronic Control Module — Remove and Install',
+  summary: 'Remove and install ECM (engine control computer) from top caddy.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 83 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Remove seat. See SEAT.' },
+    { n: 2, text: 'Disconnect main electrical connectors from ECM.' },
+    { n: 3, text: 'Remove cable straps securing harnesses to ECM.' },
+    { n: 4, text: 'Remove ECM mounting bolts from top caddy.' },
+    { n: 5, text: 'Remove ECM from motorcycle.' },
+    { n: 6, text: 'WARNING: Keep ECM away from static electricity and moisture.' },
+    { n: 7, text: 'Position new ECM on top caddy.' },
+    { n: 8, text: 'Install mounting bolts. Tighten securely.' },
+    { n: 9, text: 'Route and secure harnesses with new cable straps.' },
+    { n: 10, text: 'Connect main electrical connectors to ECM.' },
+    { n: 11, text: 'Install seat and verify ECM power-up and operation.' }
+  ]
+},
+{
+  id: 't20-engine-temperature-sensor-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Engine Temperature Sensor — Remove and Install',
+  summary: 'Remove and install engine temperature (ET) sensor for coolant temperature monitoring.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 98 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'ET sensor', value: '11-16 ft-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Allow engine to cool. WARNING: Hot coolant and components can cause serious burns.' },
+    { n: 2, text: 'Remove main fuse. See POWER DISCONNECT.' },
+    { n: 3, text: 'Disconnect ET sensor electrical connector.' },
+    { n: 4, text: 'Using appropriate socket, loosen ET sensor from engine block mounting location.' },
+    { n: 5, text: 'Remove sensor carefully.' },
+    { n: 6, text: 'Inspect sensor threads and mounting location for damage.' },
+    { n: 7, text: 'Position new ET sensor in mounting location.' },
+    { n: 8, text: 'Install and tighten sensor. Torque: 11-16 ft-lbs.' },
+    { n: 9, text: 'Connect ET sensor electrical connector.' },
+    { n: 10, text: 'Install main fuse and verify coolant temperature gauge operation.' }
+  ]
+},
+{
+  id: 't20-vehicle-speed-sensor-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Vehicle Speed Sensor — Remove and Install',
+  summary: 'Remove and install vehicle speed sensor for speedometer and cruise control operation.',
+  difficulty: 'Moderate',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 102 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'VSS screw', value: '100-120 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Remove main fuse. See POWER DISCONNECT.' },
+    { n: 2, text: 'Locate VSS on rear wheel hub or transmission output.' },
+    { n: 3, text: 'Disconnect VSS electrical connector.' },
+    { n: 4, text: 'Remove VSS mounting screw.' },
+    { n: 5, text: 'Remove sensor from mounting location.' },
+    { n: 6, text: 'Inspect sensor tip and mounting location for damage or debris.' },
+    { n: 7, text: 'Position new VSS in mounting location.' },
+    { n: 8, text: 'Install mounting screw. Tighten to 100-120 in-lbs.' },
+    { n: 9, text: 'Connect VSS electrical connector.' },
+    { n: 10, text: 'Install main fuse.' },
+    { n: 11, text: 'Test speedometer operation and verify cruise control function.' }
+  ]
+},
+{
+  id: 't20-front-wheel-speed-sensor-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Front Wheel Speed Sensor — Remove and Install (ABS)',
+  summary: 'Remove and install front wheel speed sensor for anti-lock braking system.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 103 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Remove front wheel. See WHEELS.' },
+    { n: 2, text: 'Remove brake caliper and rotor to access sensor.' },
+    { n: 3, text: 'Disconnect WSS electrical connector from harness.' },
+    { n: 4, text: 'Remove cable straps securing WSS cable to fork.' },
+    { n: 5, text: 'Remove WSS mounting bracket screws.' },
+    { n: 6, text: 'Remove WSS assembly from hub.' },
+    { n: 7, text: 'Inspect sensor tip and air gap for proper clearance.' },
+    { n: 8, text: 'Install new WSS on hub bracket.' },
+    { n: 9, text: 'Install mounting screws. Tighten securely.' },
+    { n: 10, text: 'Route WSS cable through fork and secure with new cable straps.' },
+    { n: 11, text: 'Connect WSS electrical connector.' },
+    { n: 12, text: 'Install rotor and brake caliper.' },
+    { n: 13, text: 'Install wheel and verify ABS system operation.' }
+  ]
+},
+{
+  id: 't20-rear-wheel-speed-sensor-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Rear Wheel Speed Sensor — Remove and Install (ABS)',
+  summary: 'Remove and install rear wheel speed sensor for anti-lock braking system.',
+  difficulty: 'Moderate',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 105 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Remove rear wheel. See WHEELS.' },
+    { n: 2, text: 'Remove brake caliper to access sensor.' },
+    { n: 3, text: 'Disconnect WSS electrical connector from harness.' },
+    { n: 4, text: 'Remove cable straps securing WSS cable.' },
+    { n: 5, text: 'Remove WSS mounting bracket screws from hub.' },
+    { n: 6, text: 'Remove WSS assembly.' },
+    { n: 7, text: 'Inspect sensor tip and rotor ring for debris or damage.' },
+    { n: 8, text: 'Install new WSS on hub bracket.' },
+    { n: 9, text: 'Install mounting screws. Tighten securely.' },
+    { n: 10, text: 'Route WSS cable and secure with cable straps.' },
+    { n: 11, text: 'Connect WSS electrical connector.' },
+    { n: 12, text: 'Install brake caliper.' },
+    { n: 13, text: 'Install wheel and verify ABS system operation.' }
+  ]
+},
+{
+  id: 't20-inertial-measurement-unit-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Inertial Measurement Unit — Remove and Install',
+  summary: 'Remove and install IMU (bank angle sensor) for stability control and ABS functions.',
+  difficulty: 'Moderate',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 106 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'IMU screw', value: '32-40 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Remove main fuse. See POWER DISCONNECT.' },
+    { n: 2, text: 'Locate IMU mounted on vehicle frame lower backbone.' },
+    { n: 3, text: 'Disconnect IMU electrical connector.' },
+    { n: 4, text: 'Remove IMU mounting screws.' },
+    { n: 5, text: 'Remove IMU assembly.' },
+    { n: 6, text: 'WARNING: Do not drop IMU or subject to shock. Sensor calibration sensitive.' },
+    { n: 7, text: 'Position new IMU in mounting location.' },
+    { n: 8, text: 'Install mounting screws. Tighten to 32-40 in-lbs.' },
+    { n: 9, text: 'Connect IMU electrical connector.' },
+    { n: 10, text: 'Install main fuse.' },
+    { n: 11, text: 'Perform IMU sensor calibration using diagnostic tool if available.' }
+  ]
+},
+{
+  id: 't20-security-siren-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Security Siren — Remove and Install',
+  summary: 'Remove and install security alarm siren for motorcycle security system.',
+  difficulty: 'Easy',
+  timeMinutes: 25,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 91 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Disable security system. See SECURITY SYSTEM.' },
+    { n: 2, text: 'Disconnect siren electrical connector from main harness.' },
+    { n: 3, text: 'Remove siren mounting bracket screws.' },
+    { n: 4, text: 'Remove siren assembly from mounting location.' },
+    { n: 5, text: 'Inspect siren housing and connector for damage.' },
+    { n: 6, text: 'Position new siren on mounting bracket.' },
+    { n: 7, text: 'Install mounting screws. Tighten securely.' },
+    { n: 8, text: 'Connect siren electrical connector.' },
+    { n: 9, text: 'Enable security system and test alarm activation and siren operation.' }
+  ]
+},
+{
+  id: 't20-fuses-relays-check-replace',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Fuses and Relays — Check and Replace',
+  summary: 'Check and replace fuses and relays in main fuse block behind left side cover.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 6 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [
+    { n: 1, text: 'Remove left saddlebag. See SADDLEBAGS.' },
+    { n: 2, text: 'Remove left side cover. See LEFT SIDE COVER.' },
+    { n: 3, text: 'Models with security: Disable security system before proceeding.' },
+    { n: 4, text: 'Remove main fuse by pulling straight out of holder.' },
+    { n: 5, text: 'Press in tabs on left and right sides of fuse block cover to open.' },
+    { n: 6, text: 'Remove fuse or relay if needed by pulling straight out.' },
+    { n: 7, text: 'Inspect fuse element. Replace if blown or discolored.' },
+    { n: 8, text: 'Check fuse rating: Main (50A), System power (7.5A), Radio power (20A), P&A (20A), Cooling (15A), Battery (5A).' },
+    { n: 9, text: 'Install new fuse into correct slot. Ensure proper seating.' },
+    { n: 10, text: 'Install fuse block cover by engaging tabs on sides.' },
+    { n: 11, text: 'Install main fuse if removed.' },
+    { n: 12, text: 'WARNING: Verify all lights and switches operate properly before riding.' },
+    { n: 13, text: 'Test affected circuit for proper operation.' }
+  ]
+},
+{
+  id: 't20-main-wire-harness-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'electrical',
+  title: 'Main Wire Harness — Remove and Install',
+  summary: 'Remove and install main electrical harness assembly with ground stud connections.',
+  difficulty: 'Advanced',
+  timeMinutes: 120,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 122 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [
+    { fastener: 'harness ground stud flange nut', value: '50-90 in-lbs' }
+  ],
+  steps: [
+    { n: 1, text: 'Remove main fuse. See POWER DISCONNECT.' },
+    { n: 2, text: 'Disconnect negative battery cable. See POWER DISCONNECT.' },
+    { n: 3, text: 'Remove left side cover to access fuse block.' },
+    { n: 4, text: 'Disconnect main harness connector from fuse block.' },
+    { n: 5, text: 'Disconnect all branch harness connectors at left side caddy.' },
+    { n: 6, text: 'Remove cable straps securing harness to frame.' },
+    { n: 7, text: 'Disconnect ground stud connections at frame.' },
+    { n: 8, text: 'Remove harness ground stud flange nuts.' },
+    { n: 9, text: 'Route harness out through fairing or frame openings.' },
+    { n: 10, text: 'Remove main harness assembly.' },
+    { n: 11, text: 'Position new main harness in frame routing path.' },
+    { n: 12, text: 'Route harness through same path as original, securing with cable straps.' },
+    { n: 13, text: 'Position ground studs at frame attachment points.' },
+    { n: 14, text: 'Install ground stud flange nuts. Tighten to 50-90 in-lbs.' },
+    { n: 15, text: 'Connect all branch harness connectors at left side caddy.' },
+    { n: 16, text: 'Connect main harness connector to fuse block.' },
+    { n: 17, text: 'Connect negative battery cable.' },
+    { n: 18, text: 'Install main fuse.' },
+    { n: 19, text: 'Install left side cover.' },
+    { n: 20, text: 'Test all electrical systems for proper operation.' }
+  ]
+},
+
+{
+  id: 't20-shifter-rod-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Shifter Rod — Remove and Install',
+  summary: 'Remove and install shifter rod assembly with ball studs.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 7 },
+  figures: [{ num: '5-2', title: 'Shifter Linkage' }],
+  tools: [],
+  parts: [{ number: '', description: 'Washer (ball stud)', qty: 1 }, { number: '', description: 'Nut (shifter rod)', qty: 1 }],
+  torque: [{ fastener: 'Shifter rod nut', value: '8-12 ft-lbs (11-16 N·m)' }, { fastener: 'Shifter rod jamnut', value: '80-120 in-lbs (9-13.6 N·m)' }],
+  steps: [{ n: 1, text: 'Remove ball stud (14) from rear shifter rod lever.' }, { n: 2, text: 'Remove nut (11) and washer (12).' }, { n: 3, text: 'Remove shifter rod (2).' }, { n: 4, text: 'Install rear ball stud (14) to rear shifter rod lever.' }, { n: 5, text: 'Install front of shifter rod (2) through shifter rod lever (13).' }, { n: 6, text: 'Install washer (12) on ball stud.' }, { n: 7, text: 'Install nut (11). Tighten. Torque: 8-12 ft-lbs (11-16 N·m) Shifter rod nut.' }]
+},
+{
+  id: 't20-shifter-rod-adjust',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Shifter Rod — Adjust',
+  summary: 'Adjust shifter rod length to achieve proper gear engagement and lever travel.',
+  difficulty: 'Moderate',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 7 },
+  figures: [{ num: '5-2', title: 'Shifter Linkage' }],
+  tools: [],
+  parts: [],
+  torque: [{ fastener: 'Shifter rod nut', value: '8-12 ft-lbs (11-16 N·m)' }, { fastener: 'Shifter rod jamnut', value: '80-120 in-lbs (9-13.6 N·m)' }],
+  steps: [{ n: 1, text: 'Loosen jamnuts (1).' }, { n: 2, text: 'Remove nut (11) and washer (12).' }, { n: 3, text: 'Remove front of shifter rod (2).' }, { n: 4, text: 'Adjust rod as necessary.' }, { n: 5, text: 'Install front of shifter rod through shifter rod lever (13).' }, { n: 6, text: 'Install washer on ball stud (14).' }, { n: 7, text: 'Install nut (11). Tighten. Torque: 8-12 ft-lbs (11-16 N·m) Shifter rod nut.' }, { n: 8, text: 'Tighten jamnuts (1). Torque: 80-120 in-lbs (9-13.6 N·m) Shifter rod jamnut.' }]
+},
+{
+  id: 't20-foot-shift-lever-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Foot Shift Lever — Remove and Install',
+  summary: 'Remove and install foot shift lever assembly with pegs and fasteners.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 7 },
+  figures: [{ num: '5-2', title: 'Shifter Linkage' }],
+  tools: [],
+  parts: [{ number: '', description: 'Spacer (shift lever)', qty: 1 }, { number: '', description: 'Peg (shift lever)', qty: 2 }, { number: '', description: 'Screw (peg)', qty: 2 }, { number: '', description: 'Nut (shift lever)', qty: 2 }],
+  torque: [{ fastener: 'Shift lever pinch screw', value: '9.0-12.0 ft-lbs (12.2-16.3 N·m)' }, { fastener: 'Shifter peg screw', value: '96-144 in-lbs (10.9-16.3 N·m)' }],
+  steps: [{ n: 1, text: 'Mark position of lever (3) in relation to shaft (9) for reference during reinstallation.' }, { n: 2, text: 'Remove screw (7) and nut (4).' }, { n: 3, text: 'Remove lever from shaft.' }, { n: 4, text: 'Remove spacer (8).' }, { n: 5, text: 'Remove screw (5) and peg (6).' }, { n: 6, text: 'Install spacer (8) on shaft (9).' }, { n: 7, text: 'Align and install lever (3) to mark made during removal.' }, { n: 8, text: 'Install screw (7) and nut (4). Tighten. Torque: 9.0-12.0 ft-lbs (12.2-16.3 N·m) Shift lever pinch screw.' }, { n: 9, text: 'Install screw (5) through peg (6). Tighten. Torque: 96-144 in-lbs (10.9-16.3 N·m) Shifter peg screw.' }, { n: 10, text: 'Verify shift lever operation. NOTE: Peg height is customer preference. Peg must not contact footboard when shifting.' }]
+},
+{
+  id: 't20-shifter-rod-lever-front-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Shifter Rod Lever, Front — Remove and Install',
+  summary: 'Remove and install front shifter rod lever with shaft alignment.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 8 },
+  figures: [{ num: '5-2', title: 'Shifter Linkage' }],
+  tools: [],
+  parts: [{ number: '', description: 'Washer (shifter rod)', qty: 1 }, { number: '', description: 'Nut (shifter rod)', qty: 1 }],
+  torque: [{ fastener: 'Shifter rod lever pinch screw, front lever', value: '132-156 in-lbs (14.9-17.6 N·m)' }, { fastener: 'Shifter rod nut', value: '8-12 ft-lbs (11-16 N·m)' }],
+  steps: [{ n: 1, text: 'Mark position of shifter rod lever (13) in relation to shaft (9).' }, { n: 2, text: 'Remove screw (10).' }, { n: 3, text: 'Slide shaft (9) out enough to remove shifter rod lever.' }, { n: 4, text: 'Remove nut (11) and washer (12) from shifter rod.' }, { n: 5, text: 'Remove shifter rod (2).' }, { n: 6, text: 'Align and install lever (13) to marks made on shifter shaft (9) during removal.' }, { n: 7, text: 'Slide shifter shaft through lever.' }, { n: 8, text: 'Install screw (10). Tighten. Torque: 132-156 in-lbs (14.9-17.6 N·m) Shifter rod lever pinch screw.' }, { n: 9, text: 'Install shifter rod (1) through shifter rod lever (13).' }, { n: 10, text: 'Install washer (12) on shifter rod stud.' }, { n: 11, text: 'Install nut (11). Tighten. Torque: 8-12 ft-lbs (11-16 N·m) Shifter rod nut.' }, { n: 12, text: 'Verify shift lever operation.' }]
+},
+{
+  id: 't20-transmission-side-cover-outer-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Side Cover, Outer — Remove',
+  summary: 'Remove outer transmission side cover screws and cover.',
+  difficulty: 'Easy',
+  timeMinutes: 10,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 9 },
+  figures: [{ num: '5-3', title: 'Transmission Side Covers' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove screws (4).' }, { n: 2, text: 'Remove outer cover (5).' }]
+},
+{
+  id: 't20-transmission-side-cover-outer-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Side Cover, Outer — Install',
+  summary: 'Install outer transmission side cover with fasteners.',
+  difficulty: 'Easy',
+  timeMinutes: 10,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 9 },
+  figures: [{ num: '5-3', title: 'Transmission Side Covers' }],
+  tools: [],
+  parts: [{ number: '', description: 'Screw (outer side cover)', qty: 2 }],
+  torque: [{ fastener: 'Transmission outer side cover screw', value: '100-120 in-lbs (11.2-13.6 N·m)' }],
+  steps: [{ n: 1, text: 'Install outer cover (5).' }, { n: 2, text: 'Install screws (4). Tighten. Torque: 100-120 in-lbs (11.2-13.6 N·m) Transmission outer side cover screw.' }]
+},
+{
+  id: 't20-transmission-side-cover-inner-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Side Cover, Inner — Remove',
+  summary: 'Remove inner transmission side cover with gasket.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 9 },
+  figures: [{ num: '5-3', title: 'Transmission Side Covers' }],
+  tools: [],
+  parts: [{ number: '', description: 'Gasket (inner side cover)', qty: 1 }],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove secondary clutch actuator if necessary. See Secondary Clutch Actuator (Page 5-9).' }, { n: 2, text: 'Remove screws (6).' }, { n: 3, text: 'Remove inner side cover (1).' }, { n: 4, text: 'Discard gasket (2).' }, { n: 5, text: 'NOTE: Clean with denatured alcohol only. Clean and inspect inner cover.' }]
+},
+{
+  id: 't20-transmission-side-cover-inner-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Side Cover, Inner — Install',
+  summary: 'Install inner transmission side cover with new gasket.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 9 },
+  figures: [{ num: '5-3', title: 'Transmission Side Covers' }],
+  tools: [],
+  parts: [{ number: '', description: 'Gasket (inner side cover)', qty: 1 }, { number: '', description: 'Screw (inner side cover)', qty: 4 }],
+  torque: [{ fastener: 'Transmission inner side cover screw', value: '132-156 in-lbs (14.9-17.6 N·m)' }],
+  steps: [{ n: 1, text: 'Install new gasket (2).' }, { n: 2, text: 'Install inner cover (1).' }, { n: 3, text: 'Install screws (6). Tighten. Torque: 132-156 in-lbs (14.9-17.6 N·m) Transmission inner side cover screw.' }, { n: 4, text: 'If removed, install secondary clutch actuator (3). See Secondary Clutch Actuator (Page 5-9).' }]
+},
+{
+  id: 't20-secondary-clutch-actuator-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Secondary Clutch Actuator — Remove',
+  summary: 'Remove secondary clutch actuator from transmission side cover.',
+  difficulty: 'Moderate',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 9 },
+  figures: [{ num: '5-5', title: 'Secondary Clutch Actuator' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'WARNING: A small amount of transmission lubricant drains when secondary clutch actuator is removed. Do not allow DOT 4 fluid to contact diaphragm. If DOT 4 fluid contacts painted surfaces, IMMEDIATELY flush area with clear water.' }, { n: 2, text: 'If replacing actuator: Drain clutch fluid. See HYDRAULIC CLUTCH FLUID (page 2-12).' }, { n: 3, text: 'Disconnect clutch fluid line (2). Place a rag under flare nut.' }, { n: 4, text: 'Disconnect flare nut. Allow fluid to drain.' }, { n: 5, text: 'If removing actuator to service other components: Compress clutch lever slightly and place eyelet of cable strap between lever and housing.' }, { n: 6, text: 'See Figure 5-5. Remove screws (3) and secondary clutch actuator (4).' }]
+},
+{
+  id: 't20-secondary-clutch-actuator-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Secondary Clutch Actuator — Install',
+  summary: 'Install secondary clutch actuator with torque sequence and fluid connections.',
+  difficulty: 'Moderate',
+  timeMinutes: 25,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 9 },
+  figures: [{ num: '5-5', title: 'Secondary Clutch Actuator' }, { num: '5-6', title: 'Secondary Clutch Actuator Torque Sequence' }],
+  tools: [],
+  parts: [{ number: '', description: 'Screw (secondary clutch actuator)', qty: 3 }],
+  torque: [{ fastener: 'Secondary clutch actuator screw', value: '8-10 ft-lbs (11.2-13.6 N·m)' }, { fastener: 'Secondary clutch fluid lines', value: '11-15 ft-lbs (15-21 N·m)' }],
+  steps: [{ n: 1, text: 'Lubricate mounting bore in side cover with a film of transmission lubricant.' }, { n: 2, text: 'Install secondary clutch actuator (4) and screws (3).' }, { n: 3, text: 'Draw screws down evenly to prevent binding and possible breakage of mounting ears. Tighten. Torque: 8-10 ft-lbs (11.2-13.6 N·m) Secondary clutch actuator screw.' }, { n: 4, text: 'Connect fluid line if removed: Connect fluid line (2). Tighten. Torque: 11-15 ft-lbs (15-21 N·m) Secondary clutch fluid lines.' }, { n: 5, text: 'Fill and bleed clutch control system. See BLEED CLUTCH CONTROL SYSTEM (Page 3-84).' }]
+},
+{
+  id: 't20-clutch-release-bearing-remove',
+  bikeIds: ['touring-2020'],
+  system: 'drivetrain',
+  title: 'Clutch Release Bearing — Remove',
+  summary: 'Remove clutch cover, bearing plate, and release bearing assembly.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 11 },
+  figures: [{ num: '5-8', title: 'Release Bearing and Pushrod' }, { num: '5-9', title: 'Clutch Cover' }],
+  tools: [],
+  parts: [{ number: '', description: 'Retaining ring (bearing)', qty: 1 }, { number: '', description: 'Gasket (clutch cover)', qty: 1 }],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove clutch cover. See Figure 5-9.' }, { n: 2, text: 'Remove and discard retaining ring (1) from bearing plate.' }, { n: 3, text: 'Remove bearing plate (3) with bearing (4) and rod (5).' }, { n: 4, text: 'Remove pushrod (6) if necessary.' }]
+},
+{
+  id: 't20-clutch-release-bearing-install',
+  bikeIds: ['touring-2020'],
+  system: 'drivetrain',
+  title: 'Clutch Release Bearing — Install',
+  summary: 'Install clutch release bearing, plate, and cover with measurement verification.',
+  difficulty: 'Moderate',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 11 },
+  figures: [{ num: '5-8', title: 'Release Bearing and Pushrod' }, { num: '5-9', title: 'Clutch Cover' }],
+  tools: [],
+  parts: [{ number: '', description: 'Retaining ring (bearing)', qty: 1 }, { number: '', description: 'Gasket (clutch cover)', qty: 1 }],
+  torque: [{ fastener: 'Clutch cover screw', value: '84-108 in-lbs (9.5-12.2 N·m)' }],
+  steps: [{ n: 1, text: 'Install pushrod (6) if removed.' }, { n: 2, text: 'Seat bearing plate (3) in clutch.' }, { n: 3, text: 'Install new retaining ring (1).' }, { n: 4, text: 'Thoroughly clean oil from clutch cover and mating surface on primary cover.' }, { n: 5, text: 'Install clutch cover, new gasket and screws. Tighten screws in sequence shown. Torque: 84-108 in-lbs (9.5-12.2 N·m) Clutch cover screw.' }, { n: 6, text: 'Measure release plate movement: Attach dial indicator to measure pushrod axial movement.' }, { n: 7, text: 'Actuate clutch lever to measure axial movement. Minimum axial movement: 0.086 in (2.18 mm). If less, bleed system and remeasure.' }]
+},
+{
+  id: 't20-clutch-release-bearing-disassemble',
+  bikeIds: ['touring-2020'],
+  system: 'drivetrain',
+  title: 'Clutch Release Bearing — Disassemble',
+  summary: 'Disassemble release bearing from bearing plate and rod.',
+  difficulty: 'Moderate',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 11 },
+  figures: [{ num: '5-8', title: 'Release Bearing and Pushrod' }],
+  tools: [],
+  parts: [{ number: '', description: 'Release rod retainer', qty: 1 }],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove and discard release rod retainer (2).' }, { n: 2, text: 'Press release rod (5) from bearing (4).' }, { n: 3, text: 'Press release bearing (4) from bearing plate (3).' }]
+},
+{
+  id: 't20-clutch-release-bearing-assemble',
+  bikeIds: ['touring-2020'],
+  system: 'drivetrain',
+  title: 'Clutch Release Bearing — Assemble',
+  summary: 'Assemble release bearing into bearing plate with rod and retainer.',
+  difficulty: 'Moderate',
+  timeMinutes: 20,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 11 },
+  figures: [{ num: '5-8', title: 'Release Bearing and Pushrod' }],
+  tools: [],
+  parts: [{ number: '', description: 'Release bearing (new)', qty: 1 }, { number: '', description: 'Release rod retainer (new)', qty: 1 }],
+  torque: [],
+  steps: [{ n: 1, text: 'Press on the outer race to install a new release bearing (4) into bearing plate (3).' }, { n: 2, text: 'Assemble release rod (5) to bearing.' }, { n: 3, text: 'Install new retainer (2).' }]
+},
+{
+  id: 't20-transmission-top-cover-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Top Cover — Remove',
+  summary: 'Remove transmission top cover bolts and cover assembly.',
+  difficulty: 'Easy',
+  timeMinutes: 10,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 31 },
+  figures: [],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove transmission top cover screws.' }, { n: 2, text: 'Remove top cover assembly.' }]
+},
+{
+  id: 't20-transmission-top-cover-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Top Cover — Install',
+  summary: 'Install transmission top cover with gasket and fasteners.',
+  difficulty: 'Easy',
+  timeMinutes: 10,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 31 },
+  figures: [],
+  tools: [],
+  parts: [{ number: '', description: 'Gasket (top cover)', qty: 1 }],
+  torque: [{ fastener: 'Transmission top cover screw', value: '132-156 in-lbs (14.9-17.6 N·m)' }],
+  steps: [{ n: 1, text: 'Set shifter cam pawl on shift cam.' }, { n: 2, text: 'Inspect transmission top cover gasket. Replace as necessary.' }, { n: 3, text: 'Install transmission top cover and screws. Tighten. Torque: 132-156 in-lbs (14.9-17.6 N·m) Transmission top cover screw.' }, { n: 4, text: 'Install vent hose to top cover fitting, if removed.' }]
+},
+{
+  id: 't20-transmission-shift-forks-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Shift Forks and Shafts — Remove',
+  summary: 'Remove shift fork shafts and forks from transmission drum.',
+  difficulty: 'Advanced',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 32 },
+  figures: [{ num: '5-45', title: 'Gear Set' }],
+  tools: ['Spiral-flute screw extractor or vise grips'],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Set bearing housing on bench with shafts pointing up.' }, { n: 2, text: 'NOTE: Shafts have slight interference fit.' }, { n: 3, text: 'Remove shift fork shafts using spiral-flute screw extractor (14) or vise grips.' }, { n: 4, text: 'Mark end of shaft to aid assembly.' }, { n: 5, text: 'Remove shift forks from dog rings.' }]
+},
+{
+  id: 't20-transmission-shift-forks-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Shift Forks and Shafts — Install',
+  summary: 'Install shift forks into dog rings and install shafts.',
+  difficulty: 'Advanced',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 38 },
+  figures: [{ num: '5-62', title: 'Transmission Gears and Shifter Forks' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Install long shift shaft (1).' }, { n: 2, text: 'Insert shifter fork (2) into dog ring between mainshaft fifth and sixth gear.' }, { n: 3, text: 'Slide shift shaft through shifter fork. Install shaft in bearing housing.' }, { n: 4, text: 'Install short shift shaft (4).' }, { n: 5, text: 'Insert shifter fork (6) into dog ring between countershaft third and fourth gear.' }, { n: 6, text: 'Insert shifter fork (9) into dog ring between countershaft first and second gear.' }, { n: 7, text: 'Slide shift shaft through shifter forks. Install shaft in bearing housing.' }]
+},
+{
+  id: 't20-transmission-shift-drum-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Shift Drum (Shift Cam) — Remove and Install',
+  summary: 'Remove and install shift drum with lock plate and detent assembly.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 32 },
+  figures: [{ num: '5-46', title: 'Shift Drum' }],
+  tools: [],
+  parts: [{ number: '', description: 'Lock plate screw (new)', qty: 2 }],
+  torque: [{ fastener: 'Shift drum lock plate screws', value: '57-63 in-lbs (6.4-7.1 N·m)' }],
+  steps: [{ n: 1, text: 'Remove lock plate (2). Discard screws (3).' }, { n: 2, text: 'Hold detent arm back and remove shift cam (4).' }, { n: 3, text: 'Install new lock plate screws (3). Tighten. Torque: 57-63 in-lbs (6.4-7.1 N·m) Shift drum lock plate screws.' }]
+},
+{
+  id: 't20-transmission-detent-lever-spring-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Detent Lever and Spring — Remove and Install',
+  summary: 'Remove and install detent screw, arm, sleeve and spring assembly.',
+  difficulty: 'Moderate',
+  timeMinutes: 25,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 32 },
+  figures: [{ num: '5-47', title: 'Detent Assembly' }, { num: '5-59', title: 'Detent Assembly' }],
+  tools: [],
+  parts: [{ number: '', description: 'Detent screw (new)', qty: 1 }],
+  torque: [{ fastener: 'Shift drum detent screw', value: '120-150 in-lbs (13.6-17 N·m)' }],
+  steps: [{ n: 1, text: 'Remove detent screw (1), detent arm (2), sleeve (3) and detent spring (4). Discard detent screw.' }, { n: 2, text: 'Mark parts so they can be installed in same direction as removed.' }, { n: 3, text: 'Clean detent screw mounting hole in transmission bearing housing.' }, { n: 4, text: 'Assemble new detent screw (1), detent arm (2), sleeve (3) and detent spring (4).' }, { n: 5, text: 'Align spring and detent arm as shown. Install detent assembly in bearing housing with screw (1). Tighten. Torque: 120-150 in-lbs (13.6-17 N·m) Shift drum detent screw.' }]
+},
+{
+  id: 't20-countershaft-assembly-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Countershaft Assembly — Remove',
+  summary: 'Remove countershaft from bearing housing with gears attached.',
+  difficulty: 'Advanced',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 34 },
+  figures: [{ num: '5-50', title: 'Countershaft First Gear' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'If mainshaft is not removed, hold countershaft third and fourth gear shift dog up while removing countershaft.' }, { n: 2, text: 'NOTE: Do not press directly on end of countershaft. Place a spacer between end of countershaft and press ram.' }, { n: 3, text: 'Press countershaft out of bearing housing bearing.' }]
+},
+{
+  id: 't20-countershaft-assembly-disassemble',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Countershaft Assembly — Disassemble',
+  summary: 'Disassemble countershaft gears and bearings from shaft.',
+  difficulty: 'Advanced',
+  timeMinutes: 50,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 34 },
+  figures: [{ num: '5-50', title: 'Countershaft First Gear' }, { num: '5-51', title: 'Countershaft Second Gear' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove washer (1), countershaft first gear (2) and bearing.' }, { n: 2, text: 'Remove countershaft second, third and forth gears: Remove dog ring (5). Remove lock ring (1). Remove securing segments (2).' }, { n: 3, text: 'Remove guiding hub (3), countershaft second gear (4) and bearing.' }, { n: 4, text: 'Repeat steps with third and fourth gears using Figure 5-52 and Figure 5-53.' }, { n: 5, text: 'NOTE: The countershaft fifth gear and sixth gear are integral parts of the shaft. Damage to either gear requires countershaft replacement.' }]
+},
+{
+  id: 't20-countershaft-assembly-assemble',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Countershaft Assembly — Assemble',
+  summary: 'Assemble countershaft gears and bearings onto shaft.',
+  difficulty: 'Advanced',
+  timeMinutes: 55,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 36 },
+  figures: [{ num: '5-56', title: 'Preload Scissor First Gear' }, { num: '5-51', title: 'Countershaft Second Gear' }],
+  tools: ['Scissor first gear tool (HD-52235)'],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Install fourth, third and second gears on countershaft.' }, { n: 2, text: 'Install countershaft fourth gear (4). Lubricate needle bearings and races using SCREAMIN\' EAGLE ASSEMBLY LUBE.' }, { n: 3, text: 'Install new needle bearing. Install guiding hub (3). Install dog ring (5).' }, { n: 4, text: 'Install securing segments (2) with rounded edge facing up. Verify that segments fully engage grooves in countershaft.' }, { n: 5, text: 'Install lock ring (1) with waved, stepped face toward securing segments.' }, { n: 6, text: 'Repeat for countershaft third gear (4) and second gear (4). Install second gear guiding hub with deeper counterbore facing countershaft second gear.' }, { n: 7, text: 'Preload scissor first gear: While holding thick gear, rotate thin gear until holes align. Install HD-52235 (SCISSOR FIRST GEAR TOOL).' }, { n: 8, text: 'Install new needle bearing, countershaft first gear (2) and washer (1).' }]
+},
+{
+  id: 't20-countershaft-assembly-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Countershaft Assembly — Install',
+  summary: 'Install countershaft into bearing housing with proper support.',
+  difficulty: 'Advanced',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 37 },
+  figures: [{ num: '5-57', title: 'Installing Countershaft' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Support countershaft sixth gear in press.' }, { n: 2, text: 'Using a suitable sleeve, press on bearing inner race until bearing contacts countershaft first gear washer.' }, { n: 3, text: 'If mainshaft is installed, raise and hold countershaft third and fourth gear shift dog while installing countershaft.' }, { n: 4, text: 'Install countershaft to bearing housing.' }, { n: 5, text: 'NOTE: If installing countershaft with mainshaft installed, raise and hold countershaft third and fourth gear shift dog up while pressing bearing housing bearing on to countershaft.' }]
+},
+{
+  id: 't20-mainshaft-assembly-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Mainshaft Assembly — Remove',
+  summary: 'Remove mainshaft from bearing housing with gears and bearings.',
+  difficulty: 'Advanced',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 33 },
+  figures: [{ num: '5-49', title: 'Mainshaft Fifth Gear' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove retaining ring from mainshaft fifth gear.' }, { n: 2, text: 'Remove dog ring (3), guiding hub (2), mainshaft fifth gear (4) and bearing.' }, { n: 3, text: 'NOTE: Do not press directly on end of mainshaft. Use a spacer between end of mainshaft and press ram.' }, { n: 4, text: 'Press mainshaft out of bearing housing.' }, { n: 5, text: 'NOTE: Mainshaft fourth gear, third gear, second gear and first gear are integral parts of the shaft. Damage to any gear requires mainshaft replacement.' }]
+},
+{
+  id: 't20-mainshaft-assembly-disassemble',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Mainshaft Assembly — Disassemble',
+  summary: 'Disassemble mainshaft fifth and sixth gear components.',
+  difficulty: 'Advanced',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 33 },
+  figures: [{ num: '5-49', title: 'Mainshaft Fifth Gear' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove retaining ring. Remove dog ring (3), guiding hub (2), mainshaft fifth gear (4) and bearing from mainshaft.' }, { n: 2, text: 'NOTE: Mainshaft fourth, third, second and first gears are integral to shaft. Inspect these gears for wear or damage.' }]
+},
+{
+  id: 't20-mainshaft-assembly-assemble',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Mainshaft Assembly — Assemble',
+  summary: 'Assemble mainshaft fifth and sixth gear bearings and components.',
+  difficulty: 'Advanced',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 37 },
+  figures: [{ num: '5-49', title: 'Mainshaft Fifth Gear' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'With bearing housing on end (shafts pointing up), install new bearing and mainshaft fifth gear (4).' }, { n: 2, text: 'With guiding hub counterbore facing mainshaft fifth gear, install guiding hub (2) and dog ring (3).' }, { n: 3, text: 'Install new retaining ring (1).' }, { n: 4, text: 'Remove holding tool from scissor first gear.' }, { n: 5, text: 'Install new mainshaft and countershaft locknuts. Using dog rings, lock two gears in place.' }]
+},
+{
+  id: 't20-mainshaft-assembly-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Mainshaft Assembly — Install',
+  summary: 'Install mainshaft into bearing housing with proper bearing support.',
+  difficulty: 'Advanced',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 37 },
+  figures: [{ num: '5-58', title: 'Raise and Hold Dog Ring' }],
+  tools: [],
+  parts: [],
+  torque: [{ fastener: 'Transmission mainshaft/countershaft locknuts', value: '85-95 ft-lbs (115.3-128.8 N·m)' }],
+  steps: [{ n: 1, text: 'Support mainshaft fourth gear in press.' }, { n: 2, text: 'Raise and hold dog ring engaged with countershaft third gear during press procedure.' }, { n: 3, text: 'Using a suitable sleeve, press on bearing inner race until bearing contacts mainshaft first gear.' }, { n: 4, text: 'If mainshaft is not removed, raise and hold countershaft third and fourth gear shift dog while installing countershaft.' }, { n: 5, text: 'Install new mainshaft and countershaft locknuts. Temporarily install transmission assembly in transmission case. Install locknuts. Tighten. Torque: 85-95 ft-lbs (115.3-128.8 N·m).' }, { n: 6, text: 'Remove transmission assembly from transmission case.' }]
+},
+{
+  id: 't20-main-drive-gear-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Main Drive Gear — Remove',
+  summary: 'Remove main drive gear using specialized removal tool.',
+  difficulty: 'Advanced',
+  timeMinutes: 45,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 41 },
+  figures: [{ num: '5-63', title: 'Removing Main Drive Gear' }],
+  tools: ['MAIN DRIVE GEAR REMOVER AND INSTALLER SET (HD-35316-D)'],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'See Figure 5-63. Remove main drive gear using MAIN DRIVE GEAR REMOVER AND INSTALLER SET (HD-35316-D).' }, { n: 2, text: 'Remove and discard main drive gear oil seal (4).' }, { n: 3, text: 'Remove and discard retaining ring (3).' }, { n: 4, text: 'Remove and discard main drive gear bearing (2) using MAIN DRIVE GEAR REMOVER AND INSTALLER SET (HD-35316-D).' }]
+},
+{
+  id: 't20-main-drive-gear-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Main Drive Gear — Install',
+  summary: 'Install main drive gear with bearing, O-ring, and seals.',
+  difficulty: 'Advanced',
+  timeMinutes: 50,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 42 },
+  figures: [{ num: '5-64', title: 'Main Drive Bearing' }, { num: '5-67', title: 'Installing Main Drive Gear (Typical)' }, { num: '5-68', title: 'Retaining Ring Opening' }],
+  tools: ['MAIN DRIVE GEAR REMOVER AND INSTALLER SET (HD-35316-D)', 'MAIN DRIVE GEAR SEAL INSTALLER KIT (HD-47856)'],
+  parts: [{ number: '', description: 'Main drive gear bearing (new)', qty: 1 }, { number: '', description: 'Retaining ring (new)', qty: 1 }, { number: '', description: 'O-ring (new)', qty: 1 }, { number: '', description: 'Main drive gear seal (new)', qty: 1 }],
+  torque: [],
+  steps: [{ n: 1, text: 'See Figure 5-64 and Figure 5-66. Install main drive gear bearing using MAIN DRIVE GEAR REMOVER AND INSTALLER SET (HD-35316-D).' }, { n: 2, text: 'Install new O-ring (4) onto main drive gear (3). Lubricate O-ring with clean engine oil.' }, { n: 3, text: 'Install main drive gear using MAIN DRIVE GEAR REMOVER AND INSTALLER SET (HD-35316-D).' }, { n: 4, text: 'Install new retaining ring. NOTE: Retaining ring opening must be within range shown in Figure 5-68.' }, { n: 5, text: 'See Figure 5-69. Install new main drive gear large seal using MAIN DRIVE GEAR SEAL INSTALLER KIT (HD-47856).' }]
+},
+{
+  id: 't20-main-drive-gear-bearing-inspect',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Main Drive Gear Bearing — Clean and Inspect',
+  summary: 'Clean and inspect main drive gear bearings and mainshaft seals.',
+  difficulty: 'Moderate',
+  timeMinutes: 25,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 42 },
+  figures: [{ num: '5-70', title: 'Main Drive Gear Assembly' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'NOTE: Never wash transmission case and needle bearings with solvent unless replacing needle bearings. Normal cleaning methods wash dirt or other contaminants into bearing case (behind the needles) and leads to bearing failure.' }, { n: 2, text: 'Clean all parts in solvent except transmission case and needle bearings. Dry parts with low-pressure, compressed air.' }, { n: 3, text: 'See Figure 5-70. Inspect main drive gear (3) for pitting and wear.' }, { n: 4, text: 'Inspect needle bearings (2) inside main drive gear.' }, { n: 5, text: 'Inspect mainshaft race. Replace needle bearings if mainshaft race is damaged.' }, { n: 6, text: 'Inspect main drive gear and mainshaft seals. Replace if damaged.' }]
+},
+{
+  id: 't20-main-drive-gear-needle-bearings-replace',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Main Drive Gear Needle Bearings — Replace',
+  summary: 'Remove and install needle bearings in main drive gear.',
+  difficulty: 'Advanced',
+  timeMinutes: 40,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 42 },
+  figures: [{ num: '5-72', title: 'Installing Outer Needle Bearing in Main Drive Gear' }, { num: '5-73', title: 'Pressing in Seal' }, { num: '5-74', title: 'Installing Inner Needle Bearing in Main Drive Gear' }],
+  tools: ['MAIN DRIVE GEAR BEARING AND SEAL INSTALLATION TOOL (HD-47932)'],
+  parts: [{ number: '', description: 'Needle bearing (outer)', qty: 1 }, { number: '', description: 'Needle bearing (inner)', qty: 1 }, { number: '', description: 'Mainshaft seal (new)', qty: 1 }, { number: '', description: 'Retaining ring (new)', qty: 2 }, { number: '', description: 'O-ring (new)', qty: 1 }, { number: '', description: 'Spacer', qty: 1 }],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove and discard mainshaft seal (6).' }, { n: 2, text: 'Remove retaining rings (1), needle bearings (2) and spacer (5) from main drive gear (3). Discard retaining rings.' }, { n: 3, text: 'Discard O-ring (4).' }, { n: 4, text: 'Press in outer needle bearing near spline end of main drive gear until tool contacts spline using MAIN DRIVE GEAR BEARING AND SEAL INSTALLATION TOOL (HD-47932).' }, { n: 5, text: 'Install mainshaft seal with garter spring side down using 0.090-in step of tool. Press until tool contacts gear.' }, { n: 6, text: 'Turn over the main drive gear. Install spacer (5).' }, { n: 7, text: 'Press inner needle bearing from gear end until tool contacts gear using MAIN DRIVE GEAR BEARING AND SEAL INSTALLATION TOOL (HD-47932).' }, { n: 8, text: 'Install new retaining rings (1). Install new O-ring (4).' }]
+},
+{
+  id: 't20-transmission-case-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Case — Remove',
+  summary: 'Remove transmission case from motorcycle engine and crankcase.',
+  difficulty: 'Advanced',
+  timeMinutes: 120,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 46 },
+  figures: [{ num: '5-78', title: 'Transmission Case Pry Point' }, { num: '5-79', title: 'Transmission Housing to Crankcase Tightening Sequence' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Remove battery. See INSPECT BATTERY (Page 2-46). Remove battery tray. See BATTERY TRAY (Page 8-116).' }, { n: 2, text: 'Drain engine oil. See REPLACE ENGINE OIL AND FILTER (Page 2-9).' }, { n: 3, text: 'Drain transmission oil. See REPLACE TRANSMISSION LUBRICANT (Page 2-13).' }, { n: 4, text: 'Drain primary chaincase oil. See REPLACE PRIMARY CHAINCASE LUBRICANT (Page 2-11).' }, { n: 5, text: 'Disconnect oil return line from oil return tube (1).' }, { n: 6, text: 'Remove exhaust system. See EXHAUST SYSTEM (Page 6-34).' }, { n: 7, text: 'Remove clutch outer side cover. See TRANSMISSION SIDE COVERS: HYDRAULIC CLUTCH (Page 5-9).' }, { n: 8, text: 'Remove screw securing jiffy stand sensor, if equipped. See JIFFY STAND SENSOR (JSS) (Page 8-107).' }, { n: 9, text: 'Remove rider footboard and bracket, if needed. See RIDER FOOTRESTS (Page 3-142).' }, { n: 10, text: 'Remove shift levers and shift lever shaft. See SHIFTER LINKAGE (Page 5-7).' }, { n: 11, text: 'Position jack across lower frame. Remove rear fork. See REAR FORK (Page 3-71). Disconnect vehicle speed sensor (VSS) and neutral switch.' }, { n: 12, text: 'Remove transmission assembly. See TRANSMISSION (Page 5-31).' }, { n: 13, text: 'Remove oil pan. See OIL PAN (Page 4-75).' }, { n: 14, text: 'Remove battery negative cable from ground post at top of transmission case.' }, { n: 15, text: 'Move aside harness that terminates at O2 sensor, starter solenoid, neutral switch and VSS.' }, { n: 16, text: 'In a cross-wise pattern, remove four bolts securing transmission to engine. NOTE: Do not use a hammer to remove transmission. If transmission sticks on ring dowels, gently pry away from crankcase using pry point.' }, { n: 17, text: 'Move transmission rearward until two ring dowels in lower flange are free of crankcase. Remove transmission case from left side of motorcycle.' }]
+},
+{
+  id: 't20-transmission-case-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Case — Install',
+  summary: 'Install transmission case with gaskets and fasteners to engine.',
+  difficulty: 'Advanced',
+  timeMinutes: 100,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 46 },
+  figures: [{ num: '5-79', title: 'Transmission Housing to Crankcase Tightening Sequence' }],
+  tools: [],
+  parts: [{ number: '', description: 'Engine-to-transmission gasket (new)', qty: 1 }],
+  torque: [{ fastener: 'Transmission mounting bolts, 1st torque', value: '15 ft-lbs (20.3 N·m)' }, { fastener: 'Transmission mounting bolts, final torque', value: '34-39 ft-lbs (46.1-52.9 N·m)' }, { fastener: 'Battery ground cable to transmission', value: '66-114 in-lbs (7.5-12.9 N·m)' }],
+  steps: [{ n: 1, text: 'Install new ground post at top of transmission case. Tighten ground post until snug.' }, { n: 2, text: 'Wipe all engine oil from pockets in crankcase flange.' }, { n: 3, text: 'Install new engine-to-transmission gasket.' }, { n: 4, text: 'Verify that transmission dowels are seated. Place transmission case into position.' }, { n: 5, text: 'Install shorter bolts at top, longer bolts at bottom. Hand-tighten bolts.' }, { n: 6, text: 'See Figure 5-79. Tighten bolts in sequence. Torque: 15 ft-lbs (20.3 N·m) Transmission mounting bolts, 1st torque.' }, { n: 7, text: 'Tighten to final torque in same sequence. Torque: 34-39 ft-lbs (46.1-52.9 N·m) Transmission mounting bolts, final torque.' }, { n: 8, text: 'Secure battery ground cable to ground post at top of transmission case. Tighten. Torque: 66-114 in-lbs (7.5-12.9 N·m) Battery ground cable to transmission.' }, { n: 9, text: 'Install transmission assembly. See TRANSMISSION (Page 5-31).' }, { n: 10, text: 'Install oil pan. See OIL PAN (Page 4-75). Install rear fork. See REAR FORK (Page 3-71).' }, { n: 11, text: 'Fill engine oil, transmission oil, and primary chaincase oil. Install battery and battery tray.' }, { n: 12, text: 'Adjust drive belt deflection. See INSPECT AND ADJUST DRIVE BELT AND SPROCKETS (Page 2-36).' }]
+},
+{
+  id: 't20-transmission-case-shifter-pawl-remove',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Case Shifter Pawl Lever — Remove',
+  summary: 'Remove shifter pawl assembly, rod lever, and retaining components.',
+  difficulty: 'Moderate',
+  timeMinutes: 30,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 47 },
+  figures: [{ num: '5-82', title: 'Shifter Arm and Pawl Assembly (Typical)' }],
+  tools: [],
+  parts: [],
+  torque: [],
+  steps: [{ n: 1, text: 'Mark splines on shifter pawl lever assembly (1) and shift rod lever (9) to help with assembly.' }, { n: 2, text: 'Remove screw (8). Remove shifter rod lever from shifter pawl lever assembly.' }, { n: 3, text: 'Remove retaining ring (7), washer (6) and seal (5). Discard retaining ring and seal.' }, { n: 4, text: 'Remove shifter pawl lever assembly (1).' }, { n: 5, text: 'Inspect sleeve (3) in transmission case.' }]
+},
+{
+  id: 't20-transmission-case-shifter-pawl-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Case Shifter Pawl Lever — Install',
+  summary: 'Install shifter pawl assembly with seal and rod lever.',
+  difficulty: 'Moderate',
+  timeMinutes: 35,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 48 },
+  figures: [{ num: '5-82', title: 'Shifter Arm and Pawl Assembly (Typical)' }, { num: '5-83', title: 'Shifter Pawl Lever Assembly' }, { num: '5-84', title: 'Shifter Shaft Lever, Exterior View' }],
+  tools: ['SHIFTER SHAFT SEAL INSTALLATION TOOL (HD-51337)'],
+  parts: [{ number: '', description: 'Seal (shifter pawl)', qty: 1 }, { number: '', description: 'Washer (shifter pawl)', qty: 1 }, { number: '', description: 'Retaining ring (new)', qty: 1 }],
+  torque: [{ fastener: 'Shifter pawl centering screw', value: '18-23 ft-lbs (24.4-31.2 N·m)' }, { fastener: 'Shifter rod lever pinch screw', value: '18-22 ft-lbs (24.4-29.8 N·m)' }],
+  steps: [{ n: 1, text: 'Verify that sleeve (3) is in transmission case bore.' }, { n: 2, text: 'Install screw (10) into side of transmission case. Tighten. Torque: 18-23 ft-lbs (24.4-31.2 N·m) Shifter pawl centering screw.' }, { n: 3, text: 'Assemble shifter arm: Slide centering spring (3) over shaft of shifter pawl lever (2). Align opening on spring with tab on lever.' }, { n: 4, text: 'Place lever spring (4) on shifter pawl lever. Flex spring only enough to assemble.' }, { n: 5, text: 'Insert shifter arm assembly into transmission case. Verify that pin of screw sits inside lever spring.' }, { n: 6, text: 'Install new seal with garter spring facing transmission. Drive seal until tool bottoms on transmission case using SHIFTER SHAFT SEAL INSTALLATION TOOL (HD-51337).' }, { n: 7, text: 'Install washer (1) and new retaining ring (2).' }, { n: 8, text: 'Install shifter rod lever (9). Install pinch screw (8). Tighten. Torque: 18-22 ft-lbs (24.4-29.8 N·m) Shifter rod lever pinch screw. NOTE: Install shifter rod lever one spline from vertical toward front of vehicle.' }]
+},
+{
+  id: 't20-transmission-case-oil-return-tube-remove-install',
+  bikeIds: ['touring-2020'],
+  system: 'transmission',
+  title: 'Transmission Case Oil Return Tube/Cover — Remove and Install',
+  summary: 'Remove and install oil return tube or cover with O-ring.',
+  difficulty: 'Easy',
+  timeMinutes: 15,
+  source: { manual: '2020 HD Touring Service Manual.pdf', page: 47 },
+  figures: [{ num: '5-80', title: 'Oil Return Tube/Cover' }],
+  tools: [],
+  parts: [{ number: '', description: 'O-ring (new)', qty: 1 }],
+  torque: [{ fastener: 'Oil return tube screw', value: '100-120 in-lbs (11.3-13.6 N·m)' }],
+  steps: [{ n: 1, text: 'If transmission case is installed in vehicle, disconnect battery.' }, { n: 2, text: 'Remove screw (1).' }, { n: 3, text: 'Remove oil return tube (2) or cover (3).' }, { n: 4, text: 'Install new O-ring (4).' }, { n: 5, text: 'Install oil return tube (2) or cover (3).' }, { n: 6, text: 'Install screw (1). Tighten. Torque: 100-120 in-lbs (11.3-13.6 N·m) Oil return tube screw.' }]
+}
+
+
+
 ]
 
 export function jobsForBike(bikeId) {
