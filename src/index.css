@@ -25,4 +25,7 @@
   .card {
     @apply rounded-lg border border-hd-border bg-hd-card p-4;
   }
+  .input {
+    @apply w-full rounded-md border border-hd-border bg-hd-black px-3 py-2 text-sm text-hd-text placeholder:text-hd-muted focus:border-hd-orange focus:outline-none focus:ring-1 focus:ring-hd-orange;
+  }
 }

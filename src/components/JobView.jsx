@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { getGarage, logService } from '../data/storage.js'
+import { EntryEditor } from './ServiceBook.jsx'
 
 const TABS = [
   { id: 'steps', label: 'Steps' },
@@ -11,7 +13,26 @@ const TABS = [
 export default function JobView({ job, bike, onBack }) {
   const [tab, setTab] = useState('steps')
   const [lightbox, setLightbox] = useState(null)   // figure object or null
+  const [logging, setLogging] = useState(null)      // bike being logged-to, or null
+  const [justLogged, setJustLogged] = useState(false)
   const figures = job.figures || []
+
+  // When the user clicks "Log this service", pick the bike:
+  //   - 0 garage bikes: prompt to add one
+  //   - 1 garage bike:  jump straight to the editor
+  //   - 2+ garage bikes: show a picker
+  function startLogging() {
+    const garage = getGarage()
+    if (garage.length === 0) {
+      alert('Add a bike to your Garage first, then come back to log this service.')
+      return
+    }
+    if (garage.length === 1) {
+      setLogging(garage[0])
+    } else {
+      setLogging({ __pick: true, garage })
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
@@ -33,6 +54,17 @@ export default function JobView({ job, bike, onBack }) {
         <div className="shrink-0 text-right text-xs text-hd-muted">
           <div className="chip mb-1">{job.difficulty}</div>
           <div>{job.timeMinutes ? `~${job.timeMinutes} min` : ''}</div>
+          <button
+            onClick={startLogging}
+            className="mt-3 rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-hd-black hover:brightness-110"
+          >
+            Log this service
+          </button>
+          {justLogged && (
+            <div className="mt-2 text-[11px] text-emerald-300">
+              Saved to Service Book.
+            </div>
+          )}
         </div>
       </div>
 
@@ -80,6 +112,28 @@ export default function JobView({ job, bike, onBack }) {
       {tab === 'tools' && <ToolsPanel tools={job.tools} />}
 
       {lightbox && <Lightbox figure={lightbox} onClose={() => setLightbox(null)} />}
+
+      {logging && logging.__pick && (
+        <BikePickerModal
+          garage={logging.garage}
+          onCancel={() => setLogging(null)}
+          onPick={(b) => setLogging(b)}
+        />
+      )}
+
+      {logging && !logging.__pick && (
+        <EntryEditor
+          bike={logging}
+          prefill={{ title: job.title, jobId: job.id }}
+          onCancel={() => setLogging(null)}
+          onSave={(data) => {
+            logService(logging.id, { ...data, jobId: job.id })
+            setLogging(null)
+            setJustLogged(true)
+            setTimeout(() => setJustLogged(false), 3000)
+          }}
+        />
+      )}
 
       <div className="mt-10 rounded-md border border-hd-border bg-hd-dark p-4 text-xs text-hd-muted">
         Always confirm torque values and part numbers against the printed
@@ -273,5 +327,57 @@ function ToolsPanel({ tools }) {
 function EmptyPanel({ text }) {
   return (
     <div className="card text-center text-sm text-hd-muted">{text}</div>
+  )
+}
+
+function BikePickerModal({ garage, onCancel, onPick }) {
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
+      onClick={onCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-md border border-hd-border bg-hd-dark p-5"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-xl tracking-wider text-hd-orange">
+            WHICH BIKE?
+          </h2>
+          <button
+            onClick={onCancel}
+            className="text-2xl leading-none text-hd-muted hover:text-hd-orange"
+          >
+            ×
+          </button>
+        </div>
+        <div className="space-y-2">
+          {garage.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => onPick(b)}
+              className="card w-full text-left transition hover:border-hd-orange"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-display text-lg tracking-wider">
+                    {b.nickname || b.model || `${b.year} ${b.model}`}
+                  </div>
+                  <div className="text-xs text-hd-muted">
+                    {b.year} · {b.model}
+                  </div>
+                </div>
+                <div className="text-right text-xs text-hd-muted">
+                  <div className="uppercase tracking-widest">Mileage</div>
+                  <div className="font-display text-lg text-hd-orange">
+                    {(b.mileage || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
