@@ -68,7 +68,10 @@ create index if not exists service_entries_bike_id_idx on public.service_entries
 -- =====================================================================
 -- Row-level security
 -- =====================================================================
--- Every query from the browser comes in with a Clerk JWT. RLS policies
+-- Every query from the browser c
+
+
+omes in with a Clerk JWT. RLS policies
 -- below compare the authenticated user id (from the JWT's `sub` claim)
 -- to the row's `user_id` column. Anything that doesn't match is invisible
 -- and cannot be updated/deleted.
