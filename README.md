@@ -15,6 +15,7 @@ numbers and required tools — all sourced from your own service manuals.
 ```bash
 cd "hd-build-assistant"
 npm install
+cp .env.example .env.local   # then fill in your Clerk publishable key
 npm run dev
 ```
 
@@ -25,6 +26,33 @@ To build for deploy:
 npm run build
 npm run preview
 ```
+
+## Environment variables
+
+The app reads one required Vite env var:
+
+- `VITE_CLERK_PUBLISHABLE_KEY` — your Clerk publishable key
+  (`pk_test_...` for dev, `pk_live_...` for prod). Get it at
+  https://dashboard.clerk.com → your app → API Keys. This key is safe
+  to ship to the browser.
+
+For local dev, put it in `.env.local` (gitignored). For Netlify,
+add it in **Site settings → Environment variables** and redeploy.
+
+**Never** put a `sk_...` secret key anywhere in this repo — the frontend
+does not need it.
+
+## Auth
+
+Sign-in is gated by [Clerk](https://clerk.com) — email + Google are
+enabled by default. Signed-out visitors see the Landing page with the
+embedded sign-in form; signed-in users see the full app.
+
+Garage + service-log data is stored per-user in localStorage under a
+`hd-ba:<clerk-user-id>:*` namespace so multiple accounts on one browser
+don't collide. On first sign-in from a device that has pre-auth legacy
+data, we auto-import it into the signed-in user's namespace exactly
+once.
 
 ## Flow
 

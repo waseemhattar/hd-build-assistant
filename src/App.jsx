@@ -1,11 +1,21 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import {
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useAuth,
+  useUser
+} from '@clerk/clerk-react'
 import BikePicker from './components/BikePicker.jsx'
 import JobBrowser from './components/JobBrowser.jsx'
 import JobView from './components/JobView.jsx'
 import Garage from './components/Garage.jsx'
 import ServiceBook from './components/ServiceBook.jsx'
 import Home from './components/Home.jsx'
+import Landing from './components/Landing.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
+import { setStorageUser } from './data/storage.js'
+import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
 
 // Views:
 //   'home'        - landing page w/ Garage + Browse Manual cards
@@ -15,7 +25,41 @@ import { bikes as bikeCatalog } from './data/bikes.js'
 //   'browse'      - browse jobs for a platform
 //   'job'         - single job
 
+// Top-level router. Gates the whole app behind Clerk auth: signed-out
+// visitors see Landing (pitch + embedded sign-in). Signed-in users see
+// AuthedApp (the real product).
 export default function App() {
+  return (
+    <>
+      <SignedOut>
+        <Landing />
+      </SignedOut>
+      <SignedIn>
+        <AuthedApp />
+      </SignedIn>
+    </>
+  )
+}
+
+function AuthedApp() {
+  // Wire storage to the signed-in user as soon as we have their id, then
+  // run the one-time legacy-data migration on this device. Keeping this in
+  // a child of SignedIn means `user` is guaranteed to be present.
+  const { user } = useUser()
+  const { isSignedIn } = useAuth()
+
+  useEffect(() => {
+    if (isSignedIn && user?.id) {
+      setStorageUser(user.id)
+      migrateLegacyLocalDataIfNeeded(user.id)
+    }
+    return () => {
+      // On unmount (eg. sign out), clear so we don't keep reading the
+      // previous user's keys if another user signs in on the same page.
+      setStorageUser(null)
+    }
+  }, [isSignedIn, user?.id])
+
   const [view, setView] = useState('home')
   const [bike, setBike] = useState(null)       // catalog bike (platform)
   const [garageBike, setGarageBike] = useState(null) // user-owned bike
@@ -74,6 +118,14 @@ export default function App() {
                 · <span className="text-hd-text">{bike.label}</span>
               </div>
             )}
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: 'w-7 h-7'
+                }
+              }}
+            />
           </nav>
         </div>
       </header>

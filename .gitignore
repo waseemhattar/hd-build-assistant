@@ -3,3 +3,8 @@ dist
 .DS_Store
 *.log
 .vite
+
+# Local env files — never commit secrets or keys
+.env
+.env.local
+.env.*.local

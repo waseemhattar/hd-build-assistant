@@ -18,8 +18,34 @@
 // manual procedure. Freeform entries (e.g. "cleaned air filter") just
 // leave jobId blank and use `title`.
 
-const GARAGE_KEY = 'hd-ba:garage:v1'
-const LOG_KEY = 'hd-ba:service-log:v1'
+// Per-user storage namespacing.
+//
+// Before auth was added, data lived under the fixed keys
+// 'hd-ba:garage:v1' and 'hd-ba:service-log:v1'. Now that users sign in
+// via Clerk, each user gets their own namespace so two people sharing a
+// browser don't collide and so switching accounts gives a clean slate.
+//
+// App.jsx calls setStorageUser(clerkUserId) when the user signs in, and
+// setStorageUser(null) on sign-out. While no user is set we fall back to
+// the legacy un-namespaced keys — that lets the dev-time and
+// un-gated code paths keep working if they're ever hit.
+let currentUserId = null
+
+export function setStorageUser(userId) {
+  currentUserId = userId || null
+}
+
+function garageKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:garage:v1`
+    : 'hd-ba:garage:v1'
+}
+
+function logKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:service-log:v1`
+    : 'hd-ba:service-log:v1'
+}
 
 function read(key, fallback) {
   if (typeof window === 'undefined') return fallback
@@ -50,7 +76,7 @@ function uid(prefix) {
 // ---------- Garage ----------
 
 export function getGarage() {
-  return read(GARAGE_KEY, [])
+  return read(garageKey(), [])
 }
 
 export function getBike(id) {
@@ -74,7 +100,7 @@ export function addBike(input) {
   }
   const garage = getGarage()
   garage.push(bike)
-  write(GARAGE_KEY, garage)
+  write(garageKey(), garage)
   return bike
 }
 
@@ -88,16 +114,16 @@ export function updateBike(id, patch) {
     id: garage[idx].id,
     updatedAt: new Date().toISOString()
   }
-  write(GARAGE_KEY, garage)
+  write(garageKey(), garage)
   return garage[idx]
 }
 
 export function removeBike(id) {
   const garage = getGarage().filter((b) => b.id !== id)
-  write(GARAGE_KEY, garage)
+  write(garageKey(), garage)
   // Also drop any service entries for that bike.
   const log = getAllServiceEntries().filter((e) => e.bikeId !== id)
-  write(LOG_KEY, log)
+  write(logKey(), log)
 }
 
 export function updateBikeMileage(id, mileage) {
@@ -107,7 +133,7 @@ export function updateBikeMileage(id, mileage) {
 // ---------- Service log ----------
 
 function getAllServiceEntries() {
-  return read(LOG_KEY, [])
+  return read(logKey(), [])
 }
 
 export function getServiceLog(bikeId) {
@@ -138,7 +164,7 @@ export function logService(bikeId, input) {
   }
   const log = getAllServiceEntries()
   log.push(entry)
-  write(LOG_KEY, log)
+  write(logKey(), log)
 
   // If the service entry includes a mileage that's higher than the bike's
   // current mileage, bump the bike. Keeps the odometer honest with no
@@ -153,7 +179,7 @@ export function logService(bikeId, input) {
 
 export function removeServiceEntry(entryId) {
   const log = getAllServiceEntries().filter((e) => e.id !== entryId)
-  write(LOG_KEY, log)
+  write(logKey(), log)
 }
 
 // Returns the most recent service entry that matches a given predicate
