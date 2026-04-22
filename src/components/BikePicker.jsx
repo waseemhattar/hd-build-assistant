@@ -39,25 +39,34 @@ export default function BikePicker({ onSelect }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {list
               .sort((a, b) => a.year - b.year)
-              .map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => onSelect(b)}
-                  className="card text-left transition hover:border-hd-orange hover:bg-hd-dark"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-2xl tracking-wider">
-                      {b.year}
-                    </span>
-                    <span className="chip">{b.family}</span>
-                  </div>
-                  <div className="mt-2 text-lg font-semibold">{b.label}</div>
-                  <div className="mt-2 line-clamp-2 text-sm text-hd-muted">
-                    {b.models.slice(0, 4).join(' · ')}
-                    {b.models.length > 4 ? ` · +${b.models.length - 4} more` : ''}
-                  </div>
-                </button>
-              ))}
+              .map((b) => {
+                // Pull the generation + year range out of the label, e.g.
+                // "Milwaukee 8 Gen 1 (2017 - 2023)" → ["Milwaukee 8 Gen 1", "2017 - 2023"]
+                const m = b.label.match(/^(.*?)\s*\(([^)]+)\)\s*$/)
+                const gen = m ? m[1] : b.label
+                const years = m ? m[2] : ''
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => onSelect(b)}
+                    className="card text-left transition hover:border-hd-orange hover:bg-hd-dark"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-display text-2xl tracking-wider">
+                        {gen}
+                      </span>
+                      <span className="chip">{b.family}</span>
+                    </div>
+                    {years ? (
+                      <div className="mt-2 text-lg font-semibold">{years}</div>
+                    ) : null}
+                    <div className="mt-2 line-clamp-2 text-sm text-hd-muted">
+                      {b.models.slice(0, 4).join(' · ')}
+                      {b.models.length > 4 ? ` · +${b.models.length - 4} more` : ''}
+                    </div>
+                  </button>
+                )
+              })}
           </div>
         </section>
       ))}
