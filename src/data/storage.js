@@ -42,8 +42,14 @@ let currentUserId = null
 let getTokenFn = null
 
 export function setStorageUser(userId, getToken) {
+  const changed = currentUserId !== (userId || null)
   currentUserId = userId || null
   getTokenFn = getToken || null
+
+  // Tell subscribers right away so anything that read from the un-namespaced
+  // key (while we were still bootstrapping) re-reads from the new user's key.
+  if (changed) notify()
+
   // After the user changes, do a full pull so the cache matches the server.
   if (currentUserId && getTokenFn && isSupabaseConfigured()) {
     // Give Clerk a tick to hand out a JWT; the template-scoped token call
@@ -473,15 +479,16 @@ async function pullFromServer() {
     createdAt: r.created_at
   }))
 
-  // Merge with any local-only rows that haven't synced yet (they live in the
-  // queue). Prefer local copy for any ids present in both, since local is
-  // "ahead" of the server until the queue drains.
+  // Merge with any local-only rows that haven't synced yet. We index by the
+  // *translated* uuid (localIdToUuid) so a local-id row and its server copy
+  // collapse into one entry instead of showing as duplicates. Local rows
+  // still "win" on conflict so the queue's in-flight writes aren't clobbered.
   const existingBikes = getGarage()
-  const mergedBikes = mergeById(localBikes, existingBikes)
+  const mergedBikes = mergeByTranslatedId(localBikes, existingBikes)
   write(garageKey(), mergedBikes)
 
   const existingEntries = getAllServiceEntries()
-  const mergedEntries = mergeById(localEntries, existingEntries)
+  const mergedEntries = mergeByTranslatedId(localEntries, existingEntries)
   write(logKey(), mergedEntries)
 
   notify()
@@ -494,6 +501,17 @@ function mergeById(server, local) {
   const byId = new Map(server.map((r) => [r.id, r]))
   for (const r of local) byId.set(r.id, r) // local wins on conflict
   return [...byId.values()]
+}
+
+// Index by the uuid a row *would sync as* so a local-id row and the server
+// row it came from don't both survive the merge. Server rows that still have
+// their uuid id stay as-is; local-id rows get compared against the server's
+// uuid of the same underlying item.
+function mergeByTranslatedId(server, local) {
+  const byKey = new Map()
+  for (const r of server) byKey.set(localIdToUuid(r.id), r) // already uuid
+  for (const r of local) byKey.set(localIdToUuid(r.id), r) // local wins
+  return [...byKey.values()]
 }
 
 // ---------- online detection ----------
