@@ -4,7 +4,8 @@ import {
   getGarage,
   addBike,
   updateBike,
-  removeBike
+  removeBike,
+  subscribe
 } from '../data/storage.js'
 
 // The Garage is where members list the bikes they own. Each bike has a
@@ -19,6 +20,13 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
   function refresh() {
     setGarage(getGarage())
   }
+
+  // Re-render whenever the background pull from Supabase refreshes the cache,
+  // so bikes added on another device show up without a manual reload.
+  useEffect(() => {
+    const unsub = subscribe(() => setGarage(getGarage()))
+    return unsub
+  }, [])
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">

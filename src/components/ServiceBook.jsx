@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   getServiceLog,
   logService,
   removeServiceEntry,
   updateBikeMileage,
-  getBike
+  getBike,
+  subscribe
 } from '../data/storage.js'
 import {
   intervals,
@@ -36,6 +37,13 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
   function refresh() {
     setRefreshKey((k) => k + 1)
   }
+
+  // Re-render when the background pull from Supabase refreshes the cache
+  // (eg. service entries logged on another device).
+  useEffect(() => {
+    const unsub = subscribe(() => setRefreshKey((k) => k + 1))
+    return unsub
+  }, [])
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
