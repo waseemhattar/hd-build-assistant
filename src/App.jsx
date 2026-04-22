@@ -46,11 +46,14 @@ function AuthedApp() {
   // run the one-time legacy-data migration on this device. Keeping this in
   // a child of SignedIn means `user` is guaranteed to be present.
   const { user } = useUser()
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, getToken } = useAuth()
 
   useEffect(() => {
     if (isSignedIn && user?.id) {
-      setStorageUser(user.id)
+      // Pass getToken so storage can talk to Supabase with a fresh Clerk JWT
+      // on every request. storage.js will also kick off a pull from the
+      // server to merge any rows written from other devices.
+      setStorageUser(user.id, getToken)
       migrateLegacyLocalDataIfNeeded(user.id)
     }
     return () => {
@@ -58,7 +61,7 @@ function AuthedApp() {
       // previous user's keys if another user signs in on the same page.
       setStorageUser(null)
     }
-  }, [isSignedIn, user?.id])
+  }, [isSignedIn, user?.id, getToken])
 
   const [view, setView] = useState('home')
   const [bike, setBike] = useState(null)       // catalog bike (platform)
