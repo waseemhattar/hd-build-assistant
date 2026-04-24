@@ -1000,13 +1000,30 @@ function mergeById(server, local) {
 }
 
 // Index by the uuid a row *would sync as* so a local-id row and the server
-// row it came from don't both survive the merge. Server rows that still have
-// their uuid id stay as-is; local-id rows get compared against the server's
-// uuid of the same underlying item.
+// row it came from don't both survive the merge. Server rows come with their
+// uuid id; local-id rows get matched against the server's uuid of the same
+// underlying item.
+//
+// Conflict rule: local fields win (so unflushed edits aren't clobbered by a
+// stale server copy), but the *id* is always promoted to the server's uuid
+// once the server knows about the row. This is the key to ever getting a
+// local-id row upgraded to its uuid form — without it, the cache would hold
+// the local-id forever and any children of that row (mods pointing at a
+// bike's bikeId, etc.) stay misaligned with the server indefinitely.
 function mergeByTranslatedId(server, local) {
   const byKey = new Map()
-  for (const r of server) byKey.set(localIdToUuid(r.id), r) // already uuid
-  for (const r of local) byKey.set(localIdToUuid(r.id), r) // local wins
+  for (const r of server) byKey.set(localIdToUuid(r.id), r)
+  for (const r of local) {
+    const key = localIdToUuid(r.id)
+    const serverRow = byKey.get(key)
+    if (serverRow && serverRow.id !== r.id) {
+      // Server knows this row under its uuid; adopt the uuid but keep our
+      // local fields (which may contain unflushed edits).
+      byKey.set(key, { ...r, id: serverRow.id })
+    } else {
+      byKey.set(key, r)
+    }
+  }
   return [...byKey.values()]
 }
 
