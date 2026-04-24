@@ -853,8 +853,71 @@ async function pullFromServer() {
 
   notify()
 
+  // Self-heal: any local-id rows in the cache that weren't also returned
+  // from the server probably never synced (eg. written during a window
+  // where Supabase env vars weren't configured). Re-enqueue them now so
+  // the next flushQueue picks them up.
+  // Note: the `local*` arrays above hold the server-returned rows after
+  // snake_case→camelCase mapping, which is what this function needs.
+  reconcileLocalOnlyWrites(localBikes, localEntries, localBuilds, localMods)
+
   // Opportunistically drain any queued writes now that we know we're online.
   flushQueue().catch(() => {})
+}
+
+// Walks the cache vs the set of rows we just pulled from the server and
+// re-enqueues any local-id rows that the server didn't return. Safe to
+// call repeatedly — enqueue is idempotent at the op level (upserts on
+// the translated uuid) and we only re-queue rows that look local-only.
+function reconcileLocalOnlyWrites(serverBikes, serverEntries, serverBuilds, serverMods) {
+  if (!currentUserId || !getTokenFn || !isSupabaseConfigured()) return
+
+  // Fast lookup of everything the server already knows about. We compare
+  // against *translated* uuids so a local-id row counts as "known" only
+  // if its uuid is in the server set.
+  const known = new Set()
+  for (const r of serverBikes) known.add(localIdToUuid(r.id))
+  for (const r of serverEntries) known.add(localIdToUuid(r.id))
+  for (const r of serverBuilds) known.add(localIdToUuid(r.id))
+  for (const r of serverMods) known.add(localIdToUuid(r.id))
+
+  let added = 0
+  const tryEnqueue = (op) => {
+    enqueue(op)
+    added++
+  }
+
+  for (const b of getGarage()) {
+    if (!isLocalId(b.id)) continue
+    if (known.has(localIdToUuid(b.id))) continue
+    tryEnqueue({ op: 'upsertBike', bike: b })
+  }
+  for (const e of getAllServiceEntries()) {
+    if (!isLocalId(e.id)) continue
+    if (known.has(localIdToUuid(e.id))) continue
+    tryEnqueue({ op: 'upsertEntry', entry: e })
+  }
+  for (const b of getAllBuilds()) {
+    if (!isLocalId(b.id)) continue
+    if (known.has(localIdToUuid(b.id))) continue
+    tryEnqueue({ op: 'upsertBuild', build: b })
+  }
+  for (const m of getAllMods()) {
+    if (!isLocalId(m.id)) continue
+    if (known.has(localIdToUuid(m.id))) continue
+    tryEnqueue({ op: 'upsertMod', mod: m })
+  }
+
+  if (added > 0) {
+    console.info('[storage] reconciled', added, 'local-only rows back into sync queue')
+  }
+}
+
+function isLocalId(id) {
+  // Anything that isn't a uuid is a local id (eg. 'bike_xyz_abc').
+  return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    String(id)
+  )
 }
 
 function mergeById(server, local) {
