@@ -851,18 +851,91 @@ async function pullFromServer() {
   const mergedMods = mergeByTranslatedId(localMods, existingMods)
   write(modsKey(), mergedMods)
 
+  // Self-heal step 1: if any child rows (mods/builds/entries) reference a
+  // parent by its local-id, but that parent is now known on the server by
+  // its deterministic uuid, rewrite the child's parent reference in place.
+  // This unblocks FK-bound upserts that would otherwise loop-fail on flush.
+  rewriteLocalParentRefs(localBikes, localBuilds)
+
   notify()
 
-  // Self-heal: any local-id rows in the cache that weren't also returned
-  // from the server probably never synced (eg. written during a window
-  // where Supabase env vars weren't configured). Re-enqueue them now so
-  // the next flushQueue picks them up.
+  // Self-heal step 2: any local-id rows in the cache that weren't also
+  // returned from the server probably never synced (eg. written during a
+  // window where Supabase env vars weren't configured). Re-enqueue them now
+  // so the next flushQueue picks them up. rewriteLocalParentRefs ran first
+  // so their parent references are already healed.
   // Note: the `local*` arrays above hold the server-returned rows after
   // snake_case→camelCase mapping, which is what this function needs.
   reconcileLocalOnlyWrites(localBikes, localEntries, localBuilds, localMods)
 
   // Opportunistically drain any queued writes now that we know we're online.
   flushQueue().catch(() => {})
+}
+
+// Rewrites parent references on local cache rows when we can prove the
+// parent is now a known-on-server uuid. Example of the bug this fixes:
+//   1. Device A adds bike (localId = 'bike_foo') → server upserts with
+//      uuid = localIdToUuid('bike_foo'). Cache still holds the local id
+//      until the next pullFromServer, which swaps it to the uuid.
+//   2. Before the pull lands, the user adds a mod on Device A. The mod
+//      is written with bikeId = 'bike_foo' (the local id).
+//   3. Pull runs, bike rewrites to uuid, but the mod still points at
+//      'bike_foo'. Its upsert FK-fails forever and the Build tab filter
+//      (which uses the uuid) hides the mod from the UI.
+// Fix: for each mod/build/entry with a non-uuid parent id, if that
+// parent's translated uuid is in the set of server-known uuids, swap
+// the child's parent reference to the uuid. Safe: localIdToUuid is
+// deterministic, so the uuid equivalence is exact, not fuzzy.
+function rewriteLocalParentRefs(serverBikes, serverBuilds) {
+  const knownBikeUuids = new Set((serverBikes || []).map((b) => b.id))
+  const knownBuildUuids = new Set((serverBuilds || []).map((b) => b.id))
+
+  const canPromote = (parentId, knownSet) => {
+    if (!parentId) return null
+    if (!isLocalId(parentId)) return null
+    const uuid = localIdToUuid(parentId)
+    return knownSet.has(uuid) ? uuid : null
+  }
+
+  let modsRewritten = 0
+  const mods = getAllMods().map((m) => {
+    let next = m
+    const newBikeId = canPromote(m.bikeId, knownBikeUuids)
+    if (newBikeId) next = { ...next, bikeId: newBikeId }
+    const newBuildId = canPromote(m.buildId, knownBuildUuids)
+    if (newBuildId) next = { ...next, buildId: newBuildId }
+    if (next !== m) modsRewritten++
+    return next
+  })
+  if (modsRewritten > 0) write(modsKey(), mods)
+
+  let buildsRewritten = 0
+  const builds = getAllBuilds().map((b) => {
+    const newBikeId = canPromote(b.bikeId, knownBikeUuids)
+    if (!newBikeId) return b
+    buildsRewritten++
+    return { ...b, bikeId: newBikeId }
+  })
+  if (buildsRewritten > 0) write(buildsKey(), builds)
+
+  let entriesRewritten = 0
+  const entries = getAllServiceEntries().map((e) => {
+    const newBikeId = canPromote(e.bikeId, knownBikeUuids)
+    if (!newBikeId) return e
+    entriesRewritten++
+    return { ...e, bikeId: newBikeId }
+  })
+  if (entriesRewritten > 0) write(logKey(), entries)
+
+  const total = modsRewritten + buildsRewritten + entriesRewritten
+  if (total > 0) {
+    console.info(
+      '[storage] rewrote',
+      total,
+      'local parent refs to server uuids',
+      { mods: modsRewritten, builds: buildsRewritten, entries: entriesRewritten }
+    )
+  }
 }
 
 // Walks the cache vs the set of rows we just pulled from the server and
