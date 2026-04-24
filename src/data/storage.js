@@ -115,6 +115,41 @@ function modsKey() {
     : 'hd-ba:mods:v1'
 }
 
+// Tombstones: remember ids we deleted locally until the server confirms the
+// delete. Without these, pullFromServer would happily merge the still-alive
+// server row right back into the cache, and the UI shows a "zombie". The
+// tombstone is cleared by applyOp once the delete flushes successfully.
+function tombstoneKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:tombstones:v1`
+    : 'hd-ba:tombstones:v1'
+}
+
+// Tombstones are stored per-table so we only filter the right set when
+// merging. Shape: { bikes: { uuid: true }, entries: {...}, builds: {...}, mods: {...} }
+function readTombstones() {
+  const t = read(tombstoneKey(), null)
+  return {
+    bikes: (t && t.bikes) || {},
+    entries: (t && t.entries) || {},
+    builds: (t && t.builds) || {},
+    mods: (t && t.mods) || {}
+  }
+}
+function writeTombstones(t) {
+  write(tombstoneKey(), t)
+}
+function addTombstone(kind, id) {
+  const t = readTombstones()
+  t[kind][localIdToUuid(id)] = true
+  writeTombstones(t)
+}
+function clearTombstone(kind, id) {
+  const t = readTombstones()
+  delete t[kind][localIdToUuid(id)]
+  writeTombstones(t)
+}
+
 // ---------- localStorage helpers ----------
 
 function read(key, fallback) {
@@ -208,6 +243,7 @@ export function updateBike(id, patch) {
 }
 
 export function removeBike(id) {
+  addTombstone('bikes', id)
   const garage = getGarage().filter((b) => b.id !== id)
   write(garageKey(), garage)
   // Also drop any service entries for that bike.
@@ -273,6 +309,7 @@ export function logService(bikeId, input) {
 }
 
 export function removeServiceEntry(entryId) {
+  addTombstone('entries', entryId)
   const log = getAllServiceEntries().filter((e) => e.id !== entryId)
   write(logKey(), log)
   enqueue({ op: 'deleteEntry', id: entryId })
@@ -340,6 +377,7 @@ export function updateBuild(id, patch) {
 }
 
 export function removeBuild(id) {
+  addTombstone('builds', id)
   const all = getAllBuilds().filter((b) => b.id !== id)
   write(buildsKey(), all)
   // Detach any mods that pointed at this build — they stay on the bike
@@ -453,6 +491,7 @@ export function updateMod(id, patch, { alsoLogService = false } = {}) {
 }
 
 export function removeMod(id) {
+  addTombstone('mods', id)
   const all = getAllMods().filter((m) => m.id !== id)
   write(modsKey(), all)
   enqueue({ op: 'deleteMod', id })
@@ -583,6 +622,7 @@ async function applyOp(supabase, op) {
         .delete()
         .eq('id', localIdToUuid(op.id))
       if (error) throw error
+      clearTombstone('bikes', op.id)
       return
     }
     case 'upsertEntry': {
@@ -612,6 +652,7 @@ async function applyOp(supabase, op) {
         .delete()
         .eq('id', localIdToUuid(op.id))
       if (error) throw error
+      clearTombstone('entries', op.id)
       return
     }
     case 'upsertBuild': {
@@ -639,6 +680,7 @@ async function applyOp(supabase, op) {
         .delete()
         .eq('id', localIdToUuid(op.id))
       if (error) throw error
+      clearTombstone('builds', op.id)
       return
     }
     case 'upsertMod': {
@@ -677,6 +719,7 @@ async function applyOp(supabase, op) {
         .delete()
         .eq('id', localIdToUuid(op.id))
       if (error) throw error
+      clearTombstone('mods', op.id)
       return
     }
     default:
@@ -773,9 +816,21 @@ async function pullFromServer() {
     return
   }
 
+  // Suppress server rows that we locally deleted but haven't flushed yet.
+  // Without this, merge would happily re-insert a deleted row into the cache
+  // (because the local side has no counterpart), resulting in a "zombie".
+  // Tombstones are cleared in applyOp once the delete confirms server-side.
+  const ts = readTombstones()
+  const sieve = (rows, kind) =>
+    (rows || []).filter((r) => !ts[kind][localIdToUuid(r.id)])
+  const filteredBikes = sieve(bikes, 'bikes')
+  const filteredEntries = sieve(entries, 'entries')
+  const filteredBuilds = sieve(builds, 'builds')
+  const filteredMods = sieve(mods, 'mods')
+
   // Build local-shape arrays. We use the server uuid as the local id going
   // forward, which means future writes from this device use the same id.
-  const localBikes = (bikes || []).map((r) => ({
+  const localBikes = filteredBikes.map((r) => ({
     id: r.id,
     bikeTypeId: r.bike_type_id || null,
     year: r.year || null,
@@ -788,7 +843,7 @@ async function pullFromServer() {
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }))
-  const localEntries = (entries || []).map((r) => ({
+  const localEntries = filteredEntries.map((r) => ({
     id: r.id,
     bikeId: r.bike_id,
     jobId: r.job_id || null,
@@ -813,7 +868,7 @@ async function pullFromServer() {
   const mergedEntries = mergeByTranslatedId(localEntries, existingEntries)
   write(logKey(), mergedEntries)
 
-  const localBuilds = (builds || []).map((r) => ({
+  const localBuilds = filteredBuilds.map((r) => ({
     id: r.id,
     bikeId: r.bike_id,
     title: r.title || '',
@@ -827,7 +882,7 @@ async function pullFromServer() {
   const mergedBuilds = mergeByTranslatedId(localBuilds, existingBuilds)
   write(buildsKey(), mergedBuilds)
 
-  const localMods = (mods || []).map((r) => ({
+  const localMods = filteredMods.map((r) => ({
     id: r.id,
     bikeId: r.bike_id,
     buildId: r.build_id || null,
