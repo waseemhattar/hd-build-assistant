@@ -5,14 +5,24 @@ import {
   removeServiceEntry,
   updateBikeMileage,
   getBike,
-  subscribe
+  subscribe,
+  getMods,
+  addMod,
+  updateMod,
+  removeMod,
+  getModsTotalCost
 } from '../data/storage.js'
 import {
   intervals,
   evaluateInterval,
   findLastMatchingEntry
 } from '../data/serviceIntervals.js'
-import { exportServiceBookPDF } from '../data/pdfExport.js'
+import { exportServiceBookPDF, exportBikeReportPDF } from '../data/pdfExport.js'
+import {
+  MOD_CATEGORY_GROUPS,
+  MOD_STATUSES,
+  CATEGORY_TO_GROUP
+} from '../data/modCategories.js'
 
 // ServiceBook = per-bike service history + HD-interval reference panel.
 // Two tabs:
@@ -29,10 +39,13 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const bike = useMemo(() => getBike(bikeId) || initialBike, [bikeId, refreshKey])
   const log = useMemo(() => getServiceLog(bikeId), [bikeId, refreshKey])
+  const mods = useMemo(() => getMods(bikeId), [bikeId, refreshKey])
 
   const [tab, setTab] = useState('log')
   const [adding, setAdding] = useState(false)
   const [editingMileage, setEditingMileage] = useState(false)
+  // Mod add/edit modal: null = closed, { mod: null } = new, { mod: existing } = edit
+  const [modEditing, setModEditing] = useState(null)
 
   function refresh() {
     setRefreshKey((k) => k + 1)
@@ -65,27 +78,50 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
           <div className="mt-1 text-sm text-hd-muted">
             {bike.year} · {bike.model}
           </div>
-          <button
-            onClick={() => exportServiceBookPDF({ bike, log })}
-            className="mt-3 inline-flex items-center gap-2 rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-text hover:border-hd-orange hover:text-hd-orange"
-            title="Download a printable service record"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={() => exportServiceBookPDF({ bike, log })}
+              className="inline-flex items-center gap-2 rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-text hover:border-hd-orange hover:text-hd-orange"
+              title="Download a printable service record"
             >
-              <path d="M12 3v12" />
-              <path d="M7 10l5 5 5-5" />
-              <path d="M5 21h14" />
-            </svg>
-            Download PDF
-          </button>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 3v12" />
+                <path d="M7 10l5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              Service Book
+            </button>
+            <button
+              onClick={() => exportBikeReportPDF({ bike, log, mods })}
+              className="inline-flex items-center gap-2 rounded border border-hd-orange bg-hd-orange/10 px-3 py-1.5 text-xs text-hd-orange hover:bg-hd-orange hover:text-hd-black"
+              title="Full bike report: specs, build, service, totals"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 3v12" />
+                <path d="M7 10l5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              Bike Report
+            </button>
+          </div>
         </div>
         <div className="rounded border border-hd-border bg-hd-dark p-3">
           <div className="text-xs uppercase tracking-widest text-hd-muted">
@@ -120,6 +156,7 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
       <nav className="mb-4 flex flex-wrap gap-1 border-b border-hd-border">
         {[
           { id: 'log', label: `Service log (${log.length})` },
+          { id: 'build', label: `Build / Mods (${mods.length})` },
           { id: 'intervals', label: `HD intervals (reference)` }
         ].map((t) => {
           const active = tab === t.id
@@ -150,6 +187,21 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
         />
       )}
 
+      {tab === 'build' && (
+        <BuildPanel
+          mods={mods}
+          onAdd={() => setModEditing({ mod: null })}
+          onEdit={(mod) => setModEditing({ mod })}
+          onRemove={(id) => {
+            if (confirm('Remove this mod?')) {
+              removeMod(id)
+              refresh()
+            }
+          }}
+          bikeId={bikeId}
+        />
+      )}
+
       {tab === 'intervals' && (
         <IntervalsPanel
           currentMileage={bike.mileage || 0}
@@ -166,6 +218,23 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
           onSave={(data) => {
             logService(bikeId, data)
             setAdding(false)
+            refresh()
+          }}
+        />
+      )}
+
+      {modEditing && (
+        <ModEditor
+          bike={bike}
+          mod={modEditing.mod}
+          onCancel={() => setModEditing(null)}
+          onSave={({ data, alsoLogService }) => {
+            if (modEditing.mod) {
+              updateMod(modEditing.mod.id, data, { alsoLogService })
+            } else {
+              addMod(bikeId, data, { alsoLogService })
+            }
+            setModEditing(null)
             refresh()
           }}
         />
@@ -516,5 +585,428 @@ function Field({ label, wide, children }) {
       </div>
       {children}
     </label>
+  )
+}
+
+// ---------- Build / Mods ----------
+
+function BuildPanel({ mods, onAdd, onEdit, onRemove, bikeId }) {
+  const [statusFilter, setStatusFilter] = useState('all')
+  const filtered = useMemo(
+    () =>
+      statusFilter === 'all'
+        ? mods
+        : mods.filter((m) => m.status === statusFilter),
+    [mods, statusFilter]
+  )
+
+  // Group by category group for display
+  const grouped = useMemo(() => {
+    const byGroup = new Map()
+    for (const m of filtered) {
+      const g = CATEGORY_TO_GROUP[m.category] || 'Other'
+      if (!byGroup.has(g)) byGroup.set(g, [])
+      byGroup.get(g).push(m)
+    }
+    // Order groups the same way MOD_CATEGORY_GROUPS defines them
+    const order = MOD_CATEGORY_GROUPS.map((g) => g.group)
+    return order
+      .filter((g) => byGroup.has(g))
+      .map((g) => ({ group: g, items: byGroup.get(g) }))
+  }, [filtered])
+
+  const totalInstalled = getModsTotalCost(bikeId, { onlyInstalled: true })
+  const totalAll = getModsTotalCost(bikeId)
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1">
+          {['all', 'planned', 'installed', 'removed'].map((s) => {
+            const active = statusFilter === s
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`rounded border px-3 py-1 text-xs uppercase tracking-widest transition ${
+                  active
+                    ? 'border-hd-orange bg-hd-orange/10 text-hd-orange'
+                    : 'border-hd-border bg-hd-dark text-hd-muted hover:text-hd-text'
+                }`}
+              >
+                {s}
+              </button>
+            )
+          })}
+        </div>
+        <button
+          onClick={onAdd}
+          className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+        >
+          + Add mod
+        </button>
+      </div>
+
+      {mods.length === 0 ? (
+        <div className="card text-center">
+          <div className="mb-2 font-display text-xl tracking-wider">
+            No mods logged yet.
+          </div>
+          <p className="text-sm text-hd-muted">
+            Track OEM and aftermarket parts — plan what you want, log what
+            you install, and keep the cost running.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {grouped.map(({ group, items }) => (
+            <section key={group}>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-hd-muted">
+                {group}
+              </div>
+              <ul className="space-y-2">
+                {items.map((m) => (
+                  <li key={m.id} className="card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-display text-lg tracking-wider">
+                            {m.title || m.category || 'Mod'}
+                          </span>
+                          <ModStatusPill status={m.status} />
+                          {m.category && (
+                            <span className="chip">{m.category}</span>
+                          )}
+                          {m.brand && (
+                            <span className="text-xs text-hd-orange">
+                              {m.brand}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-3 text-xs text-hd-muted">
+                          {m.partNumber && <span>PN: {m.partNumber}</span>}
+                          {m.vendor && <span>Vendor: {m.vendor}</span>}
+                          {m.installDate && (
+                            <span>Installed: {m.installDate}</span>
+                          )}
+                          {m.installMileage != null && (
+                            <span>
+                              @ {m.installMileage.toLocaleString()} mi
+                            </span>
+                          )}
+                          {m.cost != null && (
+                            <span className="text-hd-text">
+                              ${Number(m.cost).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        {m.notes && (
+                          <div className="mt-2 whitespace-pre-wrap text-sm text-hd-text">
+                            {m.notes}
+                          </div>
+                        )}
+                        {m.sourceUrl && (
+                          <a
+                            href={m.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-block text-xs text-hd-muted underline hover:text-hd-orange"
+                          >
+                            Source link
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => onEdit(m)}
+                          className="text-xs text-hd-muted hover:text-hd-orange"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => onRemove(m.id)}
+                          className="text-xs text-hd-muted hover:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {mods.length > 0 && (
+        <div className="mt-6 rounded-md border border-hd-border bg-hd-dark p-3 text-xs text-hd-muted">
+          <div className="flex flex-wrap justify-between gap-4">
+            <div>
+              <span className="uppercase tracking-widest">Installed total</span>{' '}
+              <span className="ml-2 text-hd-text">
+                ${totalInstalled.toFixed(2)}
+              </span>
+            </div>
+            <div>
+              <span className="uppercase tracking-widest">All (incl. planned)</span>{' '}
+              <span className="ml-2 text-hd-text">${totalAll.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ModStatusPill({ status }) {
+  const map = {
+    planned: {
+      label: 'Planned',
+      cls: 'bg-hd-dark text-hd-muted border-hd-border'
+    },
+    installed: {
+      label: 'Installed',
+      cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+    },
+    removed: {
+      label: 'Removed',
+      cls: 'bg-red-500/10 text-red-300 border-red-500/30'
+    }
+  }
+  const s = map[status] || map.planned
+  return (
+    <span
+      className={`inline-block rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${s.cls}`}
+    >
+      {s.label}
+    </span>
+  )
+}
+
+function ModEditor({ bike, mod, onCancel, onSave }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [form, setForm] = useState(() => ({
+    title: mod?.title || '',
+    category: mod?.category || '',
+    status: mod?.status || 'planned',
+    brand: mod?.brand || '',
+    partNumber: mod?.partNumber || '',
+    vendor: mod?.vendor || '',
+    sourceUrl: mod?.sourceUrl || '',
+    cost: mod?.cost == null ? '' : String(mod.cost),
+    installDate: mod?.installDate || (mod?.status === 'installed' ? today : ''),
+    installMileage:
+      mod?.installMileage == null
+        ? bike?.mileage ?? ''
+        : String(mod.installMileage),
+    removeDate: mod?.removeDate || '',
+    notes: mod?.notes || '',
+    isPublic: !!mod?.isPublic
+  }))
+  // Auto-log checkbox: default OFF (opt-in) as user specified.
+  const [alsoLogService, setAlsoLogService] = useState(false)
+
+  function submit(e) {
+    e.preventDefault()
+    if (!form.title.trim() && !form.category) return
+    onSave({ data: form, alsoLogService })
+  }
+
+  const isNew = !mod
+  // Only meaningful when a status flip to 'installed' is about to happen.
+  const willFlipToInstalled =
+    form.status === 'installed' && (!mod || mod.status !== 'installed')
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
+      onClick={onCancel}
+    >
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-md border border-hd-border bg-hd-dark p-5"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
+            {isNew ? 'ADD MOD' : 'EDIT MOD'}
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-2xl leading-none text-hd-muted hover:text-hd-orange"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Title" wide>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="input"
+              placeholder="e.g. Stage 1 air cleaner"
+              required
+            />
+          </Field>
+          <Field label="Category">
+            <select
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              className="input"
+              required
+            >
+              <option value="">— Pick a category —</option>
+              {MOD_CATEGORY_GROUPS.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </Field>
+          <Field label="Status">
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              className="input"
+            >
+              {MOD_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Brand">
+            <input
+              type="text"
+              value={form.brand}
+              onChange={(e) => setForm({ ...form, brand: e.target.value })}
+              className="input"
+              placeholder="e.g. Vance & Hines, S&S, HD"
+            />
+          </Field>
+          <Field label="Part number">
+            <input
+              type="text"
+              value={form.partNumber}
+              onChange={(e) =>
+                setForm({ ...form, partNumber: e.target.value })
+              }
+              className="input"
+              placeholder="e.g. 46563-09"
+            />
+          </Field>
+          <Field label="Vendor">
+            <input
+              type="text"
+              value={form.vendor}
+              onChange={(e) => setForm({ ...form, vendor: e.target.value })}
+              className="input"
+              placeholder="Where bought"
+            />
+          </Field>
+          <Field label="Cost">
+            <input
+              type="number"
+              value={form.cost}
+              onChange={(e) => setForm({ ...form, cost: e.target.value })}
+              className="input"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+            />
+          </Field>
+          <Field label="Source URL" wide>
+            <input
+              type="url"
+              value={form.sourceUrl}
+              onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
+              className="input"
+              placeholder="https://…"
+            />
+          </Field>
+          <Field label="Install date">
+            <input
+              type="date"
+              value={form.installDate}
+              onChange={(e) =>
+                setForm({ ...form, installDate: e.target.value })
+              }
+              className="input"
+            />
+          </Field>
+          <Field label="Install mileage">
+            <input
+              type="number"
+              value={form.installMileage}
+              onChange={(e) =>
+                setForm({ ...form, installMileage: e.target.value })
+              }
+              className="input"
+              min={0}
+            />
+          </Field>
+          {form.status === 'removed' && (
+            <Field label="Remove date">
+              <input
+                type="date"
+                value={form.removeDate}
+                onChange={(e) =>
+                  setForm({ ...form, removeDate: e.target.value })
+                }
+                className="input"
+              />
+            </Field>
+          )}
+          <Field label="Notes" wide>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className="input min-h-[80px]"
+              placeholder="Tuning notes, install gotchas, torque specs…"
+            />
+          </Field>
+        </div>
+
+        {willFlipToInstalled && (
+          <label className="mt-4 flex items-start gap-2 text-xs text-hd-muted">
+            <input
+              type="checkbox"
+              checked={alsoLogService}
+              onChange={(e) => setAlsoLogService(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Also log as a service entry (captures this install in your
+              Service Log and Bike Report).
+            </span>
+          </label>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+          >
+            {isNew ? 'Add mod' : 'Save mod'}
+          </button>
+        </div>
+      </form>
+    </div>
   )
 }

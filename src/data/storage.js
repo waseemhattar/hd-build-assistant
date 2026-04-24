@@ -103,6 +103,18 @@ function queueKey() {
     : 'hd-ba:sync-queue:v1'
 }
 
+function buildsKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:builds:v1`
+    : 'hd-ba:builds:v1'
+}
+
+function modsKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:mods:v1`
+    : 'hd-ba:mods:v1'
+}
+
 // ---------- localStorage helpers ----------
 
 function read(key, fallback) {
@@ -201,7 +213,12 @@ export function removeBike(id) {
   // Also drop any service entries for that bike.
   const log = getAllServiceEntries().filter((e) => e.bikeId !== id)
   write(logKey(), log)
-  // ON DELETE CASCADE in Postgres handles the service_entries side server-side.
+  // Drop any builds + mods for that bike (mirrors ON DELETE CASCADE in the DB).
+  const builds = getAllBuilds().filter((b) => b.bikeId !== id)
+  write(buildsKey(), builds)
+  const mods = getAllMods().filter((m) => m.bikeId !== id)
+  write(modsKey(), mods)
+  // ON DELETE CASCADE in Postgres handles the server-side rows.
   enqueue({ op: 'deleteBike', id })
 }
 
@@ -264,6 +281,208 @@ export function removeServiceEntry(entryId) {
 export function findLastService(bikeId, predicate) {
   const log = getServiceLog(bikeId)
   return log.find(predicate) || null
+}
+
+// ---------- Builds ----------
+//
+// A build is a named project that groups related mods (e.g. "Stage 2
+// power build"). Builds are optional — mods can exist on a bike without
+// belonging to any build.
+//
+// Build -> { id, bikeId, title, status, isPublic, notes, createdAt, updatedAt }
+
+function getAllBuilds() {
+  return read(buildsKey(), [])
+}
+
+export function getBuilds(bikeId) {
+  return getAllBuilds()
+    .filter((b) => b.bikeId === bikeId)
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
+}
+
+export function getBuild(buildId) {
+  return getAllBuilds().find((b) => b.id === buildId) || null
+}
+
+export function addBuild(bikeId, input) {
+  const now = new Date().toISOString()
+  const build = {
+    id: uid('build'),
+    bikeId,
+    title: input.title || '',
+    status: input.status || 'planned',
+    isPublic: !!input.isPublic,
+    notes: input.notes || '',
+    createdAt: now,
+    updatedAt: now
+  }
+  const all = getAllBuilds()
+  all.push(build)
+  write(buildsKey(), all)
+  enqueue({ op: 'upsertBuild', build })
+  return build
+}
+
+export function updateBuild(id, patch) {
+  const all = getAllBuilds()
+  const idx = all.findIndex((b) => b.id === id)
+  if (idx < 0) return null
+  all[idx] = {
+    ...all[idx],
+    ...patch,
+    id: all[idx].id,
+    updatedAt: new Date().toISOString()
+  }
+  write(buildsKey(), all)
+  enqueue({ op: 'upsertBuild', build: all[idx] })
+  return all[idx]
+}
+
+export function removeBuild(id) {
+  const all = getAllBuilds().filter((b) => b.id !== id)
+  write(buildsKey(), all)
+  // Detach any mods that pointed at this build — they stay on the bike
+  // but lose their build_id. Mirrors the DB's ON DELETE SET NULL.
+  const mods = getAllMods().map((m) =>
+    m.buildId === id ? { ...m, buildId: null, updatedAt: new Date().toISOString() } : m
+  )
+  write(modsKey(), mods)
+  for (const m of mods) {
+    if (m.buildId === null) enqueue({ op: 'upsertMod', mod: m })
+  }
+  enqueue({ op: 'deleteBuild', id })
+}
+
+// ---------- Mods ----------
+//
+// Mod -> { id, bikeId, buildId?, title, category, status, brand,
+//          partNumber?, vendor?, sourceUrl?, cost?, installDate?,
+//          installMileage?, removeDate?, notes?, isPublic,
+//          createdAt, updatedAt }
+
+function getAllMods() {
+  return read(modsKey(), [])
+}
+
+export function getMods(bikeId, { buildId } = {}) {
+  return getAllMods()
+    .filter((m) => m.bikeId === bikeId)
+    .filter((m) => (buildId === undefined ? true : m.buildId === buildId))
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))
+}
+
+export function getMod(modId) {
+  return getAllMods().find((m) => m.id === modId) || null
+}
+
+export function addMod(bikeId, input, { alsoLogService = false } = {}) {
+  const now = new Date().toISOString()
+  const mod = {
+    id: uid('mod'),
+    bikeId,
+    buildId: input.buildId || null,
+    title: input.title || '',
+    category: input.category || '',
+    status: input.status || 'planned',
+    brand: input.brand || '',
+    partNumber: input.partNumber || '',
+    vendor: input.vendor || '',
+    sourceUrl: input.sourceUrl || '',
+    cost: input.cost === '' || input.cost == null ? null : Number(input.cost),
+    installDate: input.installDate || '',
+    installMileage:
+      input.installMileage === '' || input.installMileage == null
+        ? null
+        : Number(input.installMileage),
+    removeDate: input.removeDate || '',
+    notes: input.notes || '',
+    isPublic: !!input.isPublic,
+    createdAt: now,
+    updatedAt: now
+  }
+  const all = getAllMods()
+  all.push(mod)
+  write(modsKey(), all)
+  enqueue({ op: 'upsertMod', mod })
+
+  // Opt-in side effect: if the mod is being added already installed AND the
+  // caller asked us to log it as a service entry, do so in the same tick.
+  if (alsoLogService && mod.status === 'installed') {
+    autoLogServiceForMod(mod)
+  }
+
+  return mod
+}
+
+export function updateMod(id, patch, { alsoLogService = false } = {}) {
+  const all = getAllMods()
+  const idx = all.findIndex((m) => m.id === id)
+  if (idx < 0) return null
+  const before = all[idx]
+  const after = {
+    ...before,
+    ...patch,
+    id: before.id,
+    updatedAt: new Date().toISOString()
+  }
+  // Coerce cost/mileage if provided in patch (strings from form inputs).
+  if (patch && 'cost' in patch) {
+    after.cost = patch.cost === '' || patch.cost == null ? null : Number(patch.cost)
+  }
+  if (patch && 'installMileage' in patch) {
+    after.installMileage =
+      patch.installMileage === '' || patch.installMileage == null
+        ? null
+        : Number(patch.installMileage)
+  }
+  all[idx] = after
+  write(modsKey(), all)
+  enqueue({ op: 'upsertMod', mod: after })
+
+  // Status flipped to 'installed'? Honor the opt-in checkbox.
+  if (
+    alsoLogService &&
+    before.status !== 'installed' &&
+    after.status === 'installed'
+  ) {
+    autoLogServiceForMod(after)
+  }
+
+  return after
+}
+
+export function removeMod(id) {
+  const all = getAllMods().filter((m) => m.id !== id)
+  write(modsKey(), all)
+  enqueue({ op: 'deleteMod', id })
+}
+
+// Convenience: compute the running total cost of installed mods on a bike.
+// Useful for the Build tab footer and the Bike Report.
+export function getModsTotalCost(bikeId, { onlyInstalled = false } = {}) {
+  return getMods(bikeId)
+    .filter((m) => (onlyInstalled ? m.status === 'installed' : true))
+    .reduce((sum, m) => sum + (Number(m.cost) || 0), 0)
+}
+
+// Shared auto-log helper. Produces a human-readable service entry so it
+// flows into the Service Log + Bike Report naturally.
+function autoLogServiceForMod(mod) {
+  const brandBit = mod.brand ? `${mod.brand} ` : ''
+  const title = `Installed: ${brandBit}${mod.title || mod.category || 'mod'}`
+  const parts = [mod.partNumber, mod.brand, mod.vendor]
+    .filter(Boolean)
+    .join(' · ')
+  logService(mod.bikeId, {
+    jobId: null,
+    title,
+    mileage: mod.installMileage || 0,
+    date: mod.installDate || new Date().toISOString().slice(0, 10),
+    notes: mod.notes || '',
+    parts,
+    cost: mod.cost
+  })
 }
 
 // ---------- sync queue ----------
@@ -395,6 +614,71 @@ async function applyOp(supabase, op) {
       if (error) throw error
       return
     }
+    case 'upsertBuild': {
+      const b = op.build
+      const row = {
+        id: localIdToUuid(b.id),
+        user_id: currentUserId,
+        bike_id: localIdToUuid(b.bikeId),
+        title: b.title || '',
+        status: b.status || 'planned',
+        is_public: !!b.isPublic,
+        notes: b.notes || '',
+        created_at: b.createdAt,
+        updated_at: b.updatedAt
+      }
+      const { error } = await supabase
+        .from('bike_builds')
+        .upsert(row, { onConflict: 'id' })
+      if (error) throw error
+      return
+    }
+    case 'deleteBuild': {
+      const { error } = await supabase
+        .from('bike_builds')
+        .delete()
+        .eq('id', localIdToUuid(op.id))
+      if (error) throw error
+      return
+    }
+    case 'upsertMod': {
+      const m = op.mod
+      const row = {
+        id: localIdToUuid(m.id),
+        user_id: currentUserId,
+        bike_id: localIdToUuid(m.bikeId),
+        build_id: m.buildId ? localIdToUuid(m.buildId) : null,
+        title: m.title || '',
+        category: m.category || '',
+        status: m.status || 'planned',
+        brand: m.brand || '',
+        part_number: m.partNumber || '',
+        vendor: m.vendor || '',
+        source_url: m.sourceUrl || '',
+        cost: m.cost == null ? null : Number(m.cost),
+        install_date: m.installDate || null,
+        install_mileage:
+          m.installMileage == null ? null : Number(m.installMileage),
+        remove_date: m.removeDate || null,
+        notes: m.notes || '',
+        is_public: !!m.isPublic,
+        created_at: m.createdAt,
+        updated_at: m.updatedAt
+      }
+      const { error } = await supabase
+        .from('bike_mods')
+        .upsert(row, { onConflict: 'id' })
+      if (error) throw error
+      return
+    }
+    case 'deleteMod': {
+      const { error } = await supabase
+        .from('bike_mods')
+        .delete()
+        .eq('id', localIdToUuid(op.id))
+      if (error) throw error
+      return
+    }
     default:
       console.warn('unknown sync op', op)
   }
@@ -461,19 +745,31 @@ async function pullFromServer() {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
 
   const supabase = getSupabaseClient(getTokenFn)
-  const [{ data: bikes, error: bErr }, { data: entries, error: eErr }] =
-    await Promise.all([
-      supabase
-        .from('garage_bikes')
-        .select('*')
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('service_entries')
-        .select('*')
-        .order('created_at', { ascending: true })
-    ])
-  if (bErr || eErr) {
-    console.warn('pull failed', bErr || eErr)
+  const [
+    { data: bikes, error: bErr },
+    { data: entries, error: eErr },
+    { data: builds, error: buErr },
+    { data: mods, error: mErr }
+  ] = await Promise.all([
+    supabase
+      .from('garage_bikes')
+      .select('*')
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('service_entries')
+      .select('*')
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('bike_builds')
+      .select('*')
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('bike_mods')
+      .select('*')
+      .order('created_at', { ascending: true })
+  ])
+  if (bErr || eErr || buErr || mErr) {
+    console.warn('pull failed', bErr || eErr || buErr || mErr)
     return
   }
 
@@ -516,6 +812,44 @@ async function pullFromServer() {
   const existingEntries = getAllServiceEntries()
   const mergedEntries = mergeByTranslatedId(localEntries, existingEntries)
   write(logKey(), mergedEntries)
+
+  const localBuilds = (builds || []).map((r) => ({
+    id: r.id,
+    bikeId: r.bike_id,
+    title: r.title || '',
+    status: r.status || 'planned',
+    isPublic: !!r.is_public,
+    notes: r.notes || '',
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }))
+  const existingBuilds = getAllBuilds()
+  const mergedBuilds = mergeByTranslatedId(localBuilds, existingBuilds)
+  write(buildsKey(), mergedBuilds)
+
+  const localMods = (mods || []).map((r) => ({
+    id: r.id,
+    bikeId: r.bike_id,
+    buildId: r.build_id || null,
+    title: r.title || '',
+    category: r.category || '',
+    status: r.status || 'planned',
+    brand: r.brand || '',
+    partNumber: r.part_number || '',
+    vendor: r.vendor || '',
+    sourceUrl: r.source_url || '',
+    cost: r.cost == null ? null : Number(r.cost),
+    installDate: r.install_date || '',
+    installMileage: r.install_mileage == null ? null : Number(r.install_mileage),
+    removeDate: r.remove_date || '',
+    notes: r.notes || '',
+    isPublic: !!r.is_public,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }))
+  const existingMods = getAllMods()
+  const mergedMods = mergeByTranslatedId(localMods, existingMods)
+  write(modsKey(), mergedMods)
 
   notify()
 
