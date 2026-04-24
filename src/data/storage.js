@@ -41,21 +41,47 @@ import {
 let currentUserId = null
 let getTokenFn = null
 
+// React 18 StrictMode double-invokes mount effects in dev, so App.jsx calls
+// us as: setUser(id) → setUser(null) (cleanup) → setUser(id). If we cleared
+// state on every null call, the Supabase pull we queued against the real
+// user id would race with the null and abort silently. We defer the clear
+// by one tick so a quick remount can cancel it.
+let pendingClear = 0
+
 export function setStorageUser(userId, getToken) {
-  const changed = currentUserId !== (userId || null)
-  currentUserId = userId || null
+  if (!userId) {
+    pendingClear = pendingClear + 1
+    const myToken = pendingClear
+    setTimeout(() => {
+      if (pendingClear === myToken) {
+        currentUserId = null
+        getTokenFn = null
+        pendingClear = 0
+        notify()
+      }
+    }, 0)
+    return
+  }
+
+  // New id coming in — cancel any pending clear.
+  pendingClear = 0
+
+  const changed = currentUserId !== userId
+  if (!changed) {
+    // Same user, possibly a new getToken reference from a React re-render.
+    // Swap the token function in place but don't re-pull.
+    getTokenFn = getToken || getTokenFn
+    return
+  }
+
+  currentUserId = userId
   getTokenFn = getToken || null
+  notify()
 
-  // Tell subscribers right away so anything that read from the un-namespaced
-  // key (while we were still bootstrapping) re-reads from the new user's key.
-  if (changed) notify()
-
-  // After the user changes, do a full pull so the cache matches the server.
   if (currentUserId && getTokenFn && isSupabaseConfigured()) {
-    // Give Clerk a tick to hand out a JWT; the template-scoped token call
-    // inside supabaseClient handles retries, but doing it on the next tick
-    // avoids a spurious "not authenticated" race during very first render.
-    Promise.resolve().then(() => pullFromServer().catch(() => {}))
+    Promise.resolve()
+      .then(() => pullFromServer())
+      .catch((e) => console.warn('pullFromServer threw', e))
   }
 }
 
@@ -518,6 +544,20 @@ function mergeByTranslatedId(server, local) {
 // When the browser comes back online, drain the queue automatically.
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
+    flushQueue().catch(() => {})
+  })
+
+  // When the tab regains focus (user switched back from another device/tab),
+  // re-pull so we catch up with writes made elsewhere. Also drain any local
+  // writes that didn't make it out earlier.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      pullFromServer().catch(() => {})
+      flushQueue().catch(() => {})
+    }
+  })
+  window.addEventListener('focus', () => {
+    pullFromServer().catch(() => {})
     flushQueue().catch(() => {})
   })
 }
