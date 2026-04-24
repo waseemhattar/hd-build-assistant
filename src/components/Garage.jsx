@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { bikes as bikeCatalog } from '../data/bikes.js'
 import {
   getGarage,
@@ -7,6 +7,12 @@ import {
   removeBike,
   subscribe
 } from '../data/storage.js'
+import {
+  decodeVinLocal,
+  decodeVinRemote,
+  matchToBikeCatalog,
+  normalizeVin
+} from '../data/vinDecoder.js'
 
 // The Garage is where members list the bikes they own. Each bike has a
 // current mileage, which drives the maintenance-due dashboard in the
@@ -203,6 +209,15 @@ function BikeEditor({ bike, onCancel, onSave }) {
     notes: bike?.notes || ''
   }))
 
+  // VIN decoder state. `local` is instant and recomputed on every keystroke;
+  // `remote` only runs when the user has a full 17-char VIN (auto or on
+  // pressing the Decode button) and holds the NHTSA response.
+  const local = useMemo(() => decodeVinLocal(form.vin), [form.vin])
+  const [remote, setRemote] = useState(null)
+  const [decoding, setDecoding] = useState(false)
+  const [autoDecoded, setAutoDecoded] = useState(false)
+  const abortRef = useRef(null)
+
   // When the user picks a preset, auto-fill year + a reasonable default model.
   function pickPreset(id) {
     const preset = bikeCatalog.find((p) => p.id === id)
@@ -213,6 +228,67 @@ function BikeEditor({ bike, onCancel, onSave }) {
       model: f.model || preset?.models?.[0] || ''
     }))
   }
+
+  // Kick off a NHTSA decode. Safe to call anytime — if the VIN isn't 17
+  // chars it just no-ops. `autofill`=true will fill empty form fields with
+  // the decoded data; the manual "Decode" button passes autofill=true.
+  async function runRemoteDecode({ autofill } = { autofill: true }) {
+    const vin = normalizeVin(form.vin)
+    if (vin.length !== 17) return
+    // Cancel any in-flight decode so a fast typist doesn't stack requests.
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
+    setDecoding(true)
+    const result = await decodeVinRemote(vin, { signal: ctrl.signal })
+    setDecoding(false)
+    if (result.reason === 'aborted') return
+    setRemote(result)
+
+    if (!autofill || !result.ok) return
+
+    const patch = {}
+    if (result.year && !form.year) patch.year = result.year
+    if (result.year) patch.year = patch.year ?? result.year
+
+    // Upgrade model name via catalog if we can.
+    const match = matchToBikeCatalog(result)
+    if (result.model && !form.model) {
+      const friendly = upgradeModel(result.model, match.entry)
+      patch.model = friendly
+    }
+    if (match.id && !form.bikeTypeId) {
+      patch.bikeTypeId = match.id
+    }
+    // If the matched catalog entry differs from the current one and we're
+    // reasonably confident, upgrade it.
+    if (match.id && match.confidence === 'exact' && form.bikeTypeId !== match.id) {
+      patch.bikeTypeId = match.id
+    }
+
+    if (Object.keys(patch).length) {
+      setForm((f) => ({ ...f, ...patch }))
+      setAutoDecoded(true)
+    }
+  }
+
+  // Auto-decode when the user reaches 17 characters for the first time.
+  useEffect(() => {
+    const vin = normalizeVin(form.vin)
+    if (vin.length === 17 && !remote && !decoding) {
+      runRemoteDecode({ autofill: true })
+    }
+    if (vin.length !== 17 && remote) {
+      // User edited the VIN down; clear stale decode.
+      setRemote(null)
+      setAutoDecoded(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.vin])
+
+  // Clean up any pending request on unmount.
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   function submit(e) {
     e.preventDefault()
@@ -311,15 +387,37 @@ function BikeEditor({ bike, onCancel, onSave }) {
             />
           </Field>
 
-          <Field label="VIN (optional)">
-            <input
-              type="text"
-              value={form.vin}
-              onChange={(e) =>
-                setForm({ ...form, vin: e.target.value.toUpperCase() })
-              }
-              className="input font-mono"
-              maxLength={17}
+          <Field label="VIN (optional — auto-decodes 17-char Harley VINs)" wide>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={form.vin}
+                onChange={(e) => {
+                  // Uppercase and strip banned VIN chars (I/O/Q) + whitespace
+                  // so the user can't get into an invalid state by typing or
+                  // pasting. normalizeVin handles both.
+                  setForm({ ...form, vin: normalizeVin(e.target.value) })
+                }}
+                className="input flex-1 font-mono uppercase"
+                maxLength={17}
+                placeholder="e.g. 1HD1KHM18LB610234"
+              />
+              <button
+                type="button"
+                onClick={() => runRemoteDecode({ autofill: true })}
+                disabled={normalizeVin(form.vin).length !== 17 || decoding}
+                className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-hd-text hover:border-hd-orange hover:text-hd-orange disabled:opacity-40 disabled:hover:border-hd-border disabled:hover:text-hd-text"
+                title="Look up this VIN via the NHTSA public database"
+              >
+                {decoding ? 'Decoding…' : 'Decode'}
+              </button>
+            </div>
+            <VinChip
+              vin={form.vin}
+              local={local}
+              remote={remote}
+              decoding={decoding}
+              autoDecoded={autoDecoded}
             />
           </Field>
 
@@ -362,6 +460,94 @@ function BikeEditor({ bike, onCancel, onSave }) {
       </form>
     </div>
   )
+}
+
+// Tiny status chip shown under the VIN field. States:
+//  - empty      → nothing rendered
+//  - partial    → "12/17 characters"
+//  - invalid    → red warning
+//  - valid + not HD → amber "not a Harley VIN"
+//  - valid + HD + decoding → "Looking up…"
+//  - valid + HD + decoded (hit)  → green "2020 FLHR Road King — auto-filled"
+//  - valid + HD + decoded (miss) → amber "NHTSA didn't recognize this VIN"
+function VinChip({ vin, local, remote, decoding, autoDecoded }) {
+  const norm = normalizeVin(vin)
+  if (!norm) return null
+
+  if (local.partial) {
+    return (
+      <div className="mt-2 text-xs text-hd-muted">{local.reason}</div>
+    )
+  }
+
+  if (!local.valid) {
+    return (
+      <div className="mt-2 text-xs text-amber-400">⚠ {local.reason}</div>
+    )
+  }
+
+  if (local.valid && !local.isHarley) {
+    return (
+      <div className="mt-2 text-xs text-amber-400">
+        ⚠ WMI "{local.wmi}" isn't a known Harley-Davidson prefix. You can
+        still save this bike manually.
+      </div>
+    )
+  }
+
+  if (decoding) {
+    return (
+      <div className="mt-2 text-xs text-hd-muted">
+        ✓ Harley VIN — looking up details…
+      </div>
+    )
+  }
+
+  if (remote && remote.ok) {
+    const parts = []
+    if (remote.year) parts.push(remote.year)
+    if (remote.make) parts.push(remote.make)
+    if (remote.model) parts.push(remote.model)
+    return (
+      <div className="mt-2 text-xs text-green-400">
+        ✓ {parts.join(' ')}
+        {remote.engineDisplacementL && ` · ${remote.engineDisplacementL}L`}
+        {remote.plant && ` · built in ${remote.plant}`}
+        {autoDecoded && (
+          <span className="ml-1 text-hd-muted">— auto-filled below</span>
+        )}
+      </div>
+    )
+  }
+
+  if (remote && !remote.ok) {
+    return (
+      <div className="mt-2 text-xs text-amber-400">
+        ⚠ Couldn't look up via NHTSA: {remote.reason}. Year detected locally:{' '}
+        {local.year || 'unknown'}.
+      </div>
+    )
+  }
+
+  // Valid HD VIN, remote not yet triggered.
+  return (
+    <div className="mt-2 text-xs text-hd-muted">
+      ✓ Looks like a Harley VIN
+      {local.year && ` — model year ${local.year}`}
+      . Press Decode for full details.
+    </div>
+  )
+}
+
+// Turn "FLHR" into "FLHR Road King" if the catalog knows it.
+function upgradeModel(nhtsaModel, catalogEntry) {
+  if (!nhtsaModel) return ''
+  if (!catalogEntry) return nhtsaModel
+  const token = nhtsaModel.split(/\s+/)[0].toUpperCase()
+  const hit = (catalogEntry.models || []).find(
+    (m) => m.split(/\s+/)[0].toUpperCase() === token
+  )
+  return hit || nhtsaModel
 }
 
 function Field({ label, wide, children }) {
