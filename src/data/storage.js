@@ -1054,6 +1054,20 @@ function mergeById(server, local) {
   return [...byId.values()]
 }
 
+// Detects pending writes in the queue for a given row's uuid. Used so we
+// don't accidentally drop a local row that hasn't finished uploading yet
+// just because the server doesn't know about it yet.
+function hasPendingWriteFor(uuid) {
+  const q = readQueue()
+  for (const op of q) {
+    if (op.op === 'upsertBike' && localIdToUuid(op.bike?.id) === uuid) return true
+    if (op.op === 'upsertEntry' && localIdToUuid(op.entry?.id) === uuid) return true
+    if (op.op === 'upsertBuild' && localIdToUuid(op.build?.id) === uuid) return true
+    if (op.op === 'upsertMod' && localIdToUuid(op.mod?.id) === uuid) return true
+  }
+  return false
+}
+
 // Index by the uuid a row *would sync as* so a local-id row and the server
 // row it came from don't both survive the merge. Server rows come with their
 // uuid id; local-id rows get matched against the server's uuid of the same
@@ -1065,6 +1079,13 @@ function mergeById(server, local) {
 // local-id row upgraded to its uuid form — without it, the cache would hold
 // the local-id forever and any children of that row (mods pointing at a
 // bike's bikeId, etc.) stay misaligned with the server indefinitely.
+//
+// Authority rule: when a row in the local cache has a *uuid* id (meaning
+// it was previously accepted by the server), and the server did NOT return
+// it in the current pull, and no pending write would re-create it, we drop
+// the local copy. This is how the cache learns about rows deleted elsewhere
+// (another device, Supabase dashboard, etc.). Local-id rows are never
+// dropped — those are unconfirmed writes waiting for the server.
 function mergeByTranslatedId(server, local) {
   const byKey = new Map()
   for (const r of server) byKey.set(localIdToUuid(r.id), r)
@@ -1075,7 +1096,22 @@ function mergeByTranslatedId(server, local) {
       // Server knows this row under its uuid; adopt the uuid but keep our
       // local fields (which may contain unflushed edits).
       byKey.set(key, { ...r, id: serverRow.id })
+    } else if (serverRow) {
+      // Same id, server and local agree the row exists. Local fields win
+      // (preserves unflushed edits).
+      byKey.set(key, r)
     } else {
+      // Server didn't return this row. Two cases:
+      //  1. Local row has a uuid id → it was once accepted by the server,
+      //     so absence on the server means it was deleted elsewhere.
+      //     Drop it, *unless* there's a pending write that would re-create
+      //     it (e.g. a queued upsert that hasn't flushed yet).
+      //  2. Local row has a local-id → it never made it to the server,
+      //     keep it so reconciliation can re-enqueue.
+      if (!isLocalId(r.id) && !hasPendingWriteFor(key)) {
+        // Drop. Don't add to byKey.
+        continue
+      }
       byKey.set(key, r)
     }
   }
