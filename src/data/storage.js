@@ -217,6 +217,14 @@ export function addBike(input) {
     mileage: Number(input.mileage) || 0,
     purchaseDate: input.purchaseDate || '',
     notes: input.notes || '',
+    // Public-share fields (Phase 1 of the public bike pages feature).
+    // isPublic gates whether the bike is reachable at /b/<publicSlug>.
+    // publicSlug is generated lazily on first publish so private bikes
+    // don't reserve random slugs they'll never use.
+    isPublic: !!input.isPublic,
+    publicSlug: input.publicSlug || '',
+    coverPhotoUrl: input.coverPhotoUrl || '',
+    displayName: input.displayName || '',
     createdAt: now,
     updatedAt: now
   }
@@ -262,6 +270,213 @@ export function updateBikeMileage(id, mileage) {
   return updateBike(id, { mileage: Number(mileage) || 0 })
 }
 
+// ---------- public bike pages ----------
+//
+// Bikers can publish a build sheet to a shareable URL: /b/<publicSlug>.
+// The slug is short, random, and unguessable enough to keep the page
+// effectively private until the rider chooses to share the link, but
+// not so secret that we treat it as a credential. RLS on the server
+// gates reads to is_public = true rows; toggling isPublic off
+// effectively unpublishes the page even if the slug leaks later.
+
+// Generates an 8-char slug from a Crockford-ish alphabet (no easily
+// confused chars: 0/O, 1/I/L). Collisions on Supabase will surface as
+// a unique-constraint error; in practice 32^8 ≈ 1.1e12 keyspace per
+// user makes that vanishingly unlikely for one rider's bikes.
+function generatePublicSlug() {
+  const alphabet = '23456789abcdefghjkmnpqrstuvwxyz'
+  let out = ''
+  // crypto.getRandomValues is universally available in modern browsers.
+  const buf = new Uint8Array(8)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(buf)
+  } else {
+    for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 256)
+  }
+  for (let i = 0; i < buf.length; i++) {
+    out += alphabet[buf[i] % alphabet.length]
+  }
+  return out
+}
+
+// Toggle a bike's public visibility. On first publish we mint a slug
+// (if the bike doesn't already have one). On unpublish we keep the
+// slug so re-publishing later restores the same shareable URL — handy
+// if someone bookmarks it.
+export function setBikePublic(id, isPublic) {
+  const bike = getBike(id)
+  if (!bike) return null
+  const patch = { isPublic: !!isPublic }
+  if (isPublic && !bike.publicSlug) {
+    patch.publicSlug = generatePublicSlug()
+  }
+  return updateBike(id, patch)
+}
+
+// Uploads a cover photo to Supabase Storage and writes the resulting
+// public URL onto the bike row. Path convention matches the storage
+// policies in migration 003: `<clerk_user_id>/<bike_uuid>.<ext>` so
+// only the owner can write/update/delete the object.
+export async function uploadCoverPhoto(bikeId, file) {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Photo upload requires Supabase to be configured.')
+  }
+  if (!currentUserId || !getTokenFn) {
+    throw new Error('You must be signed in to upload a photo.')
+  }
+  if (!file) throw new Error('No file selected.')
+
+  const supabase = getSupabaseClient(getTokenFn)
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const bikeUuid = localIdToUuid(bikeId)
+  // Cache-bust the URL by including a timestamp in the object name so
+  // re-uploads of the same bike's cover photo aren't served stale from
+  // any CDN/browser cache.
+  const objectPath = `${currentUserId}/${bikeUuid}-${Date.now()}.${ext}`
+
+  const { error: upErr } = await supabase.storage
+    .from('bike-photos')
+    .upload(objectPath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'image/jpeg'
+    })
+  if (upErr) throw upErr
+
+  const { data: pub } = supabase.storage
+    .from('bike-photos')
+    .getPublicUrl(objectPath)
+  const url = pub?.publicUrl
+  if (!url) throw new Error('Failed to resolve public URL for upload.')
+
+  updateBike(bikeId, { coverPhotoUrl: url })
+  return url
+}
+
+// Reads a published bike + its builds + its mods + public service
+// entries by slug. This is the *unauthenticated* path the /b/<slug>
+// route uses; anyone hitting RLS without a JWT is treated as anon.
+//
+// Visibility rules (enforced server-side by RLS, mirrored client-side
+// by the .eq() filters below for defense in depth):
+//   - garage_bikes: row's is_public must be true (migration 003)
+//   - bike_builds: parent bike must be public (migration 003)
+//   - bike_mods: parent bike must be public (migration 004 dropped
+//     the per-mod is_public requirement)
+//   - service_entries: parent bike must be public AND the entry's
+//     is_public flag must be true (migration 004; defaults to true)
+export async function getPublicBikeBySlug(slug) {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Public pages require Supabase to be configured.')
+  }
+  if (!slug) return null
+
+  // Build a fresh anon client — we don't want any Clerk JWT attached,
+  // which would scope reads to the signed-in user's rows. Anon reads
+  // hit the public-read RLS policies directly.
+  const { createClient } = await import('@supabase/supabase-js')
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
+  const sb = createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
+
+  const { data: bike, error: bErr } = await sb
+    .from('garage_bikes')
+    .select(
+      'id, bike_type_id, year, model, nickname, mileage, display_name, cover_photo_url, public_slug, is_public, created_at'
+    )
+    .eq('public_slug', slug)
+    .eq('is_public', true)
+    .maybeSingle()
+  if (bErr) throw bErr
+  if (!bike) return null
+
+  const [
+    { data: builds, error: buErr },
+    { data: mods, error: mErr },
+    { data: entries, error: eErr }
+  ] = await Promise.all([
+    sb
+      .from('bike_builds')
+      .select('id, title, status, notes, created_at')
+      .eq('bike_id', bike.id)
+      .order('created_at', { ascending: true }),
+    sb
+      .from('bike_mods')
+      .select(
+        'id, build_id, title, category, status, brand, part_number, vendor, install_date, install_mileage, notes, created_at'
+      )
+      .eq('bike_id', bike.id)
+      // Belt-and-braces: RLS post-migration-005 already requires this,
+      // but explicit filter keeps the intent obvious in client code and
+      // means a misconfigured policy can't leak hidden mods.
+      .eq('is_public', true)
+      .order('created_at', { ascending: true }),
+    sb
+      .from('service_entries')
+      .select(
+        'id, job_id, title, mileage, service_date, notes, parts, created_at'
+      )
+      .eq('bike_id', bike.id)
+      .eq('is_public', true)
+      .order('service_date', { ascending: false })
+  ])
+  if (buErr) throw buErr
+  if (mErr) throw mErr
+  // service_entries can fail independently if the migration hasn't been
+  // run yet — don't blow up the whole page just because of a missing
+  // public-read policy. Log and serve the rest.
+  if (eErr) console.warn('public service_entries fetch failed', eErr)
+
+  return {
+    bike: {
+      id: bike.id,
+      bikeTypeId: bike.bike_type_id || null,
+      year: bike.year || null,
+      model: bike.model || '',
+      nickname: bike.nickname || '',
+      mileage: bike.mileage || 0,
+      displayName: bike.display_name || '',
+      coverPhotoUrl: bike.cover_photo_url || '',
+      publicSlug: bike.public_slug || '',
+      createdAt: bike.created_at
+    },
+    builds: (builds || []).map((r) => ({
+      id: r.id,
+      title: r.title || '',
+      status: r.status || 'planned',
+      notes: r.notes || '',
+      createdAt: r.created_at
+    })),
+    mods: (mods || []).map((r) => ({
+      id: r.id,
+      buildId: r.build_id || null,
+      title: r.title || '',
+      category: r.category || '',
+      status: r.status || 'planned',
+      brand: r.brand || '',
+      partNumber: r.part_number || '',
+      vendor: r.vendor || '',
+      installDate: r.install_date || '',
+      installMileage:
+        r.install_mileage == null ? null : Number(r.install_mileage),
+      notes: r.notes || '',
+      createdAt: r.created_at
+    })),
+    serviceEntries: (entries || []).map((r) => ({
+      id: r.id,
+      jobId: r.job_id || null,
+      title: r.title || '',
+      mileage: r.mileage || 0,
+      date: r.service_date || '',
+      notes: r.notes || '',
+      parts: r.parts || '',
+      createdAt: r.created_at
+    }))
+  }
+}
+
 // ---------- Service log ----------
 
 function getAllServiceEntries() {
@@ -291,6 +506,11 @@ export function logService(bikeId, input) {
     notes: input.notes || '',
     parts: input.parts || '',
     cost: input.cost === '' || input.cost == null ? null : Number(input.cost),
+    // Default service entries to public when the bike is published. The
+    // server-side RLS still requires the parent bike's is_public to be
+    // true, so flipping this on a private bike is a no-op until the
+    // bike itself is published.
+    isPublic: input.isPublic == null ? true : !!input.isPublic,
     createdAt: now
   }
   const log = getAllServiceEntries()
@@ -313,6 +533,33 @@ export function removeServiceEntry(entryId) {
   const log = getAllServiceEntries().filter((e) => e.id !== entryId)
   write(logKey(), log)
   enqueue({ op: 'deleteEntry', id: entryId })
+}
+
+// Patch fields on an existing service entry. Mirrors updateMod's shape:
+// localStorage write is synchronous, the upsert queues to Supabase. The
+// main use today is the per-entry isPublic toggle on the public-share
+// flow, but it's general-purpose so the editor could call it later.
+export function updateServiceEntry(entryId, patch) {
+  const log = getAllServiceEntries()
+  const idx = log.findIndex((e) => e.id === entryId)
+  if (idx < 0) return null
+  const before = log[idx]
+  const after = {
+    ...before,
+    ...patch,
+    id: before.id
+  }
+  // Coerce numeric fields if provided in the patch.
+  if (patch && 'cost' in patch) {
+    after.cost = patch.cost === '' || patch.cost == null ? null : Number(patch.cost)
+  }
+  if (patch && 'mileage' in patch) {
+    after.mileage = Number(patch.mileage) || 0
+  }
+  log[idx] = after
+  write(logKey(), log)
+  enqueue({ op: 'upsertEntry', entry: after })
+  return after
 }
 
 export function findLastService(bikeId, predicate) {
@@ -435,7 +682,11 @@ export function addMod(bikeId, input, { alsoLogService = false } = {}) {
         : Number(input.installMileage),
     removeDate: input.removeDate || '',
     notes: input.notes || '',
-    isPublic: !!input.isPublic,
+    // New mods default to public — the rider can flip the per-mod
+    // toggle off later if they don't want to share a specific item.
+    // Server RLS still requires the parent bike to be is_public for
+    // anything to be visible publicly.
+    isPublic: input.isPublic == null ? true : !!input.isPublic,
     createdAt: now,
     updatedAt: now
   }
@@ -607,6 +858,13 @@ async function applyOp(supabase, op) {
         mileage: Number(b.mileage) || 0,
         purchase_date: b.purchaseDate || null,
         notes: b.notes || '',
+        // Public-share columns added in migration 003. Older clients pre-
+        // dating that migration won't have these on the bike object yet, so
+        // we default them defensively.
+        is_public: !!b.isPublic,
+        public_slug: b.publicSlug || null,
+        cover_photo_url: b.coverPhotoUrl || '',
+        display_name: b.displayName || '',
         created_at: b.createdAt,
         updated_at: b.updatedAt
       }
@@ -638,6 +896,10 @@ async function applyOp(supabase, op) {
         notes: e.notes || '',
         parts: e.parts || '',
         cost: e.cost == null ? null : Number(e.cost),
+        // is_public column added in migration 004. Defaults to true on
+        // the column so legacy rows surface on public pages once the
+        // bike is published.
+        is_public: e.isPublic == null ? true : !!e.isPublic,
         created_at: e.createdAt
       }
       const { error } = await supabase
@@ -840,6 +1102,10 @@ async function pullFromServer() {
     mileage: r.mileage || 0,
     purchaseDate: r.purchase_date || '',
     notes: r.notes || '',
+    isPublic: !!r.is_public,
+    publicSlug: r.public_slug || '',
+    coverPhotoUrl: r.cover_photo_url || '',
+    displayName: r.display_name || '',
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }))
@@ -853,6 +1119,8 @@ async function pullFromServer() {
     notes: r.notes || '',
     parts: r.parts || '',
     cost: r.cost == null ? null : Number(r.cost),
+    // is_public defaults to true server-side; respect explicit false.
+    isPublic: r.is_public == null ? true : !!r.is_public,
     createdAt: r.created_at
   }))
 
