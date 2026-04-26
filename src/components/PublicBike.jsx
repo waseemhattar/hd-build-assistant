@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { bikes as bikeCatalog } from '../data/bikes.js'
 import { getPublicBikeBySlug } from '../data/storage.js'
+import Logo from './Logo.jsx'
 
 // Public, unauthenticated build sheet. Rendered by App.jsx when the URL
 // matches /b/<slug>. Server-side RLS only returns the row when the
@@ -47,7 +48,7 @@ export default function PublicBike({ slug }) {
     const { bike } = state.data
     const prevTitle = document.title
     const headline = bike.nickname || bike.model || `${bike.year || ''} bike`
-    document.title = `${headline} · HD Build Assistant`
+    document.title = `${headline} · Sidestand`
     return () => {
       document.title = prevTitle
     }
@@ -231,9 +232,9 @@ export default function PublicBike({ slug }) {
         <a
           href="/"
           className="underline hover:text-hd-orange"
-          title="HD Build Assistant home"
+          title="Sidestand"
         >
-          HD Build Assistant
+          Sidestand
         </a>
       </footer>
     </Shell>
@@ -250,9 +251,10 @@ function Shell({ children }) {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
           <a
             href="/"
-            className="font-display text-xl tracking-wider text-hd-orange hover:brightness-110"
+            className="hover:opacity-80 transition"
+            title="Sidestand"
           >
-            HD BUILD ASSISTANT
+            <Logo wordmark size={20} />
           </a>
           <a
             href="/"

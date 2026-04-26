@@ -73,16 +73,7 @@ export default function BikePicker({ onSelect }) {
 
       <footer className="mt-16 border-t border-hd-border pt-4 text-xs text-hd-muted">
         <div>
-          Built by{' '}
-          <a
-            href="https://h-dbuilds.com"
-            className="text-hd-orange hover:underline"
-            target="_top"
-            rel="noopener"
-          >
-            h-dbuilds.com
-          </a>{' '}
-          — a personal Harley build assistant.
+          Sidestand — a personal build assistant for motorcycle riders.
         </div>
         <div className="mt-1">
           Data sourced from personal service manuals. Always verify torque

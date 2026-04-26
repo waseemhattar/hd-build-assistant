@@ -14,6 +14,7 @@ import ServiceBook from './components/ServiceBook.jsx'
 import Home from './components/Home.jsx'
 import Landing from './components/Landing.jsx'
 import PublicBike from './components/PublicBike.jsx'
+import Logo from './components/Logo.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
@@ -112,9 +113,10 @@ function AuthedApp() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <button
             onClick={goHome}
-            className="font-display text-xl tracking-wider text-hd-orange hover:brightness-110"
+            className="hover:opacity-80 transition"
+            title="Sidestand"
           >
-            HD BUILD ASSISTANT
+            <Logo wordmark size={22} />
           </button>
           <nav className="flex items-center gap-4 text-xs">
             <button

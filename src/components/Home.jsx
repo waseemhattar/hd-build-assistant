@@ -94,15 +94,7 @@ export default function Home({ onOpenGarage, onOpenManual, onPickJob }) {
       </div>
 
       <footer className="mt-12 border-t border-hd-border pt-4 text-xs text-hd-muted">
-        Built by{' '}
-        <a
-          href="https://h-dbuilds.com"
-          className="text-hd-orange hover:underline"
-          target="_top"
-          rel="noopener"
-        >
-          h-dbuilds.com
-        </a>
+        Sidestand — a personal build assistant for motorcycle riders.
       </footer>
     </div>
   )

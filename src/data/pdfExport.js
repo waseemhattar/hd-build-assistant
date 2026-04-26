@@ -61,7 +61,7 @@ export function exportServiceBookPDF({ bike, log }) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(...MUTED)
-  doc.text('h-dbuilds.com', pageW - marginX, 46, { align: 'right' })
+  doc.text('sidestand.app', pageW - marginX, 46, { align: 'right' })
 
   // --- Bike info card ---
   let y = 76
@@ -272,7 +272,7 @@ export function exportBikeReportPDF({ bike, log, mods }) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(...MUTED)
-  doc.text('h-dbuilds.com', pageW - marginX, 46, { align: 'right' })
+  doc.text('sidestand.app', pageW - marginX, 46, { align: 'right' })
 
   // ---- Bike identity card ----
   let y = 76
@@ -522,7 +522,7 @@ function drawFooter(doc, pageW, pageH, marginX) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(...MUTED)
-  doc.text('HD Build Assistant · h-dbuilds.com', marginX, y)
+  doc.text('Sidestand · sidestand.app', marginX, y)
 
   const page = doc.internal.getCurrentPageInfo().pageNumber
   const total = doc.internal.getNumberOfPages()

@@ -93,9 +93,9 @@ export default async (request: Request, context: { next: () => Promise<Response>
   }
 
   const headline =
-    bike.nickname || bike.model || (bike.year ? `${bike.year} bike` : 'A custom Harley build')
+    bike.nickname || bike.model || (bike.year ? `${bike.year} bike` : 'A custom build')
   const titleSuffix = bike.year ? ` (${bike.year})` : ''
-  const ogTitle = `${headline}${titleSuffix} · HD Build Assistant`
+  const ogTitle = `${headline}${titleSuffix} · Sidestand`
   const description = buildDescription(bike)
   const pageUrl = `${url.origin}/b/${slug}`
   const image = bike.cover_photo_url || ''
@@ -139,12 +139,12 @@ function buildDescription(bike: PublicBike): string {
   else bits.push('A')
   if (bike.year) bits.push(`${bike.year}`)
   if (bike.model) bits.push(bike.model)
-  if (!bike.year && !bike.model) bits.push('Harley')
+  if (!bike.year && !bike.model) bits.push('motorcycle')
   bits.push('build sheet')
   if (typeof bike.mileage === 'number' && bike.mileage > 0) {
     bits.push(`— ${bike.mileage.toLocaleString()} mi`)
   }
-  bits.push('on HD Build Assistant.')
+  bits.push('on Sidestand.')
   const out = bits.join(' ')
   return out.length > 155 ? out.slice(0, 152) + '…' : out
 }

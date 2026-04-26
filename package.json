@@ -1,9 +1,9 @@
 {
-  "name": "hd-build-assistant",
+  "name": "sidestand",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Harley-Davidson build assistant web app — step-by-step service procedures, torque specs, and part numbers for your bikes.",
+  "description": "Sidestand — build assistant for motorcycle riders. Track service, log mods, follow step-by-step procedures, share your build.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

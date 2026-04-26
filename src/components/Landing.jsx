@@ -1,5 +1,6 @@
 import React from 'react'
 import { SignIn } from '@clerk/clerk-react'
+import Logo from './Logo.jsx'
 
 // Pre-auth landing page. Simple pitch on the left, embedded Clerk sign-in on
 // the right. On mobile the sign-in stacks below.
@@ -13,29 +14,27 @@ export default function Landing() {
     <div className="min-h-screen bg-hd-black text-hd-text">
       <header className="border-b border-hd-border bg-hd-dark">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="font-display text-xl tracking-wider text-hd-orange">
-            HD BUILD ASSISTANT
-          </div>
+          <Logo wordmark size={22} />
           <a
-            href="https://h-dbuilds.com"
+            href="https://sidestand.app"
             target="_top"
             rel="noopener"
             className="text-xs text-hd-muted hover:text-hd-orange"
           >
-            h-dbuilds.com
+            sidestand.app
           </a>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-6xl gap-10 px-6 py-10 md:grid-cols-2 md:gap-16 md:py-16">
         <section className="flex flex-col justify-center">
-          <h1 className="font-display text-4xl tracking-wider text-hd-orange sm:text-5xl">
-            YOUR GARAGE. YOUR MANUAL. ONE APP.
+          <h1 className="font-light tracking-wordmark text-4xl text-hd-text sm:text-5xl">
+            Where your build lives between rides.
           </h1>
           <p className="mt-4 text-base text-hd-muted sm:text-lg">
-            Step-by-step service procedures, torque specs and part numbers
-            from the Harley-Davidson service manuals — organized by platform,
-            searchable, and tied to your own garage and service history.
+            Track service, log mods, follow step-by-step procedures from the
+            Harley-Davidson service manuals, and share your build — all in one
+            place, on every device.
           </p>
 
           <ul className="mt-6 space-y-2 text-sm text-hd-muted">
@@ -70,13 +69,13 @@ export default function Landing() {
             signInForceRedirectUrl="/"
             appearance={{
               variables: {
-                colorPrimary: '#f97316', // hd-orange
-                colorBackground: '#1a1a1a', // hd-dark
-                colorText: '#e5e5e5', // hd-text
-                colorTextSecondary: '#a1a1aa', // hd-muted
-                colorInputBackground: '#0a0a0a', // hd-black
-                colorInputText: '#e5e5e5',
-                borderRadius: '0.375rem',
+                colorPrimary: '#B8722C', // copper
+                colorBackground: '#14171C', // charcoal
+                colorText: '#E8E2D5', // bone
+                colorTextSecondary: '#9CA3AF', // muted
+                colorInputBackground: '#0B0D11', // asphalt
+                colorInputText: '#E8E2D5',
+                borderRadius: '0.5rem',
                 fontFamily: 'inherit'
               },
               elements: {
@@ -94,16 +93,7 @@ export default function Landing() {
 
       <footer className="mt-10 border-t border-hd-border">
         <div className="mx-auto max-w-6xl px-6 py-4 text-xs text-hd-muted">
-          Built by{' '}
-          <a
-            href="https://h-dbuilds.com"
-            className="text-hd-orange hover:underline"
-            target="_top"
-            rel="noopener"
-          >
-            h-dbuilds.com
-          </a>{' '}
-          — a personal Harley build assistant.
+          Sidestand — a personal build assistant for motorcycle riders.
         </div>
       </footer>
     </div>
