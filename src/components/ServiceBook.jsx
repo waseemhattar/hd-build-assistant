@@ -3,6 +3,7 @@ import {
   getServiceLog,
   logService,
   removeServiceEntry,
+  updateServiceEntry,
   updateBikeMileage,
   getBike,
   subscribe,
@@ -184,6 +185,10 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
             removeServiceEntry(id)
             refresh()
           }}
+          onTogglePublic={(id, next) => {
+            updateServiceEntry(id, { isPublic: next })
+            refresh()
+          }}
         />
       )}
 
@@ -197,6 +202,10 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
               removeMod(id)
               refresh()
             }
+          }}
+          onTogglePublic={(id, next) => {
+            updateMod(id, { isPublic: next })
+            refresh()
           }}
           bikeId={bikeId}
         />
@@ -250,7 +259,7 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
 
 // ---------- Panels ----------
 
-function LogPanel({ log, onAdd, onRemove }) {
+function LogPanel({ log, onAdd, onRemove, onTogglePublic }) {
   return (
     <div>
       <div className="mb-4 flex justify-end">
@@ -304,15 +313,21 @@ function LogPanel({ log, onAdd, onRemove }) {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => {
-                    if (confirm('Remove this service entry?')) onRemove(e.id)
-                  }}
-                  className="text-xs text-hd-muted hover:text-red-400"
-                  title="Remove entry"
-                >
-                  Remove
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <PublicToggle
+                    isPublic={e.isPublic !== false}
+                    onChange={(next) => onTogglePublic(e.id, next)}
+                  />
+                  <button
+                    onClick={() => {
+                      if (confirm('Remove this service entry?')) onRemove(e.id)
+                    }}
+                    className="text-xs text-hd-muted hover:text-red-400"
+                    title="Remove entry"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </li>
           ))}
@@ -465,7 +480,9 @@ export function EntryEditor({ bike, prefill, onCancel, onSave }) {
     date: today,
     notes: prefill?.notes || '',
     parts: '',
-    cost: ''
+    cost: '',
+    // Default new entries to public so they show up on the public bike page.
+    isPublic: true
   }))
 
   function submit(e) {
@@ -557,6 +574,19 @@ export function EntryEditor({ bike, prefill, onCancel, onSave }) {
           </Field>
         </div>
 
+        <label className="mt-4 flex items-start gap-2 text-xs text-hd-muted">
+          <input
+            type="checkbox"
+            checked={form.isPublic}
+            onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
+            className="mt-0.5"
+          />
+          <span>
+            Show this entry on my public bike page (only matters when the
+            bike itself is published).
+          </span>
+        </label>
+
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
@@ -590,7 +620,7 @@ function Field({ label, wide, children }) {
 
 // ---------- Build / Mods ----------
 
-function BuildPanel({ mods, onAdd, onEdit, onRemove, bikeId }) {
+function BuildPanel({ mods, onAdd, onEdit, onRemove, onTogglePublic, bikeId }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const filtered = useMemo(
     () =>
@@ -716,7 +746,11 @@ function BuildPanel({ mods, onAdd, onEdit, onRemove, bikeId }) {
                           </a>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col items-end gap-1">
+                        <PublicToggle
+                          isPublic={m.isPublic !== false}
+                          onChange={(next) => onTogglePublic(m.id, next)}
+                        />
                         <button
                           onClick={() => onEdit(m)}
                           className="text-xs text-hd-muted hover:text-hd-orange"
@@ -802,7 +836,9 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
         : String(mod.installMileage),
     removeDate: mod?.removeDate || '',
     notes: mod?.notes || '',
-    isPublic: !!mod?.isPublic
+    // Default new mods to public so they show up on the public bike page;
+    // keep existing mods at whatever they're currently set to.
+    isPublic: mod ? mod.isPublic !== false : true
   }))
   // Auto-log checkbox: default OFF (opt-in) as user specified.
   const [alsoLogService, setAlsoLogService] = useState(false)
@@ -976,8 +1012,21 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
           </Field>
         </div>
 
+        <label className="mt-4 flex items-start gap-2 text-xs text-hd-muted">
+          <input
+            type="checkbox"
+            checked={form.isPublic}
+            onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
+            className="mt-0.5"
+          />
+          <span>
+            Show this mod on my public bike page (only matters when the bike
+            itself is published).
+          </span>
+        </label>
+
         {willFlipToInstalled && (
-          <label className="mt-4 flex items-start gap-2 text-xs text-hd-muted">
+          <label className="mt-3 flex items-start gap-2 text-xs text-hd-muted">
             <input
               type="checkbox"
               checked={alsoLogService}
@@ -1008,5 +1057,37 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
         </div>
       </form>
     </div>
+  )
+}
+
+// ---------- Per-item Public toggle ----------
+//
+// Tiny inline pill that flips an item's is_public flag. Used in both the
+// service log row and the mod row so each entry can be hidden from the
+// public bike page individually (without un-publishing the whole bike).
+function PublicToggle({ isPublic, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!isPublic)}
+      title={
+        isPublic
+          ? 'Visible on your public bike page — click to hide'
+          : 'Hidden from your public bike page — click to show'
+      }
+      className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest transition ${
+        isPublic
+          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:brightness-125'
+          : 'border-hd-border bg-hd-dark text-hd-muted hover:text-hd-text'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`h-1.5 w-1.5 rounded-full ${
+          isPublic ? 'bg-emerald-400' : 'bg-hd-muted'
+        }`}
+      />
+      {isPublic ? 'Public' : 'Private'}
+    </button>
   )
 }
