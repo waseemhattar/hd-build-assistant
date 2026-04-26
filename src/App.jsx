@@ -13,9 +13,21 @@ import Garage from './components/Garage.jsx'
 import ServiceBook from './components/ServiceBook.jsx'
 import Home from './components/Home.jsx'
 import Landing from './components/Landing.jsx'
+import PublicBike from './components/PublicBike.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
+
+// URL → public-bike-slug helper. Returns the slug if the path is
+// /b/<slug>, otherwise null. Done with a regex rather than react-router
+// because the rest of the app is a state-machine and adding a real
+// router for one route would be overkill. Slugs are restricted to the
+// alphabet generatePublicSlug uses.
+function readPublicBikeSlug() {
+  if (typeof window === 'undefined') return null
+  const m = window.location.pathname.match(/^\/b\/([0-9a-z]{4,32})\/?$/i)
+  return m ? m[1] : null
+}
 
 // Views:
 //   'home'        - landing page w/ Garage + Browse Manual cards
@@ -25,10 +37,29 @@ import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
 //   'browse'      - browse jobs for a platform
 //   'job'         - single job
 
-// Top-level router. Gates the whole app behind Clerk auth: signed-out
-// visitors see Landing (pitch + embedded sign-in). Signed-in users see
-// AuthedApp (the real product).
+// Top-level router. Gates the whole app behind Clerk auth — except
+// for /b/<slug>, which is the public build-sheet route. We check the URL
+// before the SignedOut/SignedIn split so that hitting a share link as a
+// signed-out visitor doesn't bounce them through the sign-in flow.
+//
+// Signed-out visitors otherwise see Landing (pitch + embedded sign-in);
+// signed-in users see AuthedApp (the real product).
 export default function App() {
+  // Track the slug in state so a future in-app navigation that calls
+  // history.pushState (or a popstate event) can react. For now the only
+  // way onto a /b/ URL is a hard navigation, so reading once at mount is
+  // good enough — but a popstate listener costs nothing.
+  const [publicSlug, setPublicSlug] = useState(() => readPublicBikeSlug())
+  useEffect(() => {
+    const onPop = () => setPublicSlug(readPublicBikeSlug())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  if (publicSlug) {
+    return <PublicBike slug={publicSlug} />
+  }
+
   return (
     <>
       <SignedOut>
