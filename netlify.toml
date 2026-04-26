@@ -27,3 +27,12 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Edge function: rewrite <head> on /b/<slug> with bike-specific OG tags
+# so link previews in iMessage / Slack / Discord show the actual bike.
+# The function reads SUPABASE_URL + SUPABASE_ANON_KEY from the Netlify
+# environment (set those in the dashboard — they're the same values used
+# by the Vite client).
+[[edge_functions]]
+  path = "/b/*"
+  function = "og"
