@@ -5,6 +5,8 @@ import {
   addBike,
   updateBike,
   removeBike,
+  setBikePublic,
+  uploadCoverPhoto,
   subscribe
 } from '../data/storage.js'
 import {
@@ -22,6 +24,7 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
   const [garage, setGarage] = useState(() => getGarage())
   const [editing, setEditing] = useState(null) // bike or {new:true}
   const [confirmingRemove, setConfirmingRemove] = useState(null)
+  const [sharing, setSharing] = useState(null) // bike to share/publish
 
   function refresh() {
     setGarage(getGarage())
@@ -87,6 +90,7 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
               bike={b}
               onEdit={() => setEditing(b)}
               onRemove={() => setConfirmingRemove(b)}
+              onShare={() => setSharing(b)}
               onOpenServiceBook={() => onOpenServiceBook(b)}
               onOpenJobs={() => onOpenBike(b)}
             />
@@ -121,18 +125,53 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
           }}
         />
       )}
+
+      {sharing && (
+        <ShareSheet
+          bike={sharing}
+          onClose={() => {
+            setSharing(null)
+            refresh()
+          }}
+          onChange={refresh}
+        />
+      )}
     </div>
   )
 }
 
-function BikeCard({ bike, onEdit, onRemove, onOpenServiceBook, onOpenJobs }) {
+function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJobs }) {
   const preset = bikeCatalog.find((p) => p.id === bike.bikeTypeId)
   return (
     <div className="card flex flex-col">
+      {bike.coverPhotoUrl && (
+        // object-contain on a fixed-height black frame so the whole bike
+        // shows on the card regardless of photo orientation. The black
+        // background blends with the card border on letterboxed shots.
+        <div className="-mx-4 -mt-4 mb-3 sm:-mx-5 sm:-mt-5">
+          <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-t-md bg-hd-black">
+            <img
+              src={bike.coverPhotoUrl}
+              alt={bike.nickname || bike.model || 'bike'}
+              className="max-h-48 w-full object-contain"
+            />
+          </div>
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-widest text-hd-orange">
-            {bike.year} {preset?.family || ''}
+          <div className="flex items-center gap-2">
+            <div className="text-xs uppercase tracking-widest text-hd-orange">
+              {bike.year} {preset?.family || ''}
+            </div>
+            {bike.isPublic && (
+              <span
+                title="This bike has a public build sheet you can share"
+                className="rounded border border-green-700 bg-green-900/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-green-400"
+              >
+                Public
+              </span>
+            )}
           </div>
           <div className="mt-1 font-display text-2xl tracking-wider">
             {bike.nickname || bike.model || 'Unnamed bike'}
@@ -181,6 +220,13 @@ function BikeCard({ bike, onEdit, onRemove, onOpenServiceBook, onOpenJobs }) {
           </button>
         )}
         <button
+          onClick={onShare}
+          className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-muted hover:border-hd-orange hover:text-hd-text"
+          title="Publish a public build sheet for this bike"
+        >
+          {bike.isPublic ? 'Share link' : 'Share'}
+        </button>
+        <button
           onClick={onEdit}
           className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-muted hover:border-hd-orange hover:text-hd-text"
         >
@@ -206,8 +252,20 @@ function BikeEditor({ bike, onCancel, onSave }) {
     vin: bike?.vin || '',
     mileage: bike?.mileage ?? '',
     purchaseDate: bike?.purchaseDate || '',
-    notes: bike?.notes || ''
+    notes: bike?.notes || '',
+    // Public-page profile fields. displayName is what shows up as the
+    // owner credit on /b/<slug>; coverPhotoUrl is the hero image. We
+    // surface them on every bike edit (not just when publishing) so the
+    // user can prep the page before flipping the toggle.
+    displayName: bike?.displayName || '',
+    coverPhotoUrl: bike?.coverPhotoUrl || ''
   }))
+
+  // Photo upload state is local because the upload happens *now* (on file
+  // pick) rather than on form submit — Supabase Storage gives us back a
+  // URL synchronously per file, which is then patched onto the bike row.
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
 
   // VIN decoder state. `local` is instant and recomputed on every keystroke;
   // `remote` only runs when the user has a full 17-char VIN (auto or on
@@ -440,6 +498,92 @@ function BikeEditor({ bike, onCancel, onSave }) {
               placeholder="Mods, quirks, tuneup notes..."
             />
           </Field>
+
+          <Field
+            label="Owner display name (optional — shown on public build page)"
+            wide
+          >
+            <input
+              type="text"
+              value={form.displayName}
+              onChange={(e) =>
+                setForm({ ...form, displayName: e.target.value })
+              }
+              className="input"
+              placeholder="e.g. Waseem H."
+              maxLength={60}
+            />
+          </Field>
+
+          <Field
+            label="Cover photo (optional — shown at the top of the public page)"
+            wide
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              {form.coverPhotoUrl ? (
+                <div className="relative">
+                  <img
+                    src={form.coverPhotoUrl}
+                    alt="cover"
+                    className="h-24 w-40 rounded border border-hd-border object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-24 w-40 items-center justify-center rounded border border-dashed border-hd-border text-xs text-hd-muted">
+                  No photo
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={photoUploading || !bike}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file || !bike) return
+                    setPhotoError('')
+                    setPhotoUploading(true)
+                    try {
+                      const url = await uploadCoverPhoto(bike.id, file)
+                      setForm((f) => ({ ...f, coverPhotoUrl: url }))
+                    } catch (err) {
+                      setPhotoError(err?.message || 'Upload failed.')
+                    } finally {
+                      setPhotoUploading(false)
+                      // Reset the input so the same file can be re-picked.
+                      e.target.value = ''
+                    }
+                  }}
+                  className="block w-full text-xs text-hd-muted file:mr-3 file:rounded file:border file:border-hd-border file:bg-hd-dark file:px-3 file:py-1.5 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:text-hd-text hover:file:border-hd-orange hover:file:text-hd-orange disabled:opacity-40"
+                />
+                {!bike && (
+                  <div className="mt-2 text-xs text-hd-muted">
+                    Save the bike first, then come back here to upload a
+                    photo.
+                  </div>
+                )}
+                {photoUploading && (
+                  <div className="mt-2 text-xs text-hd-muted">Uploading…</div>
+                )}
+                {photoError && (
+                  <div className="mt-2 text-xs text-amber-400">
+                    ⚠ {photoError}
+                  </div>
+                )}
+                {form.coverPhotoUrl && !photoUploading && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({ ...f, coverPhotoUrl: '' }))
+                    }
+                    className="mt-2 text-xs text-hd-muted underline hover:text-hd-orange"
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+            </div>
+          </Field>
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
@@ -558,6 +702,156 @@ function Field({ label, wide, children }) {
       </div>
       {children}
     </label>
+  )
+}
+
+// Modal that toggles a bike's public visibility, mints a slug on first
+// publish, and gives the rider a copy-friendly URL to send around. We
+// show the same modal whether the bike is currently public or private —
+// just with different controls.
+function ShareSheet({ bike, onClose, onChange }) {
+  // Resolve public-page origin from the current location. Works in dev
+  // (localhost:5173/b/...) and in prod (harley.h-dbuilds.com/b/...).
+  const origin =
+    typeof window !== 'undefined' && window.location ? window.location.origin : ''
+  const [current, setCurrent] = useState(bike)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const url = current.publicSlug ? `${origin}/b/${current.publicSlug}` : ''
+
+  async function togglePublic(next) {
+    setBusy(true)
+    try {
+      const updated = setBikePublic(current.id, next)
+      if (updated) setCurrent(updated)
+      onChange?.()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copyLink() {
+    if (!url) return
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard can fail in iframes / insecure contexts; fall back to
+      // selecting the text so the user can copy manually.
+      const el = document.getElementById('share-url-input')
+      if (el && el.select) el.select()
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-md border border-hd-border bg-hd-dark p-5"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
+            SHARE BIKE
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-2xl leading-none text-hd-muted hover:text-hd-orange"
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="text-sm text-hd-muted">
+          Publish a public build sheet for{' '}
+          <span className="text-hd-text">
+            {current.nickname || current.model || 'this bike'}
+          </span>
+          . Anyone with the link can see your bike's identity, builds, and
+          mods. Service history stays private.
+        </p>
+
+        <div className="mt-4 flex items-center justify-between rounded border border-hd-border bg-hd-black/40 px-3 py-2">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-hd-muted">
+              Public page
+            </div>
+            <div className="text-sm text-hd-text">
+              {current.isPublic ? 'On — link works' : 'Off — link returns 404'}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => togglePublic(!current.isPublic)}
+            className={`rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-widest disabled:opacity-40 ${
+              current.isPublic
+                ? 'border border-hd-border bg-hd-dark text-hd-text hover:border-red-500 hover:text-red-400'
+                : 'bg-hd-orange text-hd-black hover:brightness-110'
+            }`}
+          >
+            {current.isPublic ? 'Unpublish' : 'Publish'}
+          </button>
+        </div>
+
+        {current.publicSlug && (
+          <div className="mt-4">
+            <div className="mb-1 text-xs uppercase tracking-widest text-hd-muted">
+              Shareable link
+            </div>
+            <div className="flex gap-2">
+              <input
+                id="share-url-input"
+                readOnly
+                value={url}
+                onFocus={(e) => e.target.select()}
+                className="input flex-1 font-mono text-xs"
+              />
+              <button
+                type="button"
+                onClick={copyLink}
+                className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-hd-text hover:border-hd-orange hover:text-hd-orange"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            {current.isPublic && (
+              <div className="mt-2 text-xs text-hd-muted">
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-hd-orange"
+                >
+                  Open page in a new tab ↗
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!current.coverPhotoUrl && (
+          <div className="mt-4 rounded border border-hd-border bg-hd-black/40 px-3 py-2 text-xs text-hd-muted">
+            Tip: add a cover photo from the bike's <em>Edit</em> screen so
+            your build sheet has a hero image.
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
