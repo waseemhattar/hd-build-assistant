@@ -10,8 +10,15 @@ import {
   uploadUserLogo,
   getUserLogoUrl,
   setUserLogoUrl,
+  getServiceLog,
+  getMods,
   subscribe
 } from '../data/storage.js'
+import {
+  intervals,
+  evaluateInterval,
+  findLastMatchingEntry
+} from '../data/serviceIntervals.js'
 import {
   decodeVinLocal,
   decodeVinRemote,
@@ -56,18 +63,19 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
             MY GARAGE
           </h1>
           <p className="mt-1 text-sm text-hd-muted">
-            Track every bike you own, log the work you do, and keep an
-            eye on what's due next. Harley's service intervals are used
-            only as a soft reference — ride and wrench how you like.
+            Track every bike you own, log the work you do, and see
+            what's due next. Service intervals are evaluated against
+            your current mileage as a soft reference — ride and wrench
+            how you like.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
           <button
             onClick={() => setBrandOpen(true)}
             className="rounded border border-hd-border bg-hd-dark px-3 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text"
-            title="Upload your own brand logo"
+            title="Upload your own logo"
           >
-            Brand
+            Logo
           </button>
           <button
             onClick={() => setEditing({ new: true })}
@@ -79,18 +87,34 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
       </div>
 
       {garage.length === 0 && !editing && (
-        <div className="card text-center">
-          <div className="mb-2 font-display text-xl tracking-wider">
-            No bikes yet.
+        <div className="rounded-md border border-hd-border bg-hd-dark p-8 text-center">
+          <div className="mb-3 font-display text-2xl tracking-wider sm:text-3xl">
+            YOUR GARAGE IS EMPTY.
           </div>
-          <p className="mb-4 text-sm text-hd-muted">
-            Add your first bike to start logging service.
+          <p className="mx-auto mb-5 max-w-md text-sm text-hd-muted">
+            Add your first bike and Sidestand starts tracking service
+            intervals, logging mods, and giving you a public build
+            sheet you can share.
           </p>
+          <ul className="mx-auto mb-6 max-w-xs space-y-1.5 text-left text-sm text-hd-muted">
+            <li className="flex items-start gap-2">
+              <span className="text-hd-orange">·</span>
+              <span>Track service against actual mileage</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-hd-orange">·</span>
+              <span>Log every mod with cost + photos</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-hd-orange">·</span>
+              <span>Share your build at sidestand.app/b/...</span>
+            </li>
+          </ul>
           <button
             onClick={() => setEditing({ new: true })}
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+            className="rounded bg-hd-orange px-6 py-3 text-base font-semibold text-white hover:brightness-110"
           >
-            + Add bike
+            + Add a bike
           </button>
         </div>
       )}
@@ -271,105 +295,285 @@ function BrandSettings({ onClose }) {
 
 function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJobs }) {
   const preset = bikeCatalog.find((p) => p.id === bike.bikeTypeId)
+
+  // Surface a few cheap stats inside the card so users get signal at a
+  // glance without having to drill in. All reads hit local cache.
+  const modCount = useMemo(() => getMods(bike.id).length, [bike.id])
+  const nextDue = useMemo(() => computeNextDue(bike), [bike.id, bike.mileage])
+
   return (
-    <div className="card flex flex-col">
-      {bike.coverPhotoUrl && (
-        // object-contain on a fixed-height black frame so the whole bike
-        // shows on the card regardless of photo orientation. The black
-        // background blends with the card border on letterboxed shots.
-        <div className="-mx-4 -mt-4 mb-3 sm:-mx-5 sm:-mt-5">
-          <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-t-md bg-hd-black">
-            <img
-              src={bike.coverPhotoUrl}
-              alt={bike.nickname || bike.model || 'bike'}
-              className="max-h-48 w-full object-contain"
-            />
-          </div>
+    <div className="overflow-hidden rounded-md border border-hd-border bg-hd-card">
+      {bike.coverPhotoUrl ? (
+        // Full-bleed cover photo, taller than before (h-52 vs h-48), and
+        // we drop the inner card padding so the photo runs edge-to-edge
+        // — feels more like a real product card.
+        <div className="flex h-52 w-full items-center justify-center bg-hd-black">
+          <img
+            src={bike.coverPhotoUrl}
+            alt={bike.nickname || bike.model || 'bike'}
+            className="max-h-52 w-full object-contain"
+          />
         </div>
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="text-xs uppercase tracking-widest text-hd-orange">
-              {bike.year} {preset?.family || ''}
-            </div>
-            {bike.isPublic && (
-              <span
-                title="This bike has a public build sheet you can share"
-                className="rounded border border-green-700 bg-green-900/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-green-400"
-              >
-                Public
-              </span>
-            )}
-          </div>
-          <div className="mt-1 font-display text-2xl tracking-wider">
-            {bike.nickname || bike.model || 'Unnamed bike'}
-          </div>
-          {bike.nickname && bike.model && (
-            <div className="text-sm text-hd-muted">{bike.model}</div>
-          )}
-          {preset && (
-            <div className="mt-1 text-xs text-hd-muted">{preset.label}</div>
-          )}
-        </div>
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-widest text-hd-muted">
-            Mileage
-          </div>
-          <div className="font-display text-2xl tracking-wider text-hd-orange">
-            {(bike.mileage || 0).toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      {bike.vin && (
-        <div className="mt-3 text-xs text-hd-muted">
-          VIN: <span className="font-mono text-hd-text">{bike.vin}</span>
-        </div>
-      )}
-      {bike.notes && (
-        <div className="mt-2 text-sm text-hd-text whitespace-pre-wrap">
-          {bike.notes}
+      ) : (
+        // Subtle placeholder when there's no cover photo so the card
+        // still has visual height parity with photo'd cards in the grid.
+        <div className="flex h-32 items-center justify-center bg-hd-black/60">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-hd-muted">
+            No cover photo
+          </span>
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="p-4 sm:p-5">
+        {/* Heading row: year/family + public pill */}
+        <div className="flex items-center gap-2">
+          <div className="text-xs uppercase tracking-widest text-hd-orange">
+            {bike.year} {preset?.family || ''}
+          </div>
+          {bike.isPublic && (
+            <span
+              title="This bike has a public build sheet you can share"
+              className="inline-flex items-center gap-1 rounded border border-green-700 bg-green-900/30 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-green-400"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+              Public
+            </span>
+          )}
+        </div>
+
+        {/* Bike name */}
+        <div className="mt-1 font-display text-2xl tracking-wider">
+          {bike.nickname || bike.model || 'Unnamed bike'}
+        </div>
+        {bike.nickname && bike.model && (
+          <div className="text-sm text-hd-muted">{bike.model}</div>
+        )}
+
+        {/* Stat strip: mileage / mods / next-due */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <Stat
+            label="Mileage"
+            value={(bike.mileage || 0).toLocaleString()}
+            unit="mi"
+          />
+          <Stat
+            label="Mods"
+            value={String(modCount)}
+            unit={modCount === 1 ? 'item' : 'items'}
+          />
+          <NextDueChip nextDue={nextDue} />
+        </div>
+
+        {/* Primary CTA: open service book */}
         <button
           onClick={onOpenServiceBook}
-          className="rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded bg-hd-orange px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110"
         >
-          Service Book
-        </button>
-        {preset && (
-          <button
-            onClick={onOpenJobs}
-            className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-text hover:border-hd-orange"
+          Open service book
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
           >
-            Browse jobs
-          </button>
-        )}
-        <button
-          onClick={onShare}
-          className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-muted hover:border-hd-orange hover:text-hd-text"
-          title="Publish a public build sheet for this bike"
-        >
-          {bike.isPublic ? 'Share link' : 'Share'}
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="13 6 19 12 13 18" />
+          </svg>
         </button>
-        <button
-          onClick={onEdit}
-          className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-muted hover:border-hd-orange hover:text-hd-text"
-        >
-          Edit
-        </button>
-        <button
-          onClick={onRemove}
-          className="ml-auto rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs text-hd-muted hover:border-red-500 hover:text-red-400"
-        >
-          Remove
-        </button>
+
+        {/* Secondary actions: icon buttons */}
+        <div className="mt-3 flex items-center justify-end gap-1.5">
+          {preset && (
+            <IconButton
+              onClick={onOpenJobs}
+              label="Browse jobs"
+              title="Browse manual procedures for this platform"
+            >
+              <svg
+                viewBox="0 0 24 24" width="16" height="16"
+                fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"
+              >
+                <path d="M4 4h16v16H4z" />
+                <line x1="8" y1="9" x2="16" y2="9" />
+                <line x1="8" y1="13" x2="16" y2="13" />
+                <line x1="8" y1="17" x2="13" y2="17" />
+              </svg>
+            </IconButton>
+          )}
+          <IconButton
+            onClick={onShare}
+            label={bike.isPublic ? 'Share link' : 'Share'}
+            title="Publish a public build sheet"
+          >
+            <svg
+              viewBox="0 0 24 24" width="16" height="16"
+              fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+            >
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+              <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+            </svg>
+          </IconButton>
+          <IconButton onClick={onEdit} label="Edit" title="Edit bike details">
+            <svg
+              viewBox="0 0 24 24" width="16" height="16"
+              fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </IconButton>
+          <IconButton
+            onClick={onRemove}
+            label="Remove"
+            title="Remove this bike"
+            danger
+          >
+            <svg
+              viewBox="0 0 24 24" width="16" height="16"
+              fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+          </IconButton>
+        </div>
       </div>
     </div>
   )
+}
+
+// ---------- Bike-card sub-bits ----------
+
+function Stat({ label, value, unit }) {
+  return (
+    <div className="rounded border border-hd-border bg-hd-dark px-2 py-1.5">
+      <div className="text-[10px] uppercase tracking-widest text-hd-muted">
+        {label}
+      </div>
+      <div className="mt-0.5 flex items-baseline gap-1">
+        <span className="font-display text-lg leading-none tracking-wider text-hd-text">
+          {value}
+        </span>
+        {unit && (
+          <span className="text-[10px] text-hd-muted">{unit}</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Replaces the third stat slot. Three states:
+//   - none due       → green "All caught up"
+//   - overdue        → red "Overdue"
+//   - due soon       → amber "Due in N mi"
+function NextDueChip({ nextDue }) {
+  if (!nextDue) {
+    return (
+      <div className="rounded border border-hd-border bg-hd-dark px-2 py-1.5">
+        <div className="text-[10px] uppercase tracking-widest text-hd-muted">
+          Next due
+        </div>
+        <div className="mt-0.5 truncate text-xs text-emerald-400">
+          All caught up
+        </div>
+      </div>
+    )
+  }
+  const overdue = nextDue.status === 'overdue'
+  return (
+    <div
+      className={`rounded border px-2 py-1.5 ${
+        overdue
+          ? 'border-red-500/40 bg-red-500/10'
+          : 'border-amber-500/40 bg-amber-500/10'
+      }`}
+    >
+      <div className="text-[10px] uppercase tracking-widest text-hd-muted">
+        {overdue ? 'Overdue' : 'Due soon'}
+      </div>
+      <div
+        className={`mt-0.5 truncate text-xs ${
+          overdue ? 'text-red-300' : 'text-amber-200'
+        }`}
+        title={nextDue.intervalLabel}
+      >
+        {overdue
+          ? `${nextDue.intervalLabel} (${nextDue.milesOver.toLocaleString()} mi over)`
+          : `${nextDue.intervalLabel} in ${nextDue.milesLeft.toLocaleString()} mi`}
+      </div>
+    </div>
+  )
+}
+
+function IconButton({ onClick, children, label, title, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title || label}
+      aria-label={label}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded border border-hd-border bg-hd-dark text-hd-muted transition hover:border-hd-orange hover:text-hd-text ${
+        danger ? 'hover:border-red-500 hover:text-red-400' : ''
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+// Compute the most-pressing service interval for one bike. Returns
+// the worst (overdue first, then due-soon nearest miles) or null if
+// nothing is overdue/due-soon. Cheap: only walks the intervals + log.
+function computeNextDue(bike) {
+  const log = getServiceLog(bike.id)
+  const mi = bike.mileage || 0
+  let best = null
+  for (const interval of intervals) {
+    const last = findLastMatchingEntry(interval, log)
+    const ev = evaluateInterval(interval, mi, last)
+    if (ev.status !== 'overdue' && ev.status !== 'due-soon') continue
+    const candidate = {
+      intervalLabel: interval.label,
+      status: ev.status,
+      milesLeft: ev.milesLeft || 0,
+      milesOver: ev.milesOver || 0
+    }
+    if (!best) {
+      best = candidate
+      continue
+    }
+    // Overdue beats due-soon. Within overdue, more miles over wins.
+    // Within due-soon, fewer miles left wins.
+    if (candidate.status === 'overdue' && best.status !== 'overdue') {
+      best = candidate
+    } else if (
+      candidate.status === 'overdue' &&
+      best.status === 'overdue' &&
+      candidate.milesOver > best.milesOver
+    ) {
+      best = candidate
+    } else if (
+      candidate.status === 'due-soon' &&
+      best.status === 'due-soon' &&
+      candidate.milesLeft < best.milesLeft
+    ) {
+      best = candidate
+    }
+  }
+  return best
 }
 
 function BikeEditor({ bike, onCancel, onSave }) {
