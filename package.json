@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ingest:jobs": "node scripts/ingest-jobs.mjs"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.17.0",
