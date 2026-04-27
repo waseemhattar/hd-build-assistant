@@ -56,7 +56,9 @@ export default function Logo({
     )
   }
 
-  // Default: text wordmark in lowercase, light-weight Inter.
+  // Default: text wordmark in Bebas Neue (the classic biker / motor
+  // display font HD uses). All-caps + wide letter-spacing reads as a
+  // tank-graphic wordmark.
   return (
     <span
       className={`inline-flex items-baseline ${className}`}
@@ -64,15 +66,17 @@ export default function Logo({
       role="img"
     >
       <span
-        className={`font-light tracking-wordmark ${
+        className={`font-display tracking-wider ${
           muted ? 'text-hd-muted' : 'text-hd-text'
         }`}
         style={{
-          fontSize: Math.round(size * 1.15),
+          // Bebas Neue is condensed, so we render a touch larger than
+          // a sans of the same nominal size to match optical weight.
+          fontSize: Math.round(size * 1.35),
           lineHeight: 1
         }}
       >
-        sidestand
+        SIDESTAND
       </span>
     </span>
   )

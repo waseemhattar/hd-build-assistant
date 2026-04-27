@@ -226,8 +226,8 @@ function BrandSettings({ onClose }) {
                 style={{ height: 40, width: 'auto' }}
               />
             ) : (
-              <span className="font-light tracking-wordmark text-2xl text-hd-text">
-                sidestand
+              <span className="font-display tracking-wider text-3xl text-hd-text">
+                SIDESTAND
               </span>
             )}
           </div>

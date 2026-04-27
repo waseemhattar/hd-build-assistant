@@ -46,9 +46,12 @@ export default {
         }
       },
       fontFamily: {
-        // `display` was Bebas Neue — keep the token name but resolve it
-        // to Inter (light) so old className references still work.
-        display: ['Inter', 'system-ui', 'sans-serif'],
+        // Bebas Neue: tall, condensed, all-caps display font — the
+        // classic "biker / motor" wordmark vibe HD uses on tank
+        // graphics and dealer signage. Used by `font-display` for
+        // headings, page titles, and stat numbers across the app.
+        display: ['"Bebas Neue"', 'Impact', 'system-ui', 'sans-serif'],
+        // Inter for body copy — keeps reading comfortable.
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', '"SF Mono"', 'ui-monospace', 'monospace']
       },

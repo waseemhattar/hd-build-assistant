@@ -28,8 +28,8 @@ export default function Landing() {
 
       <main className="mx-auto grid max-w-6xl gap-10 px-6 py-10 md:grid-cols-2 md:gap-16 md:py-16">
         <section className="flex flex-col justify-center">
-          <h1 className="font-light tracking-wordmark text-4xl text-hd-text sm:text-5xl">
-            Where your build lives between rides.
+          <h1 className="font-display tracking-wider text-5xl text-hd-orange sm:text-6xl">
+            WHERE YOUR BUILD LIVES BETWEEN RIDES.
           </h1>
           <p className="mt-4 text-base text-hd-muted sm:text-lg">
             Track service, log mods, follow step-by-step procedures from the
@@ -86,7 +86,7 @@ export default function Landing() {
                 // a dark default token. Clerk sometimes ships separate
                 // tokens for the title vs. body that don't follow colorText.
                 card: 'border border-hd-border shadow-none bg-hd-dark',
-                headerTitle: 'text-hd-text font-light tracking-wordmark',
+                headerTitle: 'text-hd-text font-display tracking-wider',
                 headerSubtitle: 'text-hd-muted',
                 formFieldLabel: 'text-hd-text',
                 formFieldInput: 'text-hd-text',
