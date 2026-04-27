@@ -14,7 +14,7 @@ export default function Landing() {
     <div className="min-h-screen bg-hd-black text-hd-text">
       <header className="border-b border-hd-border bg-hd-dark">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Logo wordmark size={22} />
+          <Logo size={26} />
           <a
             href="https://sidestand.app"
             target="_top"
@@ -69,12 +69,12 @@ export default function Landing() {
             signInForceRedirectUrl="/"
             appearance={{
               variables: {
-                colorPrimary: '#B8722C', // copper
-                colorBackground: '#14171C', // charcoal
+                colorPrimary: '#E03A36', // signal red
+                colorBackground: '#16161A', // surface
                 colorText: '#E8E2D5', // bone — body text on dark surface
-                colorTextSecondary: '#9CA3AF', // muted gray
-                colorTextOnPrimaryBackground: '#0B0D11', // asphalt — readable on copper button
-                colorInputBackground: '#0B0D11', // asphalt
+                colorTextSecondary: '#9A9A9F', // muted gray
+                colorTextOnPrimaryBackground: '#FFFFFF', // white — readable on red button
+                colorInputBackground: '#0E0E10', // asphalt
                 colorInputText: '#E8E2D5',
                 colorNeutral: '#E8E2D5', // bone — affects headers/labels in some Clerk themes
                 colorShimmer: 'rgba(232, 226, 213, 0.1)',
@@ -99,7 +99,7 @@ export default function Landing() {
                   'border border-hd-border text-hd-text hover:border-hd-orange',
                 socialButtonsBlockButtonText: 'text-hd-text',
                 formButtonPrimary:
-                  'bg-hd-orange text-hd-black hover:brightness-110 normal-case tracking-wide'
+                  'bg-hd-orange text-white hover:brightness-110 normal-case tracking-wide'
               }
             }}
           />

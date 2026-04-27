@@ -16,7 +16,7 @@ import Landing from './components/Landing.jsx'
 import PublicBike from './components/PublicBike.jsx'
 import Logo from './components/Logo.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
-import { setStorageUser } from './data/storage.js'
+import { setStorageUser, getUserLogoUrl, subscribe } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
 
 // URL → public-bike-slug helper. Returns the slug if the path is
@@ -100,6 +100,16 @@ function AuthedApp() {
   const [garageBike, setGarageBike] = useState(null) // user-owned bike
   const [job, setJob] = useState(null)
 
+  // User's uploaded brand logo (if any). Falls back to the default
+  // text wordmark in <Logo />. Re-read on storage changes so the brand
+  // bar updates the moment the user uploads a new logo.
+  const [userLogoUrl, setUserLogoUrl] = useState(() => getUserLogoUrl())
+  useEffect(() => {
+    setUserLogoUrl(getUserLogoUrl())
+    const unsub = subscribe(() => setUserLogoUrl(getUserLogoUrl()))
+    return unsub
+  }, [user?.id])
+
   function goHome() {
     setView('home')
     setBike(null)
@@ -116,7 +126,7 @@ function AuthedApp() {
             className="hover:opacity-80 transition"
             title="Sidestand"
           >
-            <Logo wordmark size={22} />
+            <Logo imageUrl={userLogoUrl} size={26} />
           </button>
           <nav className="flex items-center gap-4 text-xs">
             <button

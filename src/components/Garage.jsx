@@ -7,6 +7,9 @@ import {
   removeBike,
   setBikePublic,
   uploadCoverPhoto,
+  uploadUserLogo,
+  getUserLogoUrl,
+  setUserLogoUrl,
   subscribe
 } from '../data/storage.js'
 import {
@@ -25,6 +28,7 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
   const [editing, setEditing] = useState(null) // bike or {new:true}
   const [confirmingRemove, setConfirmingRemove] = useState(null)
   const [sharing, setSharing] = useState(null) // bike to share/publish
+  const [brandOpen, setBrandOpen] = useState(false) // brand-settings modal
 
   function refresh() {
     setGarage(getGarage())
@@ -57,12 +61,21 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
             only as a soft reference — ride and wrench how you like.
           </p>
         </div>
-        <button
-          onClick={() => setEditing({ new: true })}
-          className="self-start rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
-        >
-          + Add bike
-        </button>
+        <div className="flex flex-wrap gap-2 self-start">
+          <button
+            onClick={() => setBrandOpen(true)}
+            className="rounded border border-hd-border bg-hd-dark px-3 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text"
+            title="Upload your own brand logo"
+          >
+            Brand
+          </button>
+          <button
+            onClick={() => setEditing({ new: true })}
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+          >
+            + Add bike
+          </button>
+        </div>
       </div>
 
       {garage.length === 0 && !editing && (
@@ -75,7 +88,7 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
           </p>
           <button
             onClick={() => setEditing({ new: true })}
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
           >
             + Add bike
           </button>
@@ -136,6 +149,122 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
           onChange={refresh}
         />
       )}
+
+      {brandOpen && (
+        <BrandSettings onClose={() => setBrandOpen(false)} />
+      )}
+    </div>
+  )
+}
+
+// Lets the user upload (or remove) a custom brand logo. The URL is
+// stored locally for now; later, when we add a real shop concept,
+// we'll save it on the shop row instead. The Logo component already
+// reads the URL via getUserLogoUrl() so the brand bar updates live.
+function BrandSettings({ onClose }) {
+  const [logoUrl, setLogoUrl] = useState(() => getUserLogoUrl())
+  const [uploading, setUploading] = useState(false)
+  const [err, setErr] = useState(null)
+  const fileRef = useRef(null)
+
+  async function pick(file) {
+    if (!file) return
+    setErr(null)
+    setUploading(true)
+    try {
+      const url = await uploadUserLogo(file)
+      setLogoUrl(url)
+    } catch (e) {
+      setErr(e.message || 'Upload failed.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function reset() {
+    setUserLogoUrl(null)
+    setLogoUrl(null)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-md border border-hd-border bg-hd-dark p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
+            BRAND
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-2xl leading-none text-hd-muted hover:text-hd-orange"
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="mb-4 text-sm text-hd-muted">
+          Upload your own logo to replace the default Sidestand wordmark
+          across the app. PNG with transparent background works best.
+          Square or wide horizontal both work.
+        </p>
+
+        <div className="mb-4 rounded border border-hd-border bg-hd-black p-4">
+          <div className="mb-2 text-xs uppercase tracking-widest text-hd-muted">
+            Current
+          </div>
+          <div className="flex items-center justify-center rounded bg-hd-dark py-4">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Your logo"
+                style={{ height: 40, width: 'auto' }}
+              />
+            ) : (
+              <span className="font-light tracking-wordmark text-2xl text-hd-text">
+                sidestand
+              </span>
+            )}
+          </div>
+        </div>
+
+        {err && (
+          <div className="mb-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {err}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            className="hidden"
+            onChange={(e) => pick(e.target.files?.[0])}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50"
+          >
+            {uploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+          </button>
+          {logoUrl && (
+            <button
+              onClick={reset}
+              disabled={uploading}
+              className="rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text disabled:opacity-50"
+            >
+              Reset to default
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -207,7 +336,7 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           onClick={onOpenServiceBook}
-          className="rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-hd-black hover:brightness-110"
+          className="rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
         >
           Service Book
         </button>
@@ -596,7 +725,7 @@ function BikeEditor({ bike, onCancel, onSave }) {
           </button>
           <button
             type="submit"
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
           >
             {bike ? 'Save changes' : 'Add to garage'}
           </button>
@@ -792,7 +921,7 @@ function ShareSheet({ bike, onClose, onChange }) {
             className={`rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-widest disabled:opacity-40 ${
               current.isPublic
                 ? 'border border-hd-border bg-hd-dark text-hd-text hover:border-red-500 hover:text-red-400'
-                : 'bg-hd-orange text-hd-black hover:brightness-110'
+                : 'bg-hd-orange text-white hover:brightness-110'
             }`}
           >
             {current.isPublic ? 'Unpublish' : 'Publish'}

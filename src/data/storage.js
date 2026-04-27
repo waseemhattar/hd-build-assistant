@@ -115,6 +115,26 @@ function modsKey() {
     : 'hd-ba:mods:v1'
 }
 
+// User-level brand prefs (e.g. a custom logo URL the user has uploaded).
+// Stored locally for now; when we build a real `user_profile` table in
+// Supabase later, swap these two functions to talk to it. Call sites
+// don't have to change.
+function userPrefsKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:user-prefs:v1`
+    : 'hd-ba:user-prefs:v1'
+}
+export function getUserLogoUrl() {
+  const p = read(userPrefsKey(), null)
+  return (p && p.logoUrl) || null
+}
+export function setUserLogoUrl(url) {
+  const p = read(userPrefsKey(), null) || {}
+  if (url) p.logoUrl = url
+  else delete p.logoUrl
+  write(userPrefsKey(), p)
+}
+
 // Tombstones: remember ids we deleted locally until the server confirms the
 // delete. Without these, pullFromServer would happily merge the still-alive
 // server row right back into the cache, and the UI shows a "zombie". The
@@ -350,6 +370,48 @@ export async function uploadCoverPhoto(bikeId, file) {
   if (!url) throw new Error('Failed to resolve public URL for upload.')
 
   updateBike(bikeId, { coverPhotoUrl: url })
+  return url
+}
+
+// Upload a custom brand logo for the current user. Stored in the same
+// bike-photos bucket under a `<userId>/logo-<ts>.<ext>` path so we
+// reuse the existing public-read storage policy. The resulting URL
+// is saved to user prefs and rendered by <Logo imageUrl={...} />.
+//
+// When we add real shop accounts later, switch the prefs storage to a
+// `shops.logo_url` column; the upload path can stay the same.
+export async function uploadUserLogo(file) {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Logo upload requires Supabase to be configured.')
+  }
+  if (!currentUserId || !getTokenFn) {
+    throw new Error('You must be signed in to upload a logo.')
+  }
+  if (!file) throw new Error('No file selected.')
+
+  const supabase = getSupabaseClient(getTokenFn)
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+  // Timestamp in the object name forces fresh CDN/browser fetches when
+  // the user re-uploads.
+  const objectPath = `${currentUserId}/logo-${Date.now()}.${ext}`
+
+  const { error: upErr } = await supabase.storage
+    .from('bike-photos')
+    .upload(objectPath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'image/png'
+    })
+  if (upErr) throw upErr
+
+  const { data: pub } = supabase.storage
+    .from('bike-photos')
+    .getPublicUrl(objectPath)
+  const url = pub?.publicUrl
+  if (!url) throw new Error('Failed to resolve public URL for upload.')
+
+  setUserLogoUrl(url)
+  notify()
   return url
 }
 

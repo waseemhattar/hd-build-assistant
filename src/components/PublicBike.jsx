@@ -77,7 +77,7 @@ export default function PublicBike({ slug }) {
           </p>
           <a
             href="/"
-            className="mt-4 inline-block rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+            className="mt-4 inline-block rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
           >
             Build your own
           </a>
@@ -254,7 +254,7 @@ function Shell({ children }) {
             className="hover:opacity-80 transition"
             title="Sidestand"
           >
-            <Logo wordmark size={20} />
+            <Logo size={22} />
           </a>
           <a
             href="/"

@@ -103,7 +103,7 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
             </button>
             <button
               onClick={() => exportBikeReportPDF({ bike, log, mods })}
-              className="inline-flex items-center gap-2 rounded border border-hd-orange bg-hd-orange/10 px-3 py-1.5 text-xs text-hd-orange hover:bg-hd-orange hover:text-hd-black"
+              className="inline-flex items-center gap-2 rounded border border-hd-orange bg-hd-orange/10 px-3 py-1.5 text-xs text-hd-orange hover:bg-hd-orange hover:text-white"
               title="Full bike report: specs, build, service, totals"
             >
               <svg
@@ -265,7 +265,7 @@ function LogPanel({ log, onAdd, onRemove, onTogglePublic }) {
       <div className="mb-4 flex justify-end">
         <button
           onClick={onAdd}
-          className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+          className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
         >
           + Log service
         </button>
@@ -457,7 +457,7 @@ function MileageEditor({ initial, onCancel, onSave }) {
       />
       <button
         onClick={() => onSave(Number(v) || 0)}
-        className="rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-hd-black hover:brightness-110"
+        className="rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
       >
         Save
       </button>
@@ -597,7 +597,7 @@ export function EntryEditor({ bike, prefill, onCancel, onSave }) {
           </button>
           <button
             type="submit"
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
           >
             Save entry
           </button>
@@ -671,7 +671,7 @@ function BuildPanel({ mods, onAdd, onEdit, onRemove, onTogglePublic, bikeId }) {
         </div>
         <button
           onClick={onAdd}
-          className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+          className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
         >
           + Add mod
         </button>
@@ -1050,7 +1050,7 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
           </button>
           <button
             type="submit"
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-hd-black hover:brightness-110"
+            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
           >
             {isNew ? 'Add mod' : 'Save mod'}
           </button>

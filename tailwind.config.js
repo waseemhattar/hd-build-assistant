@@ -1,60 +1,59 @@
 /** @type {import('tailwindcss').Config} */
 //
-// Sidestand — Workshop Dusk palette.
+// Sidestand — Dark + Signal Red palette.
 //
-// We keep the legacy token names (hd-*) so we don't have to touch 300+
+// We keep the legacy hd-* token names so we don't have to touch ~300
 // className strings across the codebase to do the rebrand. The colors
-// themselves are remapped to the new palette below. A follow-up pass
-// can rename the tokens to dusk-* once we're confident nothing breaks.
+// themselves are remapped below. New `brand-*` tokens are also exposed
+// for code written from here on.
 //
 // Palette:
-//   asphalt   #0B0D11   — true near-black, outer surface
-//   charcoal  #14171C   — primary background
-//   slate     #1F2530   — card surfaces
-//   border    #2A2F38   — dividers, hairlines
-//   copper    #B8722C   — single accent, replaces HD orange
-//   bone      #E8E2D5   — primary text, off-white
-//   muted     #9CA3AF   — secondary text
+//   bg / asphalt    #0E0E10   — outer background
+//   surface         #16161A   — primary surface
+//   card / slate    #1A1A1F   — cards, panels
+//   border          #2A2A30   — hairlines, dividers
+//   text / bone     #E8E2D5   — primary text
+//   muted           #9A9A9F   — secondary text
+//   accent / red    #E03A36   — single accent (buttons, badges, links)
+//   accent-soft     rgba(224,58,54,0.15) — tinted backgrounds for chips
 //
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
-        // Legacy tokens — remapped to Workshop Dusk
+        // Legacy tokens — remapped to the new dark + red palette
         hd: {
-          orange: '#B8722C',   // was #F58220 (HD orange) → matte copper
-          black:  '#0B0D11',   // was #0A0A0A → asphalt
-          dark:   '#14171C',   // was #1A1A1A → charcoal
-          card:   '#1F2530',   // was #222222 → slate
-          border: '#2A2F38',   // was #2E2E2E → slate border
-          text:   '#E8E2D5',   // was #E6E6E6 → bone
-          muted:  '#9CA3AF'    // was #A3A3A3 → cool muted gray
+          orange: '#E03A36',   // accent (was HD orange / matte copper)
+          black:  '#0E0E10',   // outer bg
+          dark:   '#16161A',   // surface
+          card:   '#1A1A1F',   // card
+          border: '#2A2A30',   // border
+          text:   '#E8E2D5',   // primary text
+          muted:  '#9A9A9F'    // secondary text
         },
-        // New tokens for use going forward (semantic + Workshop Dusk
-        // direct names). Both old and new can coexist.
-        dusk: {
-          asphalt:  '#0B0D11',
-          charcoal: '#14171C',
-          slate:    '#1F2530',
-          border:   '#2A2F38',
-          copper:   '#B8722C',
-          bone:     '#E8E2D5',
-          muted:    '#9CA3AF'
+        // New tokens for use going forward
+        brand: {
+          bg:         '#0E0E10',
+          surface:    '#16161A',
+          card:       '#1A1A1F',
+          border:     '#2A2A30',
+          text:       '#E8E2D5',
+          muted:      '#9A9A9F',
+          red:        '#E03A36',
+          'red-soft': 'rgba(224, 58, 54, 0.15)',
+          'red-dim':  '#A82924'
         }
       },
       fontFamily: {
-        // `display` was Bebas Neue (HD-style heavy display). We swap to
-        // a lighter geometric sans so wordmarks read premium, not loud.
-        // Inter is already loaded; this just chooses a lighter weight
-        // and tighter tracking via utility classes where used.
+        // `display` was Bebas Neue — keep the token name but resolve it
+        // to Inter (light) so old className references still work.
         display: ['Inter', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        // Mono is handy for part numbers and serial-like data.
         mono: ['"JetBrains Mono"', '"SF Mono"', 'ui-monospace', 'monospace']
       },
       letterSpacing: {
-        wordmark: '-0.02em'
+        wordmark: '-0.025em'
       }
     }
   },

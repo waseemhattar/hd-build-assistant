@@ -56,7 +56,7 @@ export default function JobView({ job, bike, onBack }) {
           <div>{job.timeMinutes ? `~${job.timeMinutes} min` : ''}</div>
           <button
             onClick={startLogging}
-            className="mt-3 rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-hd-black hover:brightness-110"
+            className="mt-3 rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
           >
             Log this service
           </button>

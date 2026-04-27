@@ -1,101 +1,97 @@
 import React from 'react'
 
-// Sidestand brand mark.
+// Sidestand brand mark — designed as a SYSTEM, not a fixed file.
 //
-// Visual concept: two facing brackets that together hint at the
-// letter S — abstracted from the shapes a bike's stand makes when
-// kicked out and folded up. Modern/abstract, holds up at any size.
+// Today: a clean text wordmark "sidestand" in light Inter. No glyph yet
+// (waiting on a designer). When a real logo lands, drop the file URL
+// into the `imageUrl` prop and this component swaps over.
 //
-// Style: stamped/embossed — the glyph is rendered in matte copper
-// (#B8722C) with a faint dark drop offset to suggest it was pressed
-// into a metal plate.
+// Tomorrow: per-user / per-shop custom logos. We store an uploaded
+// logo URL on the user (later, on the shop row) and render it here.
 //
-// Usage:
-//   <Logo />               — 24px glyph alone
-//   <Logo size={32} />     — custom glyph size
-//   <Logo wordmark />      — glyph + "sidestand" lockup
-//   <Logo wordmark muted /> — wordmark in subdued bone, no copper
+// Props:
+//   imageUrl   — if set, render the uploaded image instead of the
+//                wordmark. The image should already be at the correct
+//                aspect; we'll constrain by height only.
+//   alt        — accessible name (defaults to "Sidestand")
+//   size       — pixel height of the rendered mark. Default 24.
+//   variant    — 'auto' (default) | 'wordmark' | 'image'
+//                'auto' picks based on whether imageUrl is provided.
+//   muted      — render the wordmark in muted gray instead of bone.
+//                Useful in subdued footers.
+//   className  — extra utility classes on the outer span.
 
 export default function Logo({
+  imageUrl,
+  alt = 'Sidestand',
   size = 24,
-  wordmark = false,
+  variant = 'auto',
   muted = false,
   className = ''
 }) {
-  // The bracket monogram. Left bracket is full opacity; right bracket
-  // is faded to suggest depth + the "S" silhouette without spelling
-  // it out literally. Drawn in an 80×80 viewBox so we can reuse the
-  // same path math as the brand identity mockups.
-  const glyph = (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 80 80"
-      role="img"
-      aria-label="Sidestand"
-      className="shrink-0"
-    >
-      <g transform="translate(40 40)">
-        {/* Left bracket — full opacity copper */}
-        <line
-          x1="-22" y1="-22" x2="-22" y2="22"
-          stroke="currentColor" strokeWidth="3"
-          strokeLinecap="round"
-        />
-        <line
-          x1="-22" y1="-22" x2="-12" y2="-22"
-          stroke="currentColor" strokeWidth="3"
-          strokeLinecap="round"
-        />
-        <line
-          x1="-22" y1="22" x2="-2" y2="22"
-          stroke="currentColor" strokeWidth="3"
-          strokeLinecap="round"
-        />
-        {/* Right bracket — faded for depth */}
-        <line
-          x1="22" y1="-22" x2="22" y2="22"
-          stroke="currentColor" strokeWidth="3"
-          strokeLinecap="round" opacity="0.35"
-        />
-        <line
-          x1="22" y1="-22" x2="12" y2="-22"
-          stroke="currentColor" strokeWidth="3"
-          strokeLinecap="round" opacity="0.35"
-        />
-        <line
-          x1="22" y1="22" x2="2" y2="22"
-          stroke="currentColor" strokeWidth="3"
-          strokeLinecap="round" opacity="0.35"
-        />
-      </g>
-    </svg>
-  )
+  const useImage =
+    variant === 'image' || (variant === 'auto' && Boolean(imageUrl))
 
-  if (!wordmark) {
+  if (useImage && imageUrl) {
+    // Custom uploaded logo. Sized by height; width auto so any
+    // aspect ratio (square mark, horizontal lockup, etc.) renders cleanly.
     return (
       <span
-        className={`inline-flex items-center text-hd-orange ${className}`}
+        className={`inline-flex items-center ${className}`}
+        style={{ height: size }}
       >
-        {glyph}
+        <img
+          src={imageUrl}
+          alt={alt}
+          style={{
+            height: size,
+            width: 'auto',
+            display: 'block',
+            objectFit: 'contain'
+          }}
+          // Avoid layout-shift jank if the upload is broken or slow.
+          loading="eager"
+        />
       </span>
     )
   }
 
-  // Lockup: glyph + wordmark, with light/airy lowercase Inter.
+  // Default: text wordmark in lowercase, light-weight Inter.
   return (
     <span
-      className={`inline-flex items-center gap-2 ${className}`}
+      className={`inline-flex items-baseline ${className}`}
+      aria-label={alt}
+      role="img"
     >
-      <span className="text-hd-orange">{glyph}</span>
       <span
         className={`font-light tracking-wordmark ${
           muted ? 'text-hd-muted' : 'text-hd-text'
         }`}
-        style={{ fontSize: Math.round(size * 0.95), lineHeight: 1 }}
+        style={{
+          fontSize: Math.round(size * 1.15),
+          lineHeight: 1
+        }}
       >
         sidestand
       </span>
     </span>
+  )
+}
+
+// Convenience: a tiny accent dot the wordmark can sit next to. Used
+// where we want a hint of the brand color without needing a real glyph.
+// (Not used by default; only export it for places that opt in.)
+export function BrandDot({ size = 10 }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '999px',
+        background: '#E03A36'
+      }}
+    />
   )
 }
