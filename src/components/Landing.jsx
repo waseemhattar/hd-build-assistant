@@ -10,7 +10,7 @@ import Logo from './Logo.jsx'
 //   2. Hero — headline + sub + CTAs + brand mark as graphic
 //   3. Feature strip — three columns: Garage / Manual / Build sheets
 //   4. CTA strip
-//   5. Footer — copyright only
+//   5. Footer — disclaimer (brand-neutral) + copyright
 //
 // All Clerk sign-in is on /sign-in (the SignInPage component); the
 // landing page itself is pure marketing.
@@ -130,7 +130,17 @@ export default function Landing({ onSignIn, onSampleBike }) {
 
       {/* FOOTER */}
       <footer className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="text-xs text-hd-muted">
+        <div className="text-xs leading-relaxed text-hd-muted">
+          <strong className="text-hd-text">Heads up —</strong> Sidestand
+          is a personal reference tool. Procedures, torque values, and
+          part numbers are provided for convenience. Always verify
+          against the printed service manual or your manufacturer's
+          current bulletins before final assembly. Brand names, model
+          names, and trademarks belong to their respective owners —
+          Sidestand is not affiliated with or endorsed by any motorcycle
+          manufacturer.
+        </div>
+        <div className="mt-3 text-xs text-hd-muted">
           © Sidestand · sidestand.app
         </div>
       </footer>
