@@ -1,101 +1,263 @@
-import React from 'react'
-import { getGarage } from '../data/storage.js'
+import React, { useMemo } from 'react'
+import { useUser } from '@clerk/clerk-react'
+import {
+  getGarage,
+  getServiceLog,
+  getMods
+} from '../data/storage.js'
+import { intervals, evaluateInterval, findLastMatchingEntry } from '../data/serviceIntervals.js'
 import SearchBar from './SearchBar.jsx'
 
-export default function Home({ onOpenGarage, onOpenManual, onPickJob }) {
-  const garage = getGarage()
+// Signed-in dashboard. Replaces the old "About this app" home page
+// with an at-a-glance summary of the user's actual data.
+//
+// Sections:
+//   1. Welcome line — uses the Clerk first-name if available
+//   2. Search — quick jump into a job by keyword
+//   3. Three stat cards — bikes, due-soon, recent activity
+//   4. Quick actions — three big buttons
+//
+// The dashboard cards are computed cheaply from local cache (getGarage,
+// getServiceLog) so this renders instantly even when offline.
+export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPickJob, onOpenServiceBook }) {
+  const { user } = useUser()
+  const firstName = user?.firstName || 'rider'
+
+  const garage = useMemo(() => getGarage(), [])
+  const summary = useMemo(() => buildSummary(garage), [garage])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mb-8">
-        <h1 className="font-display text-4xl tracking-wider text-hd-orange sm:text-5xl">
-          HD BUILD ASSISTANT
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-hd-muted sm:text-base">
-          A community DIY reference for Harley-Davidson owners. Track the
-          bikes in your garage, keep a service log, and dig into step-by-step
-          procedures from the factory service manuals.
-        </p>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-widest text-hd-orange">
+            Dashboard
+          </div>
+          <h1 className="mt-1 font-display text-3xl tracking-wider sm:text-4xl">
+            HEY, {firstName.toUpperCase()}.
+          </h1>
+          <p className="mt-1 text-sm text-hd-muted">
+            {garage.length === 0
+              ? 'Add your first bike to get rolling.'
+              : `${garage.length} bike${garage.length > 1 ? 's' : ''} in the garage. Here's what's up.`}
+          </p>
+        </div>
       </div>
 
-      <div className="mb-10">
+      {/* Search */}
+      <div className="mb-8">
         <SearchBar onPickJob={onPickJob} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <button
+      {/* Stat cards */}
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard
+          kicker="Garage"
+          headline={
+            garage.length === 0
+              ? 'No bikes yet'
+              : `${garage.length} bike${garage.length > 1 ? 's' : ''}`
+          }
+          sub={
+            garage.length === 0
+              ? 'Tap to add your first bike.'
+              : garage
+                  .slice(0, 3)
+                  .map((b) => b.nickname || b.model || `${b.year || ''} bike`)
+                  .filter(Boolean)
+                  .join(' · ')
+          }
           onClick={onOpenGarage}
-          className="card text-left transition hover:border-hd-orange hover:bg-hd-dark"
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-hd-orange">
-                My Garage
-              </div>
-              <div className="mt-2 font-display text-2xl tracking-wider">
-                {garage.length === 0
-                  ? 'Start a garage'
-                  : `${garage.length} bike${garage.length > 1 ? 's' : ''}`}
-              </div>
-              <p className="mt-2 text-sm text-hd-muted">
-                Add the bikes you own, keep a service book, and track what's
-                coming up next. Harley's intervals are shown as soft
-                reference — you decide when to wrench.
-              </p>
-            </div>
-          </div>
-          {garage.length > 0 && (
-            <div className="mt-4 space-y-1 text-xs text-hd-muted">
-              {garage.slice(0, 3).map((b) => (
-                <div key={b.id} className="flex items-center justify-between">
-                  <span className="text-hd-text">
-                    {b.nickname || b.model || `${b.year} ${b.model}`}
-                  </span>
-                  <span>{(b.mileage || 0).toLocaleString()} mi</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </button>
-
-        <button
-          onClick={onOpenManual}
-          className="card text-left transition hover:border-hd-orange hover:bg-hd-dark"
-        >
-          <div className="text-xs uppercase tracking-widest text-hd-orange">
-            Browse Manual
-          </div>
-          <div className="mt-2 font-display text-2xl tracking-wider">
-            Step-by-step procedures
-          </div>
-          <p className="mt-2 text-sm text-hd-muted">
-            Pick a platform and drill into the factory service manual —
-            torque specs, part numbers, tool lists, and figures for every
-            job.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs text-hd-muted">
-            <span className="chip">Maintenance</span>
-            <span className="chip">Engine</span>
-            <span className="chip">Transmission</span>
-            <span className="chip">Electrical</span>
-            <span className="chip">+7 more</span>
-          </div>
-        </button>
+        />
+        <StatCard
+          kicker="Due soon"
+          tone={summary.dueSoon.length > 0 ? 'warn' : 'ok'}
+          headline={
+            summary.dueSoon.length === 0
+              ? 'Nothing due'
+              : `${summary.dueSoon.length} item${summary.dueSoon.length > 1 ? 's' : ''}`
+          }
+          sub={
+            summary.dueSoon.length === 0
+              ? 'Service intervals all green for now.'
+              : summary.dueSoon
+                  .slice(0, 2)
+                  .map(
+                    (d) =>
+                      `${d.intervalLabel} on ${d.bikeName} ${
+                        d.status === 'overdue'
+                          ? `(overdue ${d.milesOver.toLocaleString()} mi)`
+                          : `(in ${d.milesLeft.toLocaleString()} mi)`
+                      }`
+                  )
+                  .join(' · ')
+          }
+          onClick={onOpenIntervals || onOpenGarage}
+        />
+        <StatCard
+          kicker="Recent"
+          headline={
+            summary.recent
+              ? formatTimeAgo(summary.recent.date)
+              : 'No activity yet'
+          }
+          sub={
+            summary.recent
+              ? `${summary.recent.title || 'Service'} on ${summary.recent.bikeName}`
+              : 'Your service entries will show up here.'
+          }
+          onClick={
+            summary.recent && onOpenServiceBook
+              ? () => onOpenServiceBook(summary.recent.bike)
+              : onOpenGarage
+          }
+        />
       </div>
 
-      <div className="mt-10 rounded-md border border-hd-border bg-hd-dark p-3 text-xs leading-relaxed text-hd-muted sm:text-sm">
-        <strong className="text-hd-text">Heads up —</strong> this is a
-        community reference assistant, not an official Harley-Davidson
-        resource. Always verify torque values and part numbers against the
-        printed service manual and current HD service bulletins before
-        final assembly. Work at your own risk. Harley-Davidson® is a
-        registered trademark of H-D U.S.A., LLC — this site is not
-        affiliated with or endorsed by Harley-Davidson.
+      {/* Quick actions */}
+      <div>
+        <div className="mb-3 text-xs uppercase tracking-widest text-hd-muted">
+          Quick actions
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <QuickAction
+            title="Open garage"
+            sub="See and edit your bikes"
+            onClick={onOpenGarage}
+          />
+          <QuickAction
+            title="Browse manual"
+            sub="Procedures, torque, tools"
+            onClick={onOpenManual}
+            primary
+          />
+          <QuickAction
+            title="HD intervals"
+            sub="Reference schedule"
+            onClick={onOpenIntervals}
+          />
+        </div>
       </div>
 
-      <footer className="mt-12 border-t border-hd-border pt-4 text-xs text-hd-muted">
-        Sidestand — a personal build assistant for motorcycle riders.
-      </footer>
+      <div className="mt-10 rounded-md border border-hd-border bg-hd-dark p-3 text-xs leading-relaxed text-hd-muted">
+        <strong className="text-hd-text">Heads up —</strong> Sidestand
+        is a personal reference tool, not an official Harley-Davidson
+        resource. Always verify torque values and part numbers against
+        the printed service manual before final assembly. Work at your
+        own risk.
+      </div>
     </div>
   )
+}
+
+// ---------- Bits ----------
+
+function StatCard({ kicker, headline, sub, tone, onClick }) {
+  // tone: 'warn' tints the kicker red, 'ok' is default muted.
+  const kickerCls =
+    tone === 'warn'
+      ? 'text-hd-orange'
+      : 'text-hd-muted'
+  return (
+    <button
+      onClick={onClick}
+      className="group rounded-md border border-hd-border bg-hd-dark p-4 text-left transition hover:border-hd-orange"
+    >
+      <div className={`text-xs uppercase tracking-widest ${kickerCls}`}>
+        {kicker}
+      </div>
+      <div className="mt-2 font-display text-2xl tracking-wider text-hd-text">
+        {headline}
+      </div>
+      <div className="mt-2 line-clamp-2 text-xs text-hd-muted">{sub}</div>
+      <div className="mt-3 text-xs text-hd-muted opacity-60 transition group-hover:opacity-100 group-hover:text-hd-orange">
+        Open →
+      </div>
+    </button>
+  )
+}
+
+function QuickAction({ title, sub, onClick, primary }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md border p-4 text-left transition ${
+        primary
+          ? 'border-hd-orange bg-hd-orange/10 hover:bg-hd-orange/15'
+          : 'border-hd-border bg-hd-dark hover:border-hd-orange'
+      }`}
+    >
+      <div
+        className={`font-display text-xl tracking-wider ${
+          primary ? 'text-hd-orange' : 'text-hd-text'
+        }`}
+      >
+        {title.toUpperCase()}
+      </div>
+      <div className="mt-1 text-xs text-hd-muted">{sub}</div>
+    </button>
+  )
+}
+
+// ---------- Summary helpers ----------
+
+// Build the dashboard summary across all bikes. Cheap — runs once
+// per render and against the local cache.
+function buildSummary(garage) {
+  let mostRecent = null
+  const dueSoon = []
+  for (const bike of garage) {
+    const log = getServiceLog(bike.id)
+    // Track most-recent service entry across all bikes
+    for (const e of log) {
+      if (!mostRecent || (e.date || '') > (mostRecent.date || '')) {
+        mostRecent = {
+          ...e,
+          bike,
+          bikeName: bike.nickname || bike.model || `${bike.year || ''} bike`
+        }
+      }
+    }
+    // Evaluate every HD interval for this bike's current mileage
+    const mi = bike.mileage || 0
+    for (const interval of intervals) {
+      const last = findLastMatchingEntry(interval, log)
+      const ev = evaluateInterval(interval, mi, last)
+      if (ev.status === 'overdue' || ev.status === 'due-soon') {
+        dueSoon.push({
+          bike,
+          bikeName: bike.nickname || bike.model || `${bike.year || ''} bike`,
+          intervalLabel: interval.label,
+          status: ev.status,
+          milesLeft: ev.milesLeft,
+          milesOver: ev.milesOver
+        })
+      }
+    }
+  }
+  // Sort due-soon: overdue first (descending miles over), then due-soon
+  // ascending miles left.
+  dueSoon.sort((a, b) => {
+    if (a.status === 'overdue' && b.status !== 'overdue') return -1
+    if (b.status === 'overdue' && a.status !== 'overdue') return 1
+    if (a.status === 'overdue') return (b.milesOver || 0) - (a.milesOver || 0)
+    return (a.milesLeft || 0) - (b.milesLeft || 0)
+  })
+  return { dueSoon, recent: mostRecent }
+}
+
+// Render a date string like "2025-12-30" as "3 days ago" / "today".
+function formatTimeAgo(iso) {
+  if (!iso) return ''
+  const then = new Date(iso)
+  if (Number.isNaN(then.getTime())) return iso
+  const now = new Date()
+  const ms = now.getTime() - then.getTime()
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24))
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days} days ago`
+  if (days < 30) return `${Math.floor(days / 7)} wk ago`
+  if (days < 365) return `${Math.floor(days / 30)} mo ago`
+  return `${Math.floor(days / 365)} yr ago`
 }

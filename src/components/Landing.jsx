@@ -1,116 +1,162 @@
 import React from 'react'
-import { SignIn } from '@clerk/clerk-react'
+import TopNav from './TopNav.jsx'
 import Logo from './Logo.jsx'
 
-// Pre-auth landing page. Simple pitch on the left, embedded Clerk sign-in on
-// the right. On mobile the sign-in stacks below.
+// Pre-auth landing page. Tells the story in 5 seconds, then offers a
+// big "Get started" that opens the dedicated sign-in page.
 //
-// Styling: Clerk's <SignIn> accepts an `appearance` prop with CSS variables.
-// We feed in the orange + dark palette from tailwind.config.js so the form
-// matches the rest of the site. All the real field layout/validation is
-// handled by Clerk.
-export default function Landing() {
+// Sections:
+//   1. TopNav (with "Sign in" on the right instead of the user widget)
+//   2. Hero — headline + sub + CTAs + brand mark as graphic
+//   3. Feature strip — three columns: Garage / Manual / Build sheets
+//   4. Sample CTA — "See a real build" link to a sample public bike
+//   5. Footer — disclaimer + legal
+//
+// All Clerk sign-in is on /sign-in (the SignInPage component); the
+// landing page itself is pure marketing.
+export default function Landing({ onSignIn, onSampleBike }) {
   return (
     <div className="min-h-screen bg-hd-black text-hd-text">
-      <header className="border-b border-hd-border bg-hd-dark">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Logo size={26} />
-          <a
-            href="https://sidestand.app"
-            target="_top"
-            rel="noopener"
-            className="text-xs text-hd-muted hover:text-hd-orange"
-          >
-            sidestand.app
-          </a>
-        </div>
-      </header>
+      <TopNav
+        activeSection={null}
+        onNavigate={() => onSignIn()}
+        signedOut
+        onSignInClick={onSignIn}
+      />
 
-      <main className="mx-auto grid max-w-6xl gap-10 px-6 py-10 md:grid-cols-2 md:gap-16 md:py-16">
-        <section className="flex flex-col justify-center">
-          <h1 className="font-display tracking-wider text-5xl text-hd-orange sm:text-6xl">
-            WHERE YOUR BUILD LIVES BETWEEN RIDES.
-          </h1>
-          <p className="mt-4 text-base text-hd-muted sm:text-lg">
-            Track service, log mods, follow step-by-step procedures from the
-            Harley-Davidson service manuals, and share your build — all in one
-            place, on every device.
-          </p>
-
-          <ul className="mt-6 space-y-2 text-sm text-hd-muted">
-            <li>
-              <span className="text-hd-text">•</span> Touring M8 Gen 1
-              (2017–2023) and Softail M8 Gen 2 (2024–2025) covered
-            </li>
-            <li>
-              <span className="text-hd-text">•</span> Every procedure has the
-              manual page, figures, torque values and tools
-            </li>
-            <li>
-              <span className="text-hd-text">•</span> Log completed services
-              against each of your bikes, export a PDF service book
-            </li>
-          </ul>
-
-          <div className="mt-8 rounded-md border border-hd-border bg-hd-dark p-3 text-xs leading-relaxed text-hd-muted sm:text-sm">
-            <strong className="text-hd-text">Heads up —</strong> this is a
-            personal reference tool, not an official Harley-Davidson
-            resource. Always verify torque values and part numbers against
-            the printed service manual before final assembly. Harley-Davidson®
-            is a registered trademark of H-D U.S.A., LLC — this site is not
-            affiliated with or endorsed by Harley-Davidson.
+      {/* HERO */}
+      <section className="border-b border-hd-border">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:grid-cols-12 sm:gap-12 sm:px-6 sm:py-20">
+          <div className="sm:col-span-7">
+            <div className="text-xs uppercase tracking-widest text-hd-orange">
+              Sidestand · for builders & riders
+            </div>
+            <h1 className="mt-3 font-display text-5xl tracking-wider text-hd-text sm:text-6xl md:text-7xl">
+              WHERE YOUR BUILD<br />LIVES BETWEEN RIDES.
+            </h1>
+            <p className="mt-5 max-w-xl text-base text-hd-muted sm:text-lg">
+              Track service. Log mods. Walk through factory procedures
+              step by step. Share your build with a single link. One
+              place for everything that happens between rides.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <button
+                onClick={onSignIn}
+                className="rounded bg-hd-orange px-6 py-3 text-base font-semibold text-white hover:brightness-110"
+              >
+                Get started — it's free
+              </button>
+              {onSampleBike && (
+                <button
+                  onClick={onSampleBike}
+                  className="rounded border border-hd-border bg-hd-dark px-6 py-3 text-base text-hd-text hover:border-hd-orange hover:text-hd-orange"
+                >
+                  See a build →
+                </button>
+              )}
+            </div>
+            <div className="mt-6 text-xs text-hd-muted">
+              Free while in beta. No credit card. Cancel anytime.
+            </div>
           </div>
-        </section>
 
-        <section className="flex items-start justify-center md:justify-end">
-          <SignIn
-            routing="hash"
-            signUpForceRedirectUrl="/"
-            signInForceRedirectUrl="/"
-            appearance={{
-              variables: {
-                colorPrimary: '#E03A36', // signal red
-                colorBackground: '#16161A', // surface
-                colorText: '#E8E2D5', // bone — body text on dark surface
-                colorTextSecondary: '#9A9A9F', // muted gray
-                colorTextOnPrimaryBackground: '#FFFFFF', // white — readable on red button
-                colorInputBackground: '#0E0E10', // asphalt
-                colorInputText: '#E8E2D5',
-                colorNeutral: '#E8E2D5', // bone — affects headers/labels in some Clerk themes
-                colorShimmer: 'rgba(232, 226, 213, 0.1)',
-                borderRadius: '0.5rem',
-                fontFamily: 'inherit'
-              },
-              elements: {
-                // Force every heading + label to bone so nothing inherits
-                // a dark default token. Clerk sometimes ships separate
-                // tokens for the title vs. body that don't follow colorText.
-                card: 'border border-hd-border shadow-none bg-hd-dark',
-                headerTitle: 'text-hd-text font-display tracking-wider',
-                headerSubtitle: 'text-hd-muted',
-                formFieldLabel: 'text-hd-text',
-                formFieldInput: 'text-hd-text',
-                identityPreviewText: 'text-hd-text',
-                identityPreviewEditButton: 'text-hd-orange',
-                dividerText: 'text-hd-muted',
-                footerActionText: 'text-hd-muted',
-                footerActionLink: 'text-hd-orange hover:brightness-110',
-                socialButtonsBlockButton:
-                  'border border-hd-border text-hd-text hover:border-hd-orange',
-                socialButtonsBlockButtonText: 'text-hd-text',
-                formButtonPrimary:
-                  'bg-hd-orange text-white hover:brightness-110 normal-case tracking-wide'
-              }
-            }}
-          />
-        </section>
-      </main>
+          {/* Right side: brand mark as decorative graphic. We render the
+              wordmark BIG, vertically, so it reads as a tank-graphic
+              treatment without needing a real photo yet. Replaceable
+              with a real hero image later by swapping this block. */}
+          <div className="sm:col-span-5">
+            <div className="flex items-center justify-center rounded-md border border-hd-border bg-hd-dark p-10 sm:p-14">
+              <div className="text-center">
+                <div className="mb-4 inline-block">
+                  <Logo size={48} />
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-hd-muted">
+                  build · log · share
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <footer className="mt-10 border-t border-hd-border">
-        <div className="mx-auto max-w-6xl px-6 py-4 text-xs text-hd-muted">
-          Sidestand — a personal build assistant for motorcycle riders.
+      {/* FEATURES */}
+      <section className="border-b border-hd-border">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+          <div className="text-xs uppercase tracking-widest text-hd-orange">
+            What's inside
+          </div>
+          <h2 className="mt-2 font-display text-3xl tracking-wider sm:text-4xl">
+            EVERYTHING YOU NEED, NOTHING YOU DON'T.
+          </h2>
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <FeatureCard
+              kicker="01 · Garage"
+              title="Every bike, in one place"
+              body="Log every motorcycle you own — VIN, mileage, photos, install dates. Service intervals follow you, not the bike."
+            />
+            <FeatureCard
+              kicker="02 · Manual"
+              title="Step-by-step procedures"
+              body="The factory service manual, organized by platform. Torque specs, part numbers, tool lists, figures — every job."
+            />
+            <FeatureCard
+              kicker="03 · Build sheets"
+              title="Share your build"
+              body="One toggle and your bike has a public page with cover photo, mods list, and service history. Your link, your story."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="border-b border-hd-border">
+        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-14">
+          <div>
+            <h2 className="font-display text-2xl tracking-wider sm:text-3xl">
+              READY WHEN YOU ARE.
+            </h2>
+            <p className="mt-1 text-sm text-hd-muted">
+              No setup, no install. Sign in and add your first bike in under a minute.
+            </p>
+          </div>
+          <button
+            onClick={onSignIn}
+            className="rounded bg-hd-orange px-6 py-3 text-base font-semibold text-white hover:brightness-110"
+          >
+            Get started
+          </button>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="text-xs leading-relaxed text-hd-muted">
+          <strong className="text-hd-text">Heads up —</strong> Sidestand
+          is a personal reference tool, not an official Harley-Davidson
+          resource. Always verify torque values and part numbers against
+          the printed service manual before final assembly.
+          Harley-Davidson® is a registered trademark of H-D U.S.A., LLC
+          — Sidestand is not affiliated with or endorsed by
+          Harley-Davidson.
+        </div>
+        <div className="mt-3 text-xs text-hd-muted">
+          © Sidestand · sidestand.app
         </div>
       </footer>
+    </div>
+  )
+}
+
+function FeatureCard({ kicker, title, body }) {
+  return (
+    <div className="rounded-md border border-hd-border bg-hd-dark p-5">
+      <div className="text-xs uppercase tracking-widest text-hd-orange">
+        {kicker}
+      </div>
+      <div className="mt-2 font-display text-2xl tracking-wider">
+        {title.toUpperCase()}
+      </div>
+      <p className="mt-2 text-sm text-hd-muted">{body}</p>
     </div>
   )
 }
