@@ -9,8 +9,8 @@ import Logo from './Logo.jsx'
 //   1. TopNav (with "Sign in" on the right instead of the user widget)
 //   2. Hero — headline + sub + CTAs + brand mark as graphic
 //   3. Feature strip — three columns: Garage / Manual / Build sheets
-//   4. Sample CTA — "See a real build" link to a sample public bike
-//   5. Footer — disclaimer + legal
+//   4. CTA strip
+//   5. Footer — copyright only
 //
 // All Clerk sign-in is on /sign-in (the SignInPage component); the
 // landing page itself is pure marketing.
@@ -130,16 +130,7 @@ export default function Landing({ onSignIn, onSampleBike }) {
 
       {/* FOOTER */}
       <footer className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="text-xs leading-relaxed text-hd-muted">
-          <strong className="text-hd-text">Heads up —</strong> Sidestand
-          is a personal reference tool, not an official Harley-Davidson
-          resource. Always verify torque values and part numbers against
-          the printed service manual before final assembly.
-          Harley-Davidson® is a registered trademark of H-D U.S.A., LLC
-          — Sidestand is not affiliated with or endorsed by
-          Harley-Davidson.
-        </div>
-        <div className="mt-3 text-xs text-hd-muted">
+        <div className="text-xs text-hd-muted">
           © Sidestand · sidestand.app
         </div>
       </footer>

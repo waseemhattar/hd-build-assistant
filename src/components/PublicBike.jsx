@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { bikes as bikeCatalog } from '../data/bikes.js'
 import { getPublicBikeBySlug } from '../data/storage.js'
 import Logo from './Logo.jsx'
 
@@ -105,7 +104,6 @@ export default function PublicBike({ slug }) {
   }
 
   const { bike, builds, mods, serviceEntries = [] } = state.data
-  const preset = bikeCatalog.find((p) => p.id === bike.bikeTypeId)
 
   // Bucket mods by buildId. Anything with a null/unknown buildId goes
   // into the "Other mods" bucket so it still gets surfaced.
@@ -146,17 +144,16 @@ export default function PublicBike({ slug }) {
           </div>
         )}
         <div className="p-5 sm:p-6">
-          <div className="text-xs uppercase tracking-widest text-hd-orange">
-            {bike.year} {preset?.family || ''}
-          </div>
+          {bike.year && (
+            <div className="text-xs uppercase tracking-widest text-hd-orange">
+              {bike.year}
+            </div>
+          )}
           <div className="mt-1 font-display text-3xl tracking-wider sm:text-4xl">
             {bike.nickname || bike.model || 'Unnamed bike'}
           </div>
           {bike.nickname && bike.model && (
             <div className="mt-1 text-sm text-hd-muted">{bike.model}</div>
-          )}
-          {preset && (
-            <div className="mt-1 text-xs text-hd-muted">{preset.label}</div>
           )}
           <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <Stat label="Mileage" value={(bike.mileage || 0).toLocaleString()} />

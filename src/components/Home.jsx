@@ -139,13 +139,6 @@ export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPi
         </div>
       </div>
 
-      <div className="mt-10 rounded-md border border-hd-border bg-hd-dark p-3 text-xs leading-relaxed text-hd-muted">
-        <strong className="text-hd-text">Heads up —</strong> Sidestand
-        is a personal reference tool, not an official Harley-Davidson
-        resource. Always verify torque values and part numbers against
-        the printed service manual before final assembly. Work at your
-        own risk.
-      </div>
     </div>
   )
 }

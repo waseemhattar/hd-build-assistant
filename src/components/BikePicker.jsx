@@ -13,22 +13,12 @@ export default function BikePicker({ onSelect }) {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-8 sm:mb-10">
         <h1 className="font-display text-4xl tracking-wider text-hd-orange sm:text-5xl">
-          HD BUILD ASSISTANT
+          BROWSE MANUAL
         </h1>
         <p className="mt-2 text-sm text-hd-muted sm:text-base">
-          Pick the bike you're working on. Step-by-step procedures, torque specs
-          and part numbers from my personal service-manual library.
+          Pick the bike you're working on. Step-by-step procedures,
+          torque specs and part numbers — organized by platform.
         </p>
-
-        <div className="mt-4 rounded-md border border-hd-border bg-hd-dark p-3 text-xs leading-relaxed text-hd-muted sm:text-sm">
-          <strong className="text-hd-text">Heads up —</strong> this is a
-          personal reference assistant, not an official Harley-Davidson
-          resource. Always verify torque values and part numbers against the
-          printed service manual and current HD service bulletins before
-          final assembly. Work at your own risk. Harley-Davidson® is a
-          registered trademark of H-D U.S.A., LLC — this site is not
-          affiliated with or endorsed by Harley-Davidson.
-        </div>
       </div>
 
       {Object.entries(groups).map(([family, list]) => (
