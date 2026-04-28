@@ -2,6 +2,16 @@ import React from 'react'
 import { SignIn } from '@clerk/clerk-react'
 import TopNav from './TopNav.jsx'
 import Logo from './Logo.jsx'
+import { isNativeApp } from '../data/platform.js'
+
+// When running in a Capacitor WebView, OAuth providers (Google /
+// Microsoft / etc.) reject redirect URLs whose scheme isn't http or
+// https — `capacitor://localhost/...` triggers an "Invalid URL scheme"
+// error. We force the redirect target to our real https domain so the
+// OAuth roundtrip completes; the WebView intercepts the post-auth
+// landing and resumes the signed-in session.
+const NATIVE_POST_AUTH_URL = 'https://sidestand.app/'
+const native = isNativeApp()
 
 // Dedicated sign-in page. Loaded when the URL is /sign-in (handled by
 // App.jsx). The whole page is centered around the Clerk <SignIn /> with
@@ -30,8 +40,8 @@ export default function SignInPage({ onBack }) {
 
         <SignIn
           routing="hash"
-          signUpForceRedirectUrl="/"
-          signInForceRedirectUrl="/"
+          signUpForceRedirectUrl={native ? NATIVE_POST_AUTH_URL : '/'}
+          signInForceRedirectUrl={native ? NATIVE_POST_AUTH_URL : '/'}
           appearance={{
             variables: {
               colorPrimary: '#E03A36',
