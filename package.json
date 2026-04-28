@@ -8,9 +8,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "ingest:jobs": "node scripts/ingest-jobs.mjs"
+    "ingest:jobs": "node scripts/ingest-jobs.mjs",
+    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:open": "npm run build && npx cap sync ios && npx cap open ios",
+    "ios:run": "npm run build && npx cap sync ios && npx cap run ios"
   },
   "dependencies": {
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/preferences": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
     "@clerk/clerk-react": "^5.17.0",
     "@supabase/supabase-js": "^2.45.0",
     "jspdf": "^2.5.1",
@@ -19,6 +28,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",

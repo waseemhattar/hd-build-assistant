@@ -66,27 +66,38 @@ create policy "user_profiles: own row update"
   with check (clerk_user_id = (auth.jwt() ->> 'sub'));
 
 -- Trigger: a user cannot self-promote to admin. is_admin can only be
--- changed by another admin (or by direct SQL — which is fine because
--- only the project owner has SQL access).
+-- changed by another admin OR via direct SQL / service-role context
+-- (no JWT present), which is fine because that's only available to
+-- the project owner via the Supabase dashboard.
+--
+-- The early return when jwt_sub is null is what lets the seed insert
+-- below land with is_admin = true — at migration time there's no
+-- JWT, so the trigger gets out of its own way.
 create or replace function public.user_profiles_protect_admin()
 returns trigger
 language plpgsql
 security definer
 as $$
+declare
+  jwt_sub text := auth.jwt() ->> 'sub';
 begin
+  -- No JWT = direct SQL, service role, or migration. Allow anything.
+  if jwt_sub is null then
+    return new;
+  end if;
+
   if tg_op = 'INSERT' and new.is_admin = true then
-    -- New rows start as non-admin unless inserted by an existing admin
-    -- (or by service_role / SQL).
+    -- New rows start as non-admin unless inserted by an existing admin.
     if not exists (
       select 1 from public.user_profiles
-      where clerk_user_id = (auth.jwt() ->> 'sub') and is_admin = true
+      where clerk_user_id = jwt_sub and is_admin = true
     ) then
       new.is_admin := false;
     end if;
   elsif tg_op = 'UPDATE' and new.is_admin is distinct from old.is_admin then
     if not exists (
       select 1 from public.user_profiles
-      where clerk_user_id = (auth.jwt() ->> 'sub') and is_admin = true
+      where clerk_user_id = jwt_sub and is_admin = true
     ) then
       new.is_admin := old.is_admin;
     end if;
