@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["TEAMID.app.sidestand.app"],
+        "appIDs": ["7Z8U27DGRJ.app.sidestand.app"],
         "components": [
           {
             "/": "/sso-callback*",
@@ -17,6 +17,6 @@
     ]
   },
   "webcredentials": {
-    "apps": ["TEAMID.app.sidestand.app"]
+    "apps": ["7Z8U27DGRJ.app.sidestand.app"]
   }
 }
