@@ -67,9 +67,12 @@ function NativeSignIn() {
   async function tap(strategy) {
     setErr(null)
     setBusy(true)
+    console.log('[Sidestand] startNativeOAuth begin', { strategy })
     try {
       await startNativeOAuth({ clerk, strategy })
+      console.log('[Sidestand] startNativeOAuth dispatched (waiting on callback)')
     } catch (e) {
+      console.error('[Sidestand] startNativeOAuth error', e)
       setErr(e?.message || 'Sign-in failed.')
     } finally {
       setBusy(false)
