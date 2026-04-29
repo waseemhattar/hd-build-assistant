@@ -1,30 +1,27 @@
 import React, { useState } from 'react'
-import { SignIn, useClerk } from '@clerk/clerk-react'
+import { SignIn, useSignIn } from '@clerk/clerk-react'
 import TopNav from './TopNav.jsx'
 import Logo from './Logo.jsx'
 import { isNativeApp } from '../data/platform.js'
-import { startNativeOAuth } from '../data/nativeAuth.js'
+import { signInWithAppleNative } from '../data/appleAuth.js'
 
-// When running in a Capacitor WebView, OAuth providers (Google /
-// Microsoft / etc.) block embedded WebViews entirely (Google returns
-// "Error 403: disallowed_useragent"). The fix is to open the OAuth
-// flow in Safari View Controller — a real native browser overlay
-// that has the system Safari user agent. We do that here with our
-// own native sign-in buttons that bypass Clerk's default flow when
-// running natively.
+// Sign-in page. Layout differs slightly between web and native:
+//   - Web: just the Clerk <SignIn /> widget (Google, Microsoft, email).
+//   - Native (iOS/Android): a "Sign in with Apple" button at the top
+//     using Apple's native dialog, plus the Clerk widget below for
+//     email + password fallback. We hide the social buttons on the
+//     Clerk widget when native, since OAuth providers reject embedded
+//     WebViews.
 //
-// On the web, we render the regular Clerk <SignIn /> widget which
-// handles everything including OAuth.
-const NATIVE_POST_AUTH_URL = 'https://sidestand.app/'
+// Design rationale:
+//   - Apple is the only OAuth provider that works inside a Capacitor
+//     WebView (it uses a system-level dialog, not a redirect to a
+//     web page that gets blocked by `disallowed_useragent`).
+//   - Apple Sign In is REQUIRED by App Store policy when other social
+//     login is offered, so adding it now also satisfies that.
+//   - Email + password always works as a universal fallback.
 const native = isNativeApp()
 
-// Dedicated sign-in page. Loaded when the URL is /sign-in (handled by
-// App.jsx). The whole page is centered around the Clerk <SignIn /> with
-// the same TopNav + brand framing as Landing.
-//
-// The Clerk appearance settings here mirror the dark + signal red
-// palette and force light text colors on every Clerk element so
-// nothing inherits a default that's invisible against our dark surface.
 export default function SignInPage({ onBack }) {
   return (
     <div className="min-h-screen bg-hd-black text-hd-text">
@@ -56,23 +53,21 @@ export default function SignInPage({ onBack }) {
   )
 }
 
-// Native sign-in: render our own buttons that route OAuth through
-// Safari View Controller (via @capacitor/browser). The Clerk
-// <SignIn /> widget below it handles email + password fallback.
+// Native (iOS/Android): Apple button on top, then Clerk's widget for
+// email sign-in below. Social buttons in Clerk are hidden — they
+// would just hit the disallowed-useragent block.
 function NativeSignIn() {
-  const clerk = useClerk()
+  const { signIn, setActive } = useSignIn()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
-  async function tap(strategy) {
+  async function tapApple() {
     setErr(null)
     setBusy(true)
-    console.log('[Sidestand] startNativeOAuth begin', { strategy })
     try {
-      await startNativeOAuth({ clerk, strategy })
-      console.log('[Sidestand] startNativeOAuth dispatched (waiting on callback)')
+      await signInWithAppleNative({ signIn, setActive })
     } catch (e) {
-      console.error('[Sidestand] startNativeOAuth error', e)
+      console.error('[Sidestand] Apple sign-in failed', e)
       setErr(e?.message || 'Sign-in failed.')
     } finally {
       setBusy(false)
@@ -92,12 +87,12 @@ function NativeSignIn() {
         </div>
 
         <button
-          onClick={() => tap('oauth_google')}
+          onClick={tapApple}
           disabled={busy}
-          className="flex w-full items-center justify-center gap-3 rounded border border-hd-border bg-hd-black px-4 py-3 text-sm text-hd-text transition hover:border-hd-orange disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded bg-white px-4 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:opacity-50"
         >
-          <GoogleG />
-          <span>{busy ? 'Opening Google…' : 'Continue with Google'}</span>
+          <AppleLogo />
+          <span>{busy ? 'Continuing…' : 'Sign in with Apple'}</span>
         </button>
 
         {err && (
@@ -114,13 +109,14 @@ function NativeSignIn() {
 
         <SignIn
           routing="hash"
-          signUpForceRedirectUrl={NATIVE_POST_AUTH_URL}
-          signInForceRedirectUrl={NATIVE_POST_AUTH_URL}
+          signUpForceRedirectUrl="/"
+          signInForceRedirectUrl="/"
           appearance={{
             variables: clerkVariables,
             elements: {
               ...clerkElements,
-              // Hide the social buttons row — we render our own above.
+              // Hide the social buttons row — embedded WebView OAuth
+              // doesn't work, so we don't tease it.
               socialButtons: 'hidden',
               socialButtonsBlockButton: 'hidden',
               divider: 'hidden',
@@ -136,8 +132,7 @@ function NativeSignIn() {
   )
 }
 
-// Web sign-in: just the Clerk widget. OAuth works fine in a real
-// browser, so no special handling.
+// Web sign-in: standard Clerk widget. OAuth works fine in a real browser.
 function WebSignIn() {
   return (
     <SignIn
@@ -152,20 +147,17 @@ function WebSignIn() {
   )
 }
 
-// Inline Google G logo so the button looks legit even without an
-// external image asset.
-function GoogleG() {
+function AppleLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-      <path fill="#FFC107" d="M43.6 20.5H42V20.4H24v7.2h11.3c-1.5 4.2-5.5 7.2-10.3 7.2a11 11 0 0 1 0-22c2.6 0 5 .9 7 2.5l5.1-5.1A18 18 0 1 0 24 42c10 0 18-7 18-18 0-1.2-.1-2.4-.4-3.5z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l5.9 4.3A11 11 0 0 1 24 13c2.6 0 5 .9 7 2.5l5.1-5.1A18 18 0 0 0 6.3 14.7z"/>
-      <path fill="#4CAF50" d="M24 42a18 18 0 0 0 12-4.6l-5.5-4.7c-1.8 1.3-4 2.1-6.5 2.1-4.8 0-8.8-3-10.3-7.2l-5.9 4.6C10.5 38 16.7 42 24 42z"/>
-      <path fill="#1976D2" d="M43.6 20.5H42V20.4H24v7.2h11.3c-.7 2-2 3.7-3.7 5l5.5 4.7c4-3.6 6.5-9 6.5-15-.1-1.2-.2-2.4-.4-3.6z"/>
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#000"
+        d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
+      />
     </svg>
   )
 }
 
-// Pulled out so both the native and web flows share the same theming.
 const clerkVariables = {
   colorPrimary: '#E03A36',
   colorBackground: '#16161A',
