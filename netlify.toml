@@ -1,5 +1,5 @@
-# Netlify configuration for HD Build Assistant
-# Deployed at: https://harley.h-dbuilds.com
+# Netlify configuration for Sidestand
+# Deployed at: https://sidestand.app
 
 [build]
   command = "npm run build"
@@ -8,7 +8,23 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA fallback — any unknown route serves the app shell
+# Apple Universal Links file — must be served with JSON content-type
+# and NEVER fall through to the SPA shell. This redirect makes sure
+# iOS gets the AASA file when checking sidestand.app for app linking.
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"
+    Cache-Control = "public, max-age=300"
+
+# SPA fallback — any unknown route serves the app shell. EXCEPT
+# /.well-known which has to serve real files for Apple/Google verifiers.
+[[redirects]]
+  from = "/.well-known/*"
+  to = "/.well-known/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

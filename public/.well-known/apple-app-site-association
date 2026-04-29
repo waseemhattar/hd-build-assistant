@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.app.sidestand.app"],
+        "components": [
+          {
+            "/": "/sso-callback*",
+            "comment": "OAuth post-sign-in callback handled by the native app"
+          },
+          {
+            "/": "/b/*",
+            "comment": "Public bike share links open in the app for signed-in riders"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.app.sidestand.app"]
+  }
+}
