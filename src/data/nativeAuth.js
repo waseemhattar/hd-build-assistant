@@ -112,25 +112,26 @@ export async function startNativeOAuth({ clerk, strategy = 'oauth_google' }) {
   }
 
   // Step 1: create a SignIn attempt with the OAuth strategy. Clerk
-  // returns the URL we need to send the user to. This is the proper
-  // SDK call — no hijacking required.
+  // returns the URL we need to send the user to.
+  //
+  // Different Clerk SDK versions accept different parameter shapes.
+  // signIn.create() in 5.x only accepts { strategy, redirectUrl }.
+  // The redirectUrlComplete is configured at the ClerkProvider level
+  // (we set it in main.jsx for native), not on this call.
   let oauthUrl = null
   try {
-    // create() returns a Promise<SignIn> with state info.
-    await signIn.create({ strategy, redirectUrl, redirectUrlComplete })
+    await signIn.create({ strategy, redirectUrl })
 
     // After create(), the SignIn object has a `firstFactorVerification`
-    // (or `externalVerificationRedirectURL` directly, depending on
-    // Clerk SDK version) pointing at Google's OAuth URL.
+    // pointing at Google's OAuth URL. Different SDK versions surface
+    // it under slightly different paths — try them all.
     oauthUrl =
       signIn.firstFactorVerification?.externalVerificationRedirectURL?.toString?.() ||
       signIn.firstFactorVerification?.externalVerificationRedirectURL ||
+      signIn.externalVerificationRedirectURL ||
       null
 
-    // Some Clerk SDK versions surface the URL on signIn directly.
-    if (!oauthUrl && signIn.externalVerificationRedirectURL) {
-      oauthUrl = String(signIn.externalVerificationRedirectURL)
-    }
+    if (oauthUrl) oauthUrl = String(oauthUrl)
   } catch (err) {
     await teardownCallbackListener()
     throw new Error(`Clerk signIn.create failed: ${err?.message || err}`)
