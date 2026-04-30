@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { UserButton } from '@clerk/clerk-react'
+import React, { useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
+import { useAuth, useUser } from '../auth/AuthProvider.jsx'
 
 // Persistent top navigation, used on every signed-in screen.
 //
@@ -90,12 +90,7 @@ export default function TopNav({
               Sign in
             </button>
           ) : (
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: { userButtonAvatarBox: 'w-7 h-7' }
-              }}
-            />
+            <UserMenu />
           )}
           {/* Mobile hamburger — only when there are nav links to show */}
           {!signedOut && (
@@ -159,5 +154,74 @@ export default function TopNav({
         </div>
       )}
     </header>
+  )
+}
+
+// Tiny user-menu button on the right side of the nav. Replaces Clerk's
+// <UserButton />. Click → reveals a dropdown with the user's email and
+// a sign-out action. We keep it minimal here; profile management can
+// land in a separate Settings page later.
+function UserMenu() {
+  const { user } = useUser()
+  const { signOut } = useAuth()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (!ref.current?.contains(e.target)) setOpen(false)
+    }
+    if (open) {
+      document.addEventListener('mousedown', onDoc)
+      return () => document.removeEventListener('mousedown', onDoc)
+    }
+  }, [open])
+
+  const initials = (user?.fullName || user?.primaryEmailAddress?.emailAddress || 'S')
+    .split(/\s|@/)
+    .filter(Boolean)
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-hd-border bg-hd-card text-[11px] font-semibold text-hd-text hover:border-hd-orange"
+        aria-label="User menu"
+        aria-expanded={open}
+      >
+        {user?.imageUrl ? (
+          <img
+            src={user.imageUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          initials
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 w-56 rounded-md border border-hd-border bg-hd-dark py-1 text-sm shadow-lg">
+          <div className="border-b border-hd-border px-3 py-2">
+            <div className="truncate text-xs text-hd-muted">Signed in as</div>
+            <div className="truncate text-hd-text">
+              {user?.primaryEmailAddress?.emailAddress || user?.fullName || 'rider'}
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              setOpen(false)
+              await signOut()
+            }}
+            className="w-full px-3 py-2 text-left text-hd-text hover:bg-hd-card hover:text-hd-orange"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

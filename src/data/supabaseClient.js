@@ -1,24 +1,14 @@
-// Supabase client, wired to use a short-lived Clerk JWT on every request.
+// Supabase client.
 //
-// How the Clerk ↔ Supabase integration works:
-//   1. Clerk has a JWT template named "supabase" that issues a token with
-//      `aud: 'authenticated'` and `role: 'authenticated'` claims.
-//   2. Supabase is configured (in its dashboard's JWT settings) to trust
-//      Clerk's JWKS endpoint, so tokens signed by Clerk validate server-
-//      side in Supabase's PostgREST.
-//   3. Before every Supabase request, we ask Clerk for a fresh JWT and
-//      put it on the Authorization: Bearer <jwt> header. Supabase reads
-//      the `sub` claim (the Clerk user id) and RLS policies use it to
-//      filter rows per user.
+// Auth is handled by Supabase Auth itself — sign in via signInWithOAuth
+// / signInWithPassword on the client, Supabase tracks the session in
+// localStorage, and every PostgREST request automatically carries the
+// session JWT. RLS policies read auth.uid() server-side.
 //
-// Usage:
-//   import { getSupabaseClient } from './supabaseClient'
-//   const supabase = await getSupabaseClient(getToken)
-//   const { data, error } = await supabase.from('garage_bikes').select()
-//
-// where `getToken` comes from Clerk's useAuth() hook. We pass it in
-// rather than importing Clerk here so this file stays framework-agnostic
-// and easier to test.
+// We construct the client once and re-use it everywhere. The `auth`
+// options below tune how the SDK manages the session: it auto-refreshes
+// tokens before they expire, persists the session across page reloads,
+// and listens for sign-in completion on the OAuth-callback URL.
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -31,14 +21,7 @@ export function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 }
 
-// Returns a Supabase client that attaches a fresh Clerk JWT on every
-// request. `getToken` is Clerk's useAuth().getToken.
-//
-// We construct the client once (cachedClient) because creating it is
-// expensive; the per-request fetch override swaps in a fresh JWT each
-// call. Clerk caches tokens internally and only refreshes when the
-// cached one is about to expire, so this is safe to call often.
-export function getSupabaseClient(getToken) {
+export function getSupabaseClient() {
   if (!isSupabaseConfigured()) {
     throw new Error(
       'Supabase not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
@@ -47,26 +30,28 @@ export function getSupabaseClient(getToken) {
   if (cachedClient) return cachedClient
 
   cachedClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      fetch: async (input, init = {}) => {
-        // Ask Clerk for a JWT signed with the 'supabase' template.
-        // Clerk returns null if no one is signed in.
-        let token = null
-        try {
-          token = await getToken({ template: 'supabase' })
-        } catch (e) {
-          // Swallow token errors so we don't hard-crash the UI — the request
-          // will just fail with an auth error, which the caller can surface.
-          console.warn('Clerk getToken failed', e)
-        }
-        const headers = new Headers(init.headers || {})
-        if (token) headers.set('Authorization', `Bearer ${token}`)
-        return fetch(input, { ...init, headers })
-      }
-    },
-    // We do auth via Clerk, not Supabase's built-in auth.
-    auth: { persistSession: false, autoRefreshToken: false }
+    auth: {
+      // Persist the session across page reloads + Capacitor restarts.
+      persistSession: true,
+      // Refresh the access token before it expires so users don't
+      // randomly get logged out.
+      autoRefreshToken: true,
+      // Detect the OAuth callback URL on page load and complete
+      // the sign-in. Required for Google/Apple OAuth to work.
+      detectSessionInUrl: true,
+      // Use PKCE flow for OAuth — works well with browsers AND
+      // Capacitor WebViews (no implicit-flow client-secret problem).
+      flowType: 'pkce'
+    }
   })
 
   return cachedClient
+}
+
+// Convenience: synchronously read the current session, without async.
+// Returns null if not signed in. Useful for non-React code that just
+// needs to know "is there a user?".
+export function currentSession() {
+  if (!cachedClient) return null
+  return cachedClient.auth.getSession() // returns Promise<{data:{session}}>
 }

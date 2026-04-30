@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { useUser } from '@clerk/clerk-react'
+import { useUser } from '../auth/AuthProvider.jsx'
 import {
   getGarage,
   getServiceLog,

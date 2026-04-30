@@ -36,10 +36,14 @@ import {
 //
 // Each signed-in user gets their own localStorage namespace so two people
 // on the same browser don't collide. App.jsx wires this up via
-// setStorageUser(clerkUserId) right after sign-in.
+// setStorageUser(supabaseUserId) right after sign-in.
+//
+// Note: we no longer pass a getToken function in. Supabase Auth manages
+// the JWT internally and the supabaseClient gets the token automatically
+// for every request. We only need the user id here to scope keys and
+// gate writes.
 
 let currentUserId = null
-let getTokenFn = null
 
 // React 18 StrictMode double-invokes mount effects in dev, so App.jsx calls
 // us as: setUser(id) → setUser(null) (cleanup) → setUser(id). If we cleared
@@ -48,14 +52,13 @@ let getTokenFn = null
 // by one tick so a quick remount can cancel it.
 let pendingClear = 0
 
-export function setStorageUser(userId, getToken) {
+export function setStorageUser(userId) {
   if (!userId) {
     pendingClear = pendingClear + 1
     const myToken = pendingClear
     setTimeout(() => {
       if (pendingClear === myToken) {
         currentUserId = null
-        getTokenFn = null
         pendingClear = 0
         notify()
       }
@@ -67,18 +70,12 @@ export function setStorageUser(userId, getToken) {
   pendingClear = 0
 
   const changed = currentUserId !== userId
-  if (!changed) {
-    // Same user, possibly a new getToken reference from a React re-render.
-    // Swap the token function in place but don't re-pull.
-    getTokenFn = getToken || getTokenFn
-    return
-  }
+  if (!changed) return
 
   currentUserId = userId
-  getTokenFn = getToken || null
   notify()
 
-  if (currentUserId && getTokenFn && isSupabaseConfigured()) {
+  if (currentUserId && isSupabaseConfigured()) {
     Promise.resolve()
       .then(() => pullFromServer())
       .catch((e) => console.warn('pullFromServer threw', e))
@@ -341,12 +338,12 @@ export async function uploadCoverPhoto(bikeId, file) {
   if (!isSupabaseConfigured()) {
     throw new Error('Photo upload requires Supabase to be configured.')
   }
-  if (!currentUserId || !getTokenFn) {
+  if (!currentUserId) {
     throw new Error('You must be signed in to upload a photo.')
   }
   if (!file) throw new Error('No file selected.')
 
-  const supabase = getSupabaseClient(getTokenFn)
+  const supabase = getSupabaseClient()
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
   const bikeUuid = localIdToUuid(bikeId)
   // Cache-bust the URL by including a timestamp in the object name so
@@ -384,12 +381,12 @@ export async function uploadUserLogo(file) {
   if (!isSupabaseConfigured()) {
     throw new Error('Logo upload requires Supabase to be configured.')
   }
-  if (!currentUserId || !getTokenFn) {
+  if (!currentUserId) {
     throw new Error('You must be signed in to upload a logo.')
   }
   if (!file) throw new Error('No file selected.')
 
-  const supabase = getSupabaseClient(getTokenFn)
+  const supabase = getSupabaseClient()
   const ext = (file.name.split('.').pop() || 'png').toLowerCase()
   // Timestamp in the object name forces fresh CDN/browser fetches when
   // the user re-uploads.
@@ -855,7 +852,7 @@ function enqueue(op) {
   // No sync required when supabase isn't set up yet (the app still works
   // as a plain localStorage tool).
   if (!isSupabaseConfigured()) return
-  if (!currentUserId || !getTokenFn) return
+  if (!currentUserId) return
 
   const q = readQueue()
   q.push({ ...op, queuedAt: new Date().toISOString() })
@@ -878,13 +875,13 @@ function scheduleFlush() {
 let flushInFlight = null
 async function flushQueue() {
   if (!isSupabaseConfigured()) return
-  if (!currentUserId || !getTokenFn) return
+  if (!currentUserId) return
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
 
   // Avoid overlapping flushes.
   if (flushInFlight) return flushInFlight
   flushInFlight = (async () => {
-    const supabase = getSupabaseClient(getTokenFn)
+    const supabase = getSupabaseClient()
     let q = readQueue()
     while (q.length > 0) {
       const op = q[0]
@@ -1108,10 +1105,10 @@ function sha1Hex(msg) {
 
 async function pullFromServer() {
   if (!isSupabaseConfigured()) return
-  if (!currentUserId || !getTokenFn) return
+  if (!currentUserId) return
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
 
-  const supabase = getSupabaseClient(getTokenFn)
+  const supabase = getSupabaseClient()
   const [
     { data: bikes, error: bErr },
     { data: entries, error: eErr },
@@ -1328,7 +1325,7 @@ function rewriteLocalParentRefs(serverBikes, serverBuilds) {
 // call repeatedly — enqueue is idempotent at the op level (upserts on
 // the translated uuid) and we only re-queue rows that look local-only.
 function reconcileLocalOnlyWrites(serverBikes, serverEntries, serverBuilds, serverMods) {
-  if (!currentUserId || !getTokenFn || !isSupabaseConfigured()) return
+  if (!currentUserId || !isSupabaseConfigured()) return
 
   // Fast lookup of everything the server already knows about. We compare
   // against *translated* uuids so a local-id row counts as "known" only

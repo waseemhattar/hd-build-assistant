@@ -1,28 +1,24 @@
 import React, { useState } from 'react'
-import { SignIn, useSignIn } from '@clerk/clerk-react'
 import TopNav from './TopNav.jsx'
 import Logo from './Logo.jsx'
+import { getSupabaseClient } from '../data/supabaseClient.js'
 import { isNativeApp } from '../data/platform.js'
-import { signInWithAppleNative } from '../data/appleAuth.js'
 
-// Sign-in page. Layout differs slightly between web and native:
-//   - Web: just the Clerk <SignIn /> widget (Google, Microsoft, email).
-//   - Native (iOS/Android): a "Sign in with Apple" button at the top
-//     using Apple's native dialog, plus the Clerk widget below for
-//     email + password fallback. We hide the social buttons on the
-//     Clerk widget when native, since OAuth providers reject embedded
-//     WebViews.
+// Sign-in page. Custom UI on top of Supabase Auth — no third-party
+// widget, full control over the look + feel.
 //
-// Design rationale:
-//   - Apple is the only OAuth provider that works inside a Capacitor
-//     WebView (it uses a system-level dialog, not a redirect to a
-//     web page that gets blocked by `disallowed_useragent`).
-//   - Apple Sign In is REQUIRED by App Store policy when other social
-//     login is offered, so adding it now also satisfies that.
-//   - Email + password always works as a universal fallback.
-const native = isNativeApp()
+// Supported flows:
+//   - Google OAuth (works on web AND inside Capacitor WebView since
+//     Supabase uses PKCE and a clean callback URL)
+//   - Email + password (universal fallback, works everywhere)
+//   - Sign in with Apple via the Capacitor plugin on iOS only (later)
+//
+// On submit, Supabase Auth tracks the session in localStorage; the
+// AuthProvider's onAuthStateChange listener picks it up and re-renders
+// the app with the user signed in. No redirect dance, no popups.
 
 export default function SignInPage({ onBack }) {
+  const [mode, setMode] = useState('signin') // 'signin' | 'signup'
   return (
     <div className="min-h-screen bg-hd-black text-hd-text">
       <TopNav
@@ -36,11 +32,56 @@ export default function SignInPage({ onBack }) {
         <div className="mb-6 flex flex-col items-center gap-3">
           <Logo size={36} />
           <div className="text-xs uppercase tracking-widest text-hd-orange">
-            Welcome to Sidestand
+            {mode === 'signin' ? 'Welcome to Sidestand' : 'Join Sidestand'}
           </div>
         </div>
 
-        {native ? <NativeSignIn /> : <WebSignIn />}
+        <div className="w-full rounded-md border border-hd-border bg-hd-dark p-5">
+          <div className="mb-4 text-center">
+            <div className="font-display text-xl tracking-wider text-hd-text">
+              {mode === 'signin' ? 'SIGN IN' : 'SIGN UP'}
+            </div>
+            <div className="mt-1 text-xs text-hd-muted">
+              {mode === 'signin'
+                ? 'Pick how you want to continue'
+                : 'Create an account in 30 seconds'}
+            </div>
+          </div>
+
+          <GoogleButton mode={mode} />
+
+          <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-hd-muted">
+            <div className="h-px flex-1 bg-hd-border" />
+            or use email
+            <div className="h-px flex-1 bg-hd-border" />
+          </div>
+
+          <EmailForm mode={mode} />
+
+          <div className="mt-4 text-center text-xs text-hd-muted">
+            {mode === 'signin' ? (
+              <>
+                No account yet?{' '}
+                <button
+                  onClick={() => setMode('signup')}
+                  className="text-hd-orange hover:brightness-110"
+                >
+                  Sign up
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  onClick={() => setMode('signin')}
+                  className="text-hd-orange hover:brightness-110"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         <button
           onClick={onBack}
@@ -53,139 +94,177 @@ export default function SignInPage({ onBack }) {
   )
 }
 
-// Native (iOS/Android): Apple button on top, then Clerk's widget for
-// email sign-in below. Social buttons in Clerk are hidden — they
-// would just hit the disallowed-useragent block.
-function NativeSignIn() {
-  const { signIn, setActive } = useSignIn()
+// ----- Google OAuth button -----
+
+function GoogleButton({ mode }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
-  async function tapApple() {
+  async function tap() {
     setErr(null)
     setBusy(true)
     try {
-      await signInWithAppleNative({ signIn, setActive })
+      const supabase = getSupabaseClient()
+      // Tell Supabase where to send the user after Google. We always
+      // come back to the app's root and Supabase reads the OAuth code
+      // from the URL via detectSessionInUrl.
+      const redirectTo = isNativeApp()
+        ? 'capacitor://localhost/'
+        : `${window.location.origin}/`
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          // Skip Supabase's hosted intermediate page so we go straight
+          // to Google. Faster + works in WebView contexts.
+          skipBrowserRedirect: false
+        }
+      })
+      if (error) throw error
+      // signInWithOAuth navigates the page; we won't reach this line on web.
     } catch (e) {
-      console.error('[Sidestand] Apple sign-in failed', e)
       setErr(e?.message || 'Sign-in failed.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={tap}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-3 rounded border border-hd-border bg-hd-black px-4 py-3 text-sm font-semibold text-hd-text transition hover:border-hd-orange disabled:opacity-50"
+      >
+        <GoogleG />
+        <span>
+          {busy
+            ? 'Opening Google…'
+            : mode === 'signin'
+            ? 'Continue with Google'
+            : 'Sign up with Google'}
+        </span>
+      </button>
+      {err && (
+        <div className="mt-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {err}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ----- Email + password form -----
+
+function EmailForm({ mode }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const [info, setInfo] = useState(null)
+
+  async function submit(e) {
+    e.preventDefault()
+    setErr(null)
+    setInfo(null)
+    setBusy(true)
+    try {
+      const supabase = getSupabaseClient()
+      if (mode === 'signin') {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password
+        })
+        if (error) throw error
+        // AuthProvider's listener picks up the session and re-renders.
+      } else {
+        const redirectTo = isNativeApp()
+          ? 'capacitor://localhost/'
+          : `${window.location.origin}/`
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { emailRedirectTo: redirectTo }
+        })
+        if (error) throw error
+        // If email confirmations are enabled, user has to verify via
+        // email before they can sign in. Otherwise the session lands now.
+        if (data?.session) {
+          // Already signed in — listener will redirect.
+        } else {
+          setInfo('Check your email to confirm your account.')
+        }
+      }
+    } catch (e) {
+      setErr(e?.message || 'Auth failed.')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="w-full">
-      <div className="rounded-md border border-hd-border bg-hd-dark p-5">
-        <div className="mb-4 text-center">
-          <div className="font-display text-xl tracking-wider text-hd-text">
-            SIGN IN
-          </div>
-          <div className="mt-1 text-xs text-hd-muted">
-            Pick how you want to continue
-          </div>
-        </div>
-
-        <button
-          onClick={tapApple}
-          disabled={busy}
-          className="flex w-full items-center justify-center gap-2 rounded bg-white px-4 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:opacity-50"
-        >
-          <AppleLogo />
-          <span>{busy ? 'Continuing…' : 'Sign in with Apple'}</span>
-        </button>
-
-        {err && (
-          <div className="mt-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-            {err}
-          </div>
-        )}
-
-        <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-hd-muted">
-          <div className="h-px flex-1 bg-hd-border" />
-          or use email
-          <div className="h-px flex-1 bg-hd-border" />
-        </div>
-
-        <SignIn
-          routing="hash"
-          signUpForceRedirectUrl="/"
-          signInForceRedirectUrl="/"
-          appearance={{
-            variables: clerkVariables,
-            elements: {
-              ...clerkElements,
-              // Hide the social buttons row — embedded WebView OAuth
-              // doesn't work, so we don't tease it.
-              socialButtons: 'hidden',
-              socialButtonsBlockButton: 'hidden',
-              divider: 'hidden',
-              dividerText: 'hidden',
-              dividerLine: 'hidden',
-              header: 'hidden',
-              card: clerkElements.card + ' shadow-none bg-transparent border-0 p-0'
-            }
-          }}
+    <form onSubmit={submit} className="space-y-3">
+      <div>
+        <label className="mb-1 block text-xs uppercase tracking-widest text-hd-muted">
+          Email
+        </label>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="input"
+          autoComplete="email"
+          inputMode="email"
         />
       </div>
-    </div>
+      <div>
+        <label className="mb-1 block text-xs uppercase tracking-widest text-hd-muted">
+          Password
+        </label>
+        <input
+          type="password"
+          required
+          minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="input"
+          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+        />
+      </div>
+      {err && (
+        <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {err}
+        </div>
+      )}
+      {info && (
+        <div className="rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          {info}
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={busy}
+        className="w-full rounded bg-hd-orange px-4 py-3 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50"
+      >
+        {busy
+          ? mode === 'signin'
+            ? 'Signing in…'
+            : 'Creating account…'
+          : mode === 'signin'
+          ? 'Continue'
+          : 'Create account'}
+      </button>
+    </form>
   )
 }
 
-// Web sign-in: standard Clerk widget. OAuth works fine in a real browser.
-function WebSignIn() {
+function GoogleG() {
   return (
-    <SignIn
-      routing="hash"
-      signUpForceRedirectUrl="/"
-      signInForceRedirectUrl="/"
-      appearance={{
-        variables: clerkVariables,
-        elements: clerkElements
-      }}
-    />
-  )
-}
-
-function AppleLogo() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#000"
-        d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
-      />
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20.4H24v7.2h11.3c-1.5 4.2-5.5 7.2-10.3 7.2a11 11 0 0 1 0-22c2.6 0 5 .9 7 2.5l5.1-5.1A18 18 0 1 0 24 42c10 0 18-7 18-18 0-1.2-.1-2.4-.4-3.5z"/>
+      <path fill="#FF3D00" d="M6.3 14.7l5.9 4.3A11 11 0 0 1 24 13c2.6 0 5 .9 7 2.5l5.1-5.1A18 18 0 0 0 6.3 14.7z"/>
+      <path fill="#4CAF50" d="M24 42a18 18 0 0 0 12-4.6l-5.5-4.7c-1.8 1.3-4 2.1-6.5 2.1-4.8 0-8.8-3-10.3-7.2l-5.9 4.6C10.5 38 16.7 42 24 42z"/>
+      <path fill="#1976D2" d="M43.6 20.5H42V20.4H24v7.2h11.3c-.7 2-2 3.7-3.7 5l5.5 4.7c4-3.6 6.5-9 6.5-15-.1-1.2-.2-2.4-.4-3.6z"/>
     </svg>
   )
-}
-
-const clerkVariables = {
-  colorPrimary: '#E03A36',
-  colorBackground: '#16161A',
-  colorText: '#E8E2D5',
-  colorTextSecondary: '#9A9A9F',
-  colorTextOnPrimaryBackground: '#FFFFFF',
-  colorInputBackground: '#0E0E10',
-  colorInputText: '#E8E2D5',
-  colorNeutral: '#E8E2D5',
-  colorShimmer: 'rgba(232, 226, 213, 0.1)',
-  borderRadius: '0.5rem',
-  fontFamily: 'inherit'
-}
-
-const clerkElements = {
-  card: 'border border-hd-border shadow-none bg-hd-dark',
-  headerTitle: 'text-hd-text font-display tracking-wider',
-  headerSubtitle: 'text-hd-muted',
-  formFieldLabel: 'text-hd-text',
-  formFieldInput: 'text-hd-text',
-  identityPreviewText: 'text-hd-text',
-  identityPreviewEditButton: 'text-hd-orange',
-  dividerText: 'text-hd-muted',
-  footerActionText: 'text-hd-muted',
-  footerActionLink: 'text-hd-orange hover:brightness-110',
-  socialButtonsBlockButton:
-    'border border-hd-border text-hd-text hover:border-hd-orange',
-  socialButtonsBlockButtonText: 'text-hd-text',
-  formButtonPrimary:
-    'bg-hd-orange text-white hover:brightness-110 normal-case tracking-wide'
 }

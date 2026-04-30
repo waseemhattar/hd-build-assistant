@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {
-  SignedIn,
-  SignedOut,
-  useAuth,
-  useUser
-} from '@clerk/clerk-react'
+import { useAuth, useUser } from './auth/AuthProvider.jsx'
 import BikePicker from './components/BikePicker.jsx'
 import JobBrowser from './components/JobBrowser.jsx'
 import JobView from './components/JobView.jsx'
@@ -72,35 +67,46 @@ export default function App() {
 
   if (publicSlug) return <PublicBike slug={publicSlug} />
 
-  return (
-    <>
-      <SignedOut>
-        {signInRoute ? (
-          <SignInPage onBack={goToLanding} />
-        ) : (
-          <Landing onSignIn={goToSignIn} />
-        )}
-      </SignedOut>
-      <SignedIn>
-        <AuthedApp />
-      </SignedIn>
-    </>
-  )
+  return <RootRouter signInRoute={signInRoute} goToLanding={goToLanding} goToSignIn={goToSignIn} />
+}
+
+function RootRouter({ signInRoute, goToLanding, goToSignIn }) {
+  const { isSignedIn, loading } = useAuth()
+
+  // While we're determining the session (initial getSession() resolves),
+  // show a tiny dark splash so we don't flash the wrong UI.
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-hd-black" aria-hidden="true" />
+    )
+  }
+
+  if (!isSignedIn) {
+    return signInRoute ? (
+      <SignInPage onBack={goToLanding} />
+    ) : (
+      <Landing onSignIn={goToSignIn} />
+    )
+  }
+
+  return <AuthedApp />
 }
 
 function AuthedApp() {
   const { user } = useUser()
-  const { isSignedIn, getToken } = useAuth()
+  const { isSignedIn } = useAuth()
 
   useEffect(() => {
     if (isSignedIn && user?.id) {
-      setStorageUser(user.id, getToken)
+      // Supabase Auth manages tokens internally — storage just needs
+      // the user id to scope localStorage keys.
+      setStorageUser(user.id)
       migrateLegacyLocalDataIfNeeded(user.id)
     }
     return () => {
       setStorageUser(null)
     }
-  }, [isSignedIn, user?.id, getToken])
+  }, [isSignedIn, user?.id])
 
   // Internal view for the state machine (page-level routing inside the
   // signed-in app).
