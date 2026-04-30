@@ -105,18 +105,24 @@ function GoogleButton({ mode }) {
     setBusy(true)
     try {
       const supabase = getSupabaseClient()
-      // Tell Supabase where to send the user after Google. We always
-      // come back to the app's root and Supabase reads the OAuth code
-      // from the URL via detectSessionInUrl.
+      // Where to send the user after Google completes.
+      //
+      // Web: stay on whatever origin the page is on (sidestand.app
+      //   in production, localhost during dev).
+      // Native iOS: ALSO send back to sidestand.app, NOT capacitor://.
+      //   The iOS app is a thin shell that loads sidestand.app over
+      //   the network, so Safari can land on https://sidestand.app
+      //   and the WebView is already there — session detection runs
+      //   inside the WebView and signs the user in.
+      //   We tried capacitor://localhost earlier; Safari can't open
+      //   that scheme so it errors with "address is invalid."
       const redirectTo = isNativeApp()
-        ? 'capacitor://localhost/'
+        ? 'https://sidestand.app/'
         : `${window.location.origin}/`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo,
-          // Skip Supabase's hosted intermediate page so we go straight
-          // to Google. Faster + works in WebView contexts.
           skipBrowserRedirect: false
         }
       })
@@ -177,8 +183,10 @@ function EmailForm({ mode }) {
         if (error) throw error
         // AuthProvider's listener picks up the session and re-renders.
       } else {
+        // Same logic as Google OAuth: native + web both come back to
+        // sidestand.app since iOS is a thin shell over the website.
         const redirectTo = isNativeApp()
-          ? 'capacitor://localhost/'
+          ? 'https://sidestand.app/'
           : `${window.location.origin}/`
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
