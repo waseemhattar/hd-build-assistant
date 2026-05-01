@@ -16,6 +16,7 @@ import SignInPage from './components/SignInPage.jsx'
 import PublicBike from './components/PublicBike.jsx'
 import Settings from './components/Settings.jsx'
 import TopNav from './components/TopNav.jsx'
+import BottomTabBar from './components/BottomTabBar.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser, getUserLogoUrl, subscribe } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
@@ -199,7 +200,7 @@ function AuthedApp() {
   }
 
   return (
-    <div className="min-h-screen bg-hd-black text-hd-text">
+    <div className="min-h-screen bg-hd-black pb-24 text-hd-text sm:pb-0">
       <TopNav
         activeSection={activeSection()}
         onNavigate={navigate}
@@ -359,6 +360,12 @@ function AuthedApp() {
       {view === 'settings' && (
         <Settings onBack={() => navigate('home')} />
       )}
+
+      {/* Bottom tab bar — visible on mobile / native, hidden on wide web */}
+      <BottomTabBar
+        activeSection={activeSection()}
+        onNavigate={navigate}
+      />
     </div>
   )
 }
