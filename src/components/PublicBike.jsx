@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getPublicBikeBySlug } from '../data/storage.js'
 import { formatMileage, formatDate } from '../data/userPrefs.js'
 import Logo from './Logo.jsx'
+import Skeleton from './ui/Skeleton.jsx'
 
 // Public, unauthenticated build sheet. Rendered by App.jsx when the URL
 // matches /b/<slug>. Server-side RLS only returns the row when the
@@ -49,24 +50,95 @@ export default function PublicBike({ slug }) {
     }
   }, [slug])
 
-  // Document title + meta description for sharing.
+  // Document title + Open Graph meta tags for share-link previews.
+  // We mutate the existing tags in-place where they exist (preserved
+  // by index.html) and create them if they don't. On unmount we
+  // restore the originals so the rest of the app keeps its defaults.
   useEffect(() => {
     if (state.status !== 'ready') return
     const { bike } = state.data
+    const headline = bike.nickname || bike.model || `${bike.year || ''} bike`.trim() || 'Bike'
+    const subline = [bike.year, bike.model].filter(Boolean).join(' ')
+    const description = subline
+      ? `${subline} — built and maintained on Sidestand.`
+      : 'Built and maintained on Sidestand.'
+    const url =
+      typeof window !== 'undefined' ? window.location.href : ''
+    const image = bike.coverPhotoUrl || ''
+
+    const restorers = []
+
+    function setMeta(attr, value, content) {
+      if (!content) return
+      let tag = document.head.querySelector(`meta[${attr}="${value}"]`)
+      const existed = !!tag
+      if (!tag) {
+        tag = document.createElement('meta')
+        tag.setAttribute(attr, value)
+        document.head.appendChild(tag)
+      }
+      const prev = tag.getAttribute('content')
+      tag.setAttribute('content', content)
+      restorers.push(() => {
+        if (existed && prev !== null) tag.setAttribute('content', prev)
+        else tag.remove()
+      })
+    }
+
     const prevTitle = document.title
-    const headline = bike.nickname || bike.model || `${bike.year || ''} bike`
     document.title = `${headline} · Sidestand`
+
+    // Standard OG
+    setMeta('property', 'og:type', 'website')
+    setMeta('property', 'og:title', `${headline} · Sidestand`)
+    setMeta('property', 'og:description', description)
+    if (url) setMeta('property', 'og:url', url)
+    if (image) setMeta('property', 'og:image', image)
+    setMeta('property', 'og:site_name', 'Sidestand')
+
+    // Twitter
+    setMeta('name', 'twitter:card', image ? 'summary_large_image' : 'summary')
+    setMeta('name', 'twitter:title', `${headline} · Sidestand`)
+    setMeta('name', 'twitter:description', description)
+    if (image) setMeta('name', 'twitter:image', image)
+
+    // Plain description (search engines, Discord plain unfurl, etc.)
+    setMeta('name', 'description', description)
+
     return () => {
       document.title = prevTitle
+      for (const fn of restorers) {
+        try {
+          fn()
+        } catch (_) {}
+      }
     }
   }, [state])
 
   if (state.status === 'loading') {
     return (
       <Shell>
-        <Centered>
-          <div className="text-sm text-hd-muted">Loading bike…</div>
-        </Centered>
+        {/* Mirror the eventual layout so the page doesn't visibly
+            "jump" when content arrives — hero card, stats grid, two
+            list sections. */}
+        <section className="px-4 pb-4 pt-3 sm:px-6 sm:pt-6">
+          <Skeleton.Card />
+        </section>
+        <section className="px-4 pb-6 sm:px-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Skeleton.Tile />
+            <Skeleton.Tile />
+            <Skeleton.Tile />
+            <Skeleton.Tile />
+          </div>
+        </section>
+        <section className="px-4 pb-4 sm:px-6">
+          <div className="overflow-hidden rounded-3xl bg-hd-dark">
+            <Skeleton.Row />
+            <Skeleton.Row />
+            <Skeleton.Row />
+          </div>
+        </section>
       </Shell>
     )
   }

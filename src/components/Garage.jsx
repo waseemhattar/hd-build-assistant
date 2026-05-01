@@ -50,78 +50,59 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
   }, [])
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <button
-        onClick={onBack}
-        className="mb-4 text-sm text-hd-muted hover:text-hd-orange"
-      >
-        ← Back
-      </button>
-
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-8">
+      <header className="mb-5 flex items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl tracking-wider text-hd-orange sm:text-4xl">
-            MY GARAGE
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
+            Garage
+          </div>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-hd-text sm:text-4xl">
+            Your bikes
           </h1>
-          <p className="mt-1 text-sm text-hd-muted">
-            Track every bike you own, log the work you do, and see
-            what's due next. Service intervals are evaluated against
-            your current mileage as a soft reference — ride and wrench
-            how you like.
+          <p className="mt-1 text-[14px] text-hd-muted">
+            {garage.length === 0
+              ? 'Add a bike to start tracking service, mods, and rides.'
+              : `${garage.length} bike${garage.length > 1 ? 's' : ''} in the garage.`}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 self-start">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={() => setBrandOpen(true)}
-            className="rounded border border-hd-border bg-hd-dark px-3 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text"
+            className="rounded-full bg-hd-dark px-3.5 py-1.5 text-[12px] font-semibold text-hd-muted hover:text-hd-text"
             title="Upload your own logo"
           >
             Logo
           </button>
           <button
             onClick={() => setEditing({ new: true })}
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+            className="rounded-full bg-hd-orange px-4 py-1.5 text-[13px] font-semibold text-white"
           >
-            + Add bike
+            + Add
           </button>
         </div>
-      </div>
+      </header>
 
       {garage.length === 0 && !editing && (
-        <div className="rounded-md border border-hd-border bg-hd-dark p-8 text-center">
-          <div className="mb-3 font-display text-2xl tracking-wider sm:text-3xl">
-            YOUR GARAGE IS EMPTY.
+        <div className="rounded-3xl bg-hd-dark p-7 text-center">
+          <div className="text-2xl font-bold text-hd-text">
+            Your garage is empty
           </div>
-          <p className="mx-auto mb-5 max-w-md text-sm text-hd-muted">
-            Add your first bike and Sidestand starts tracking service
-            intervals, logging mods, and giving you a public build
-            sheet you can share.
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-hd-muted">
+            Add your first bike and Sidestand will track service
+            intervals, log mods, and give you a public build sheet you
+            can share.
           </p>
-          <ul className="mx-auto mb-6 max-w-xs space-y-1.5 text-left text-sm text-hd-muted">
-            <li className="flex items-start gap-2">
-              <span className="text-hd-orange">·</span>
-              <span>Track service against actual mileage</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-hd-orange">·</span>
-              <span>Log every mod with cost + photos</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-hd-orange">·</span>
-              <span>Share your build at sidestand.app/b/...</span>
-            </li>
-          </ul>
           <button
             onClick={() => setEditing({ new: true })}
-            className="rounded bg-hd-orange px-6 py-3 text-base font-semibold text-white hover:brightness-110"
+            className="mt-5 rounded-full bg-hd-orange px-6 py-3 text-[15px] font-semibold text-white"
           >
-            + Add a bike
+            Add a bike
           </button>
         </div>
       )}
 
       {garage.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {garage.map((b) => (
             <BikeCard
               key={b.id}
@@ -303,51 +284,58 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
   const nextDue = useMemo(() => computeNextDue(bike), [bike.id, bike.mileage])
 
   return (
-    <div className="overflow-hidden rounded-md border border-hd-border bg-hd-card">
+    <article className="overflow-hidden rounded-3xl bg-hd-dark transition active:scale-[0.995]">
       {bike.coverPhotoUrl ? (
-        // Full-bleed cover photo, taller than before (h-52 vs h-48), and
-        // we drop the inner card padding so the photo runs edge-to-edge
-        // — feels more like a real product card.
-        <div className="flex h-52 w-full items-center justify-center bg-hd-black">
-          <img
-            src={bike.coverPhotoUrl}
-            alt={bike.nickname || bike.model || 'bike'}
-            className="max-h-52 w-full object-contain"
-          />
-        </div>
+        <button
+          type="button"
+          onClick={onOpenServiceBook}
+          className="block w-full"
+          title="Open service book"
+        >
+          <div className="aspect-[16/10] w-full bg-hd-black">
+            <img
+              src={bike.coverPhotoUrl}
+              alt={bike.nickname || bike.model || 'bike'}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </button>
       ) : (
-        // Subtle placeholder when there's no cover photo so the card
-        // still has visual height parity with photo'd cards in the grid.
-        <div className="flex h-32 items-center justify-center bg-hd-black/60">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-hd-muted">
+        <button
+          type="button"
+          onClick={onOpenServiceBook}
+          className="flex aspect-[16/10] w-full items-center justify-center bg-hd-card"
+          title="Open service book"
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-hd-muted">
             No cover photo
           </span>
-        </div>
+        </button>
       )}
 
-      <div className="p-4 sm:p-5">
+      <div className="p-5">
         {/* Heading row: year/family + public pill */}
         <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-widest text-hd-orange">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
             {bike.year} {preset?.family || ''}
           </div>
           {bike.isPublic && (
             <span
               title="This bike has a public build sheet you can share"
-              className="inline-flex items-center gap-1 rounded border border-green-700 bg-green-900/30 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-green-400"
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Public
             </span>
           )}
         </div>
 
         {/* Bike name */}
-        <div className="mt-1 font-display text-2xl tracking-wider">
+        <div className="mt-1 text-2xl font-bold tracking-tight text-hd-text">
           {bike.nickname || bike.model || 'Unnamed bike'}
         </div>
         {bike.nickname && bike.model && (
-          <div className="text-sm text-hd-muted">{bike.model}</div>
+          <div className="text-[13px] text-hd-muted">{bike.model}</div>
         )}
 
         {/* Stat strip: mileage / mods / next-due */}
@@ -372,7 +360,7 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
         {/* Primary CTA: open service book */}
         <button
           onClick={onOpenServiceBook}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded bg-hd-orange px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-hd-orange px-4 py-3 text-[15px] font-semibold text-white transition active:scale-95"
         >
           Open service book
           <svg
@@ -457,7 +445,7 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
           </IconButton>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -465,12 +453,12 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
 
 function Stat({ label, value, unit }) {
   return (
-    <div className="rounded border border-hd-border bg-hd-dark px-2 py-1.5">
-      <div className="text-[10px] uppercase tracking-widest text-hd-muted">
+    <div className="rounded-2xl bg-hd-black/40 px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
         {label}
       </div>
       <div className="mt-0.5 flex items-baseline gap-1">
-        <span className="font-display text-lg leading-none tracking-wider text-hd-text">
+        <span className="text-lg font-bold leading-none tracking-tight text-hd-text">
           {value}
         </span>
         {unit && (
@@ -488,11 +476,11 @@ function Stat({ label, value, unit }) {
 function NextDueChip({ nextDue }) {
   if (!nextDue) {
     return (
-      <div className="rounded border border-hd-border bg-hd-dark px-2 py-1.5">
-        <div className="text-[10px] uppercase tracking-widest text-hd-muted">
+      <div className="rounded-2xl bg-hd-black/40 px-3 py-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
           Next due
         </div>
-        <div className="mt-0.5 truncate text-xs text-emerald-400">
+        <div className="mt-0.5 truncate text-xs font-medium text-emerald-400">
           All caught up
         </div>
       </div>
@@ -501,13 +489,13 @@ function NextDueChip({ nextDue }) {
   const overdue = nextDue.status === 'overdue'
   return (
     <div
-      className={`rounded border px-2 py-1.5 ${
+      className={`rounded-2xl px-3 py-2 ${
         overdue
-          ? 'border-red-500/40 bg-red-500/10'
-          : 'border-amber-500/40 bg-amber-500/10'
+          ? 'bg-red-500/10'
+          : 'bg-amber-500/10'
       }`}
     >
-      <div className="text-[10px] uppercase tracking-widest text-hd-muted">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
         {overdue ? 'Overdue' : 'Due soon'}
       </div>
       <div
