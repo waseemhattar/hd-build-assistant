@@ -3,6 +3,9 @@ import { useAuth, useUser } from './auth/AuthProvider.jsx'
 import BikePicker from './components/BikePicker.jsx'
 import JobBrowser from './components/JobBrowser.jsx'
 import JobView from './components/JobView.jsx'
+import ProcedureBrowser from './components/ProcedureBrowser.jsx'
+import ProcedureDetail from './components/ProcedureDetail.jsx'
+import Walkthrough from './components/Walkthrough.jsx'
 import Garage from './components/Garage.jsx'
 import ServiceBook from './components/ServiceBook.jsx'
 import Home from './components/Home.jsx'
@@ -110,11 +113,17 @@ function AuthedApp() {
 
   // Internal view for the state machine (page-level routing inside the
   // signed-in app).
-  //   home / garage / service / picker / browse / job / intervals
+  //   home / garage / service / intervals
+  //   procedures / procedure / walkthrough — new procedure flow (Supabase)
+  //   picker / browse / job — legacy job flow (bundled jobs.js, deprecated)
   const [view, setView] = useState('home')
-  const [bike, setBike] = useState(null)         // catalog bike (platform)
-  const [garageBike, setGarageBike] = useState(null) // user-owned bike
+  const [bike, setBike] = useState(null)         // catalog bike (platform) — legacy
+  const [garageBike, setGarageBike] = useState(null) // user-owned bike — used for procedures + service book
   const [job, setJob] = useState(null)
+  // New procedure flow state — separate from the legacy job/bike state
+  // because they live on different data sources (Supabase vs bundled JSON).
+  const [procedure, setProcedure] = useState(null)
+  const [procedureDetail, setProcedureDetail] = useState(null)
 
   // Live brand-logo URL so the top nav swaps when the user uploads.
   const [userLogoUrl, setUserLogoUrl] = useState(() => getUserLogoUrl())
@@ -130,7 +139,16 @@ function AuthedApp() {
   function activeSection() {
     if (view === 'home') return 'home'
     if (view === 'garage' || view === 'service') return 'garage'
-    if (view === 'picker' || view === 'browse' || view === 'job') return 'manual'
+    if (
+      view === 'picker' ||
+      view === 'browse' ||
+      view === 'job' ||
+      view === 'procedures' ||
+      view === 'procedure' ||
+      view === 'walkthrough'
+    ) {
+      return 'manual'
+    }
     if (view === 'intervals') return 'intervals'
     return null
   }
@@ -140,13 +158,28 @@ function AuthedApp() {
   // context into a new section.
   function navigate(section) {
     setBike(null)
-    setGarageBike(null)
     setJob(null)
-    if (section === 'home') setView('home')
-    else if (section === 'garage') setView('garage')
-    else if (section === 'manual') setView('picker')
-    else if (section === 'intervals') setView('intervals')
-    else setView('home')
+    setProcedure(null)
+    setProcedureDetail(null)
+    if (section === 'home') {
+      setGarageBike(null)
+      setView('home')
+    } else if (section === 'garage') {
+      setGarageBike(null)
+      setView('garage')
+    } else if (section === 'manual') {
+      // New behavior: tap Manual → procedure browser. If there's no
+      // garageBike already in state, default to the first bike in the
+      // user's garage for the bike-scoped view. ProcedureBrowser will
+      // fall back to all-mode if there's no bike at all.
+      setView('procedures')
+    } else if (section === 'intervals') {
+      setGarageBike(null)
+      setView('intervals')
+    } else {
+      setGarageBike(null)
+      setView('home')
+    }
   }
 
   return (
@@ -208,6 +241,53 @@ function AuthedApp() {
         />
       )}
 
+      {/* New Supabase-backed procedure flow */}
+      {view === 'procedures' && (
+        <ProcedureBrowser
+          bike={garageBike}
+          onBack={() => navigate('home')}
+          onSelectProcedure={(p) => {
+            setProcedure(p)
+            setView('procedure')
+          }}
+        />
+      )}
+
+      {view === 'procedure' && procedure && (
+        <ProcedureDetail
+          procedureId={procedure.id}
+          bike={garageBike}
+          onBack={() => {
+            setProcedure(null)
+            setProcedureDetail(null)
+            setView('procedures')
+          }}
+          onStartWalkthrough={(_proc, detail) => {
+            setProcedureDetail(detail)
+            setView('walkthrough')
+          }}
+        />
+      )}
+
+      {view === 'walkthrough' && procedure && procedureDetail && (
+        <Walkthrough
+          procedure={procedure}
+          detail={procedureDetail}
+          bike={garageBike}
+          onExit={() => {
+            // Pause — return to procedure detail
+            setView('procedure')
+          }}
+          onComplete={() => {
+            // Service entry already saved (if bike attached). Return
+            // to the procedure list so user can pick another.
+            setProcedure(null)
+            setProcedureDetail(null)
+            setView('procedures')
+          }}
+        />
+      )}
+
       {view === 'garage' && (
         <Garage
           onBack={() => navigate('home')}
@@ -216,11 +296,12 @@ function AuthedApp() {
             setView('service')
           }}
           onOpenBike={(b) => {
-            const catalog = bikeCatalog.find((c) => c.id === b.bikeTypeId)
-            if (catalog) {
-              setBike(catalog)
-              setView('browse')
-            }
+            // "Browse jobs" from a bike card → procedure browser scoped
+            // to this user-owned bike. The new flow uses garageBike
+            // (the user's bike) directly so procedure filtering can
+            // match year + model code via the manuals.
+            setGarageBike(b)
+            setView('procedures')
           }}
         />
       )}
