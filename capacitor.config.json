@@ -23,14 +23,16 @@
     }
   },
   "server": {
-    "url": "https://sidestand.app",
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "hostname": "localhost",
     "cleartext": false,
     "allowNavigation": [
       "sidestand.app",
       "*.sidestand.app",
+      "*.supabase.co",
       "accounts.google.com",
       "*.google.com",
-      "login.microsoftonline.com",
       "appleid.apple.com",
       "*.apple.com"
     ]

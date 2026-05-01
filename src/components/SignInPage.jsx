@@ -3,22 +3,32 @@ import TopNav from './TopNav.jsx'
 import Logo from './Logo.jsx'
 import { getSupabaseClient } from '../data/supabaseClient.js'
 import { isNativeApp } from '../data/platform.js'
+import { signInWithAppleNative } from '../data/appleAuth.js'
+import { signInWithGoogleNative } from '../data/googleAuth.js'
 
-// Sign-in page. Custom UI on top of Supabase Auth — no third-party
-// widget, full control over the look + feel.
+// Sign-in page. Branches on native vs web because the OAuth mechanics
+// differ:
 //
-// Supported flows:
-//   - Google OAuth (works on web AND inside Capacitor WebView since
-//     Supabase uses PKCE and a clean callback URL)
-//   - Email + password (universal fallback, works everywhere)
-//   - Sign in with Apple via the Capacitor plugin on iOS only (later)
+// On the web:
+//   supabase.auth.signInWithOAuth({provider: 'google'}) → redirect →
+//   Google → redirect back → Supabase reads ?code= from URL → session.
 //
-// On submit, Supabase Auth tracks the session in localStorage; the
-// AuthProvider's onAuthStateChange listener picks it up and re-renders
-// the app with the user signed in. No redirect dance, no popups.
+// On native (Capacitor iOS):
+//   We use NATIVE plugins (Apple's GoogleSignIn SDK + Apple Sign In)
+//   that show a system-level dialog. They return a signed idToken JWT.
+//   We hand the token to supabase.auth.signInWithIdToken(), which
+//   verifies it server-side and issues our session.
+//
+// Why the split: Google blocks OAuth flows from inside embedded
+// WebViews ("disallowed_useragent"), and Capacitor WebViews can't
+// handle the redirect-callback dance cleanly with custom URL schemes.
+// Native plugins sidestep both problems entirely.
+
+const native = isNativeApp()
 
 export default function SignInPage({ onBack }) {
-  const [mode, setMode] = useState('signin') // 'signin' | 'signup'
+  const [mode, setMode] = useState('signin')
+
   return (
     <div className="min-h-screen bg-hd-black text-hd-text">
       <TopNav
@@ -48,7 +58,16 @@ export default function SignInPage({ onBack }) {
             </div>
           </div>
 
-          <GoogleButton mode={mode} />
+          {/* Native button(s) — native takes the native plugin path,
+              web takes the standard Supabase OAuth redirect path. */}
+          {native ? (
+            <div className="space-y-3">
+              <AppleNativeButton />
+              <GoogleNativeButton mode={mode} />
+            </div>
+          ) : (
+            <GoogleWebButton mode={mode} />
+          )}
 
           <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-hd-muted">
             <div className="h-px flex-1 bg-hd-border" />
@@ -94,9 +113,82 @@ export default function SignInPage({ onBack }) {
   )
 }
 
-// ----- Google OAuth button -----
+// ----- Native Apple Sign In (iOS) -----
 
-function GoogleButton({ mode }) {
+function AppleNativeButton() {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  async function tap() {
+    setErr(null)
+    setBusy(true)
+    try {
+      await signInWithAppleNative()
+      // AuthProvider's onAuthStateChange fires and re-renders the app.
+    } catch (e) {
+      setErr(e?.message || 'Sign-in failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={tap}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-2 rounded bg-white px-4 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:opacity-50"
+      >
+        <AppleLogo />
+        <span>{busy ? 'Continuing…' : 'Sign in with Apple'}</span>
+      </button>
+      {err && <ErrorBlock message={err} />}
+    </>
+  )
+}
+
+// ----- Native Google Sign In (iOS) -----
+
+function GoogleNativeButton({ mode }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  async function tap() {
+    setErr(null)
+    setBusy(true)
+    try {
+      await signInWithGoogleNative()
+    } catch (e) {
+      setErr(e?.message || 'Sign-in failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={tap}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-3 rounded border border-hd-border bg-hd-black px-4 py-3 text-sm font-semibold text-hd-text transition hover:border-hd-orange disabled:opacity-50"
+      >
+        <GoogleG />
+        <span>
+          {busy
+            ? 'Opening Google…'
+            : mode === 'signin'
+            ? 'Continue with Google'
+            : 'Sign up with Google'}
+        </span>
+      </button>
+      {err && <ErrorBlock message={err} />}
+    </>
+  )
+}
+
+// ----- Web Google OAuth (browser redirect flow) -----
+
+function GoogleWebButton({ mode }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
@@ -105,29 +197,14 @@ function GoogleButton({ mode }) {
     setBusy(true)
     try {
       const supabase = getSupabaseClient()
-      // Where to send the user after Google completes.
-      //
-      // Web: stay on whatever origin the page is on (sidestand.app
-      //   in production, localhost during dev).
-      // Native iOS: ALSO send back to sidestand.app, NOT capacitor://.
-      //   The iOS app is a thin shell that loads sidestand.app over
-      //   the network, so Safari can land on https://sidestand.app
-      //   and the WebView is already there — session detection runs
-      //   inside the WebView and signs the user in.
-      //   We tried capacitor://localhost earlier; Safari can't open
-      //   that scheme so it errors with "address is invalid."
-      const redirectTo = isNativeApp()
-        ? 'https://sidestand.app/'
-        : `${window.location.origin}/`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
+          redirectTo: `${window.location.origin}/`,
           skipBrowserRedirect: false
         }
       })
       if (error) throw error
-      // signInWithOAuth navigates the page; we won't reach this line on web.
     } catch (e) {
       setErr(e?.message || 'Sign-in failed.')
       setBusy(false)
@@ -150,16 +227,12 @@ function GoogleButton({ mode }) {
             : 'Sign up with Google'}
         </span>
       </button>
-      {err && (
-        <div className="mt-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          {err}
-        </div>
-      )}
+      {err && <ErrorBlock message={err} />}
     </>
   )
 }
 
-// ----- Email + password form -----
+// ----- Email + password (works on web AND native unchanged) -----
 
 function EmailForm({ mode }) {
   const [email, setEmail] = useState('')
@@ -181,24 +254,18 @@ function EmailForm({ mode }) {
           password
         })
         if (error) throw error
-        // AuthProvider's listener picks up the session and re-renders.
       } else {
-        // Same logic as Google OAuth: native + web both come back to
-        // sidestand.app since iOS is a thin shell over the website.
-        const redirectTo = isNativeApp()
-          ? 'https://sidestand.app/'
-          : `${window.location.origin}/`
+        // Email confirmation links go to https://sidestand.app — works
+        // on web; on native, tapping the link opens Safari, the user
+        // confirms, then comes back to the app and signs in normally.
+        const redirectTo = 'https://sidestand.app/'
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: { emailRedirectTo: redirectTo }
         })
         if (error) throw error
-        // If email confirmations are enabled, user has to verify via
-        // email before they can sign in. Otherwise the session lands now.
-        if (data?.session) {
-          // Already signed in — listener will redirect.
-        } else {
+        if (!data?.session) {
           setInfo('Check your email to confirm your account.')
         }
       }
@@ -239,11 +306,7 @@ function EmailForm({ mode }) {
           autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
         />
       </div>
-      {err && (
-        <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          {err}
-        </div>
-      )}
+      {err && <ErrorBlock message={err} />}
       {info && (
         <div className="rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
           {info}
@@ -266,6 +329,16 @@ function EmailForm({ mode }) {
   )
 }
 
+// ----- Visual bits -----
+
+function ErrorBlock({ message }) {
+  return (
+    <div className="mt-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+      {message}
+    </div>
+  )
+}
+
 function GoogleG() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -273,6 +346,17 @@ function GoogleG() {
       <path fill="#FF3D00" d="M6.3 14.7l5.9 4.3A11 11 0 0 1 24 13c2.6 0 5 .9 7 2.5l5.1-5.1A18 18 0 0 0 6.3 14.7z"/>
       <path fill="#4CAF50" d="M24 42a18 18 0 0 0 12-4.6l-5.5-4.7c-1.8 1.3-4 2.1-6.5 2.1-4.8 0-8.8-3-10.3-7.2l-5.9 4.6C10.5 38 16.7 42 24 42z"/>
       <path fill="#1976D2" d="M43.6 20.5H42V20.4H24v7.2h11.3c-.7 2-2 3.7-3.7 5l5.5 4.7c4-3.6 6.5-9 6.5-15-.1-1.2-.2-2.4-.4-3.6z"/>
+    </svg>
+  )
+}
+
+function AppleLogo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#000"
+        d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
+      />
     </svg>
   )
 }
