@@ -6,6 +6,8 @@ import JobView from './components/JobView.jsx'
 import ProcedureBrowser from './components/ProcedureBrowser.jsx'
 import ProcedureDetail from './components/ProcedureDetail.jsx'
 import Walkthrough from './components/Walkthrough.jsx'
+import RidesPage from './components/RidesPage.jsx'
+import RideTracker from './components/RideTracker.jsx'
 import Garage from './components/Garage.jsx'
 import ServiceBook from './components/ServiceBook.jsx'
 import Home from './components/Home.jsx'
@@ -149,9 +151,15 @@ function AuthedApp() {
     ) {
       return 'manual'
     }
+    if (view === 'rides' || view === 'ride-tracker') return 'rides'
     if (view === 'intervals') return 'intervals'
     return null
   }
+
+  // After saving/discarding a ride, jump back to the global rides list.
+  // We pass these inline as callbacks rather than via a router because
+  // the rest of the app is state-machine driven.
+
 
   // Single navigation handler used by TopNav and Home's quick actions.
   // Resets transient state (selected bike/job) so we don't carry stale
@@ -176,6 +184,12 @@ function AuthedApp() {
     } else if (section === 'intervals') {
       setGarageBike(null)
       setView('intervals')
+    } else if (section === 'rides') {
+      // Rides list is global (shows all bikes) so we drop any
+      // currently-scoped garageBike. The RidesPage itself surfaces
+      // a "+ Start a ride" button that pushes view to 'ride-tracker'.
+      setGarageBike(null)
+      setView('rides')
     } else {
       setGarageBike(null)
       setView('home')
@@ -285,6 +299,20 @@ function AuthedApp() {
             setProcedureDetail(null)
             setView('procedures')
           }}
+        />
+      )}
+
+      {view === 'rides' && (
+        <RidesPage
+          onStartRide={() => setView('ride-tracker')}
+          onBack={() => navigate('home')}
+        />
+      )}
+
+      {view === 'ride-tracker' && (
+        <RideTracker
+          onBack={() => setView('rides')}
+          onSaved={() => setView('rides')}
         />
       )}
 

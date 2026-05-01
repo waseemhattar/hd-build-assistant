@@ -20,6 +20,15 @@
       "style": "DARK",
       "backgroundColor": "#0E0E10",
       "overlaysWebView": false
+    },
+    "BackgroundGeolocation": {
+      "notificationTitle": "Sidestand is recording your ride",
+      "notificationText": "Tap to return to the app",
+      "backgroundMessage": "Recording GPS in the background",
+      "backgroundTitle": "Sidestand",
+      "requestPermissions": true,
+      "stale": false,
+      "distanceFilter": 5
     }
   },
   "server": {

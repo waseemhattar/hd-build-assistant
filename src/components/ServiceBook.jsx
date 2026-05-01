@@ -24,6 +24,7 @@ import {
   MOD_STATUSES,
   CATEGORY_TO_GROUP
 } from '../data/modCategories.js'
+import RideHistory from './RideHistory.jsx'
 
 // ServiceBook = per-bike service history + HD-interval reference panel.
 // Two tabs:
@@ -158,6 +159,7 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
         {[
           { id: 'log', label: `Service log (${log.length})` },
           { id: 'build', label: `Build / Mods (${mods.length})` },
+          { id: 'rides', label: `Rides` },
           { id: 'intervals', label: `HD intervals (reference)` }
         ].map((t) => {
           const active = tab === t.id
@@ -209,6 +211,10 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
           }}
           bikeId={bikeId}
         />
+      )}
+
+      {tab === 'rides' && (
+        <RidesPanel bike={bike} />
       )}
 
       {tab === 'intervals' && (
@@ -421,6 +427,27 @@ function IntervalsPanel({ currentMileage, log, onLogInterval }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// Per-bike Rides panel — read-only list of rides for THIS bike.
+//
+// Starting a new ride happens from the global Rides nav (top-level
+// page) so the user can pick a bike at start. Here we just show the
+// history scoped to one bike, with the same expand-inline-map UX as
+// the global page.
+function RidesPanel({ bike }) {
+  // Pass the single bike so RideHistory can show "bike: <nickname>"
+  // labels — even though we already know it, the row formatter is
+  // shared with the global view and reads from the garage list.
+  return (
+    <div>
+      <div className="mb-4 rounded-md border border-hd-border bg-hd-dark/60 p-3 text-xs text-hd-muted">
+        GPS-tracked rides on <span className="text-hd-text">{bike.nickname || bike.model || `${bike.year} ${bike.model}`}</span>.
+        Start a new ride from the <span className="text-hd-text">Rides</span> tab in the top nav.
+      </div>
+      <RideHistory bikeId={bike.id} garage={[bike]} />
     </div>
   )
 }

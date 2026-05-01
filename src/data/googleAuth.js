@@ -5,12 +5,21 @@
 // the system-blessed Google dialog — bypassing the disallowed_useragent
 // problem that affects WebView OAuth.
 //
+// IMPORTANT IMPLEMENTATION NOTE:
+//   Capacitor plugin objects are JS Proxies that forward every property
+//   access to native. JavaScript's `await x` semantics inspect `x.then`
+//   to see if `x` is a thenable. Forwarding `.then` to the native side
+//   yields "SocialLogin.then() is not implemented on ios" and an
+//   unhandled rejection. Therefore: never return the plugin from an
+//   async function; never `await` an expression that resolves to it.
+//   We hold the plugin in module-level `plugin` and access it directly.
+//
 // Required setup outside this file:
 //   - Google Cloud Console: TWO OAuth client IDs in the same project
 //       (a) Web client — already created when we set up Google for web
 //       (b) iOS client — bundle ID `app.sidestand.app`, type "iOS"
-//   - capacitor.config.json: GoogleAuth.iosClientId + serverClientId
-//     (the plugin reads them from there)
+//   - Info.plist: CFBundleURLTypes with the reversed iOS client ID
+//     so iOS can route the auth callback back to the app
 //   - Supabase Dashboard: Google provider → Authorized Client IDs
 //     includes BOTH client IDs
 
@@ -18,19 +27,20 @@ import { isNativeApp } from './platform.js'
 import { getSupabaseClient } from './supabaseClient.js'
 
 let plugin = null
-let initialised = false
+let initPromise = null
 
-async function loadPlugin() {
+async function ensureReady() {
   if (!isNativeApp()) {
     throw new Error('Native Google Sign In is only available in the iOS app.')
   }
-  if (plugin) return plugin
-  const mod = await import('@capgo/capacitor-social-login')
-  plugin = mod.SocialLogin
-  if (!initialised) {
-    // Initialize the Google side. The plugin needs both client IDs
-    // here; iOS uses iosClientId for the dialog, web/server uses
-    // webClientId to mint a server-verifiable idToken.
+  if (plugin) return
+  if (initPromise) {
+    await initPromise
+    return
+  }
+  initPromise = (async () => {
+    const mod = await import('@capgo/capacitor-social-login')
+    plugin = mod.SocialLogin
     await plugin.initialize({
       google: {
         iOSClientId:
@@ -39,17 +49,25 @@ async function loadPlugin() {
           '840227267450-ba10hp55jobl6glq2f54dbionkk35o25.apps.googleusercontent.com'
       }
     })
-    initialised = true
+  })()
+  try {
+    await initPromise
+  } catch (e) {
+    // Reset so a retry can re-attempt initialization
+    initPromise = null
+    plugin = null
+    throw e
   }
-  return plugin
 }
 
 export async function signInWithGoogleNative() {
-  const SocialLogin = await loadPlugin()
+  await ensureReady()
+  // Use the module-level `plugin` directly — never via a return value
+  // from an async function (see header note about thenable trap).
 
   let resp
   try {
-    resp = await SocialLogin.login({
+    resp = await plugin.login({
       provider: 'google',
       options: { scopes: ['profile', 'email'] }
     })

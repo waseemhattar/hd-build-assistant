@@ -2,9 +2,16 @@
 //
 // We use one plugin for both Apple AND Google because @capgo's
 // capacitor-social-login is actively maintained for Capacitor 6 and
-// reliably bridges the native dialogs on iOS. The older
-// @capacitor-community/apple-sign-in works too, but bundling everything
-// in one plugin keeps the iOS native config simpler.
+// reliably bridges the native dialogs on iOS.
+//
+// IMPORTANT IMPLEMENTATION NOTE:
+//   Capacitor plugin objects are JS Proxies that forward every property
+//   access to native. JavaScript's `await x` semantics inspect `x.then`
+//   to see if `x` is a thenable. Forwarding `.then` to the native side
+//   yields "SocialLogin.then() is not implemented on ios" and an
+//   unhandled rejection. Therefore: never return the plugin from an
+//   async function; never `await` an expression that resolves to it.
+//   We hold the plugin in module-level `plugin` and access it directly.
 //
 // Flow on iOS:
 //   1. SocialLogin.login({provider: 'apple'}) shows the native Apple dialog
@@ -17,33 +24,42 @@ import { isNativeApp } from './platform.js'
 import { getSupabaseClient } from './supabaseClient.js'
 
 let plugin = null
-let initialised = false
+let initPromise = null
 
-async function loadPlugin() {
+async function ensureReady() {
   if (!isNativeApp()) {
     throw new Error('Apple Sign In is only available in the native app.')
   }
-  if (plugin) return plugin
-  const mod = await import('@capgo/capacitor-social-login')
-  plugin = mod.SocialLogin
-  if (!initialised) {
-    // Initialize the Apple side. clientId for native iOS is the bundle ID.
+  if (plugin) return
+  if (initPromise) {
+    await initPromise
+    return
+  }
+  initPromise = (async () => {
+    const mod = await import('@capgo/capacitor-social-login')
+    plugin = mod.SocialLogin
+    // clientId for native iOS is the bundle ID.
     await plugin.initialize({
       apple: {
         clientId: 'app.sidestand.app'
       }
     })
-    initialised = true
+  })()
+  try {
+    await initPromise
+  } catch (e) {
+    initPromise = null
+    plugin = null
+    throw e
   }
-  return plugin
 }
 
 export async function signInWithAppleNative() {
-  const SocialLogin = await loadPlugin()
+  await ensureReady()
 
   let resp
   try {
-    resp = await SocialLogin.login({
+    resp = await plugin.login({
       provider: 'apple',
       options: {
         scopes: ['email', 'name']

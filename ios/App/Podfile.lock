@@ -16,27 +16,32 @@ PODS:
     - Capacitor
   - CapacitorBrowser (8.0.3):
     - Capacitor
+  - CapacitorCommunityBackgroundGeolocation (1.2.26):
+    - Capacitor
   - CapacitorCordova (8.3.1)
+  - CapacitorGeolocation (8.2.0):
+    - Capacitor
+    - IONGeolocationLib (= 2.1.0)
   - CapacitorPreferences (8.0.1):
     - Capacitor
   - CapacitorSplashScreen (8.0.1):
     - Capacitor
   - CapacitorStatusBar (8.0.2):
     - Capacitor
-  - CapgoCapacitorSocialLogin (8.3.20):
+  - CapgoCapacitorSocialLogin (7.20.0):
     - Alamofire (~> 5.10.2)
     - Capacitor
-    - FBSDKCoreKit (~> 18.0)
-    - FBSDKLoginKit (~> 18.0)
+    - FBSDKCoreKit (= 18.0.0)
+    - FBSDKLoginKit (= 18.0.0)
     - GoogleSignIn (~> 9.0.0)
-  - FBAEMKit (18.0.3):
-    - FBSDKCoreKit_Basics (= 18.0.3)
-  - FBSDKCoreKit (18.0.3):
-    - FBAEMKit (= 18.0.3)
-    - FBSDKCoreKit_Basics (= 18.0.3)
-  - FBSDKCoreKit_Basics (18.0.3)
-  - FBSDKLoginKit (18.0.3):
-    - FBSDKCoreKit (= 18.0.3)
+  - FBAEMKit (18.0.0):
+    - FBSDKCoreKit_Basics (= 18.0.0)
+  - FBSDKCoreKit (18.0.0):
+    - FBAEMKit (= 18.0.0)
+    - FBSDKCoreKit_Basics (= 18.0.0)
+  - FBSDKCoreKit_Basics (18.0.0)
+  - FBSDKLoginKit (18.0.0):
+    - FBSDKCoreKit (= 18.0.0)
   - GoogleSignIn (9.0.0):
     - AppAuth (~> 2.0)
     - AppCheckCore (~> 11.0)
@@ -55,13 +60,16 @@ PODS:
     - AppAuth/Core (~> 2.0)
     - GTMSessionFetcher/Core (< 4.0, >= 3.3)
   - GTMSessionFetcher/Core (3.5.0)
+  - IONGeolocationLib (2.1.0)
   - PromisesObjC (2.4.0)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorBrowser (from `../../node_modules/@capacitor/browser`)"
+  - "CapacitorCommunityBackgroundGeolocation (from `../../node_modules/@capacitor-community/background-geolocation`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
   - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
@@ -80,6 +88,7 @@ SPEC REPOS:
     - GoogleUtilities
     - GTMAppAuth
     - GTMSessionFetcher
+    - IONGeolocationLib
     - PromisesObjC
 
 EXTERNAL SOURCES:
@@ -89,8 +98,12 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/app"
   CapacitorBrowser:
     :path: "../../node_modules/@capacitor/browser"
+  CapacitorCommunityBackgroundGeolocation:
+    :path: "../../node_modules/@capacitor-community/background-geolocation"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorGeolocation:
+    :path: "../../node_modules/@capacitor/geolocation"
   CapacitorPreferences:
     :path: "../../node_modules/@capacitor/preferences"
   CapacitorSplashScreen:
@@ -107,21 +120,24 @@ SPEC CHECKSUMS:
   Capacitor: 46dbaa89c1d1cd121b9fc2dc839c1f39cc49e326
   CapacitorApp: 449ffe26375e96f8aaaee625ac6e01e5c57c8650
   CapacitorBrowser: c987c73d09d8bd3b5ec13f06338b1e14d5d2be69
+  CapacitorCommunityBackgroundGeolocation: 750523ec6dd1cc94cf4e2bf7787605106753f73c
   CapacitorCordova: 9010447fe25e869705fcf525e5f490facde87608
+  CapacitorGeolocation: b36f6287bfc9f2eefa04dc900496f2c8ae666136
   CapacitorPreferences: cca2021f386efb75947c850334447d9ff22b14f1
   CapacitorSplashScreen: 4b46c72298db552b3c57ce021ef028b6dc7f1fa7
   CapacitorStatusBar: 01d5763b4ed720de5ce2edbc938de6a98f4c8f32
-  CapgoCapacitorSocialLogin: 3b51f02c83896f727635c2cd32dbea857ab7b0c1
-  FBAEMKit: 2a6b529993713c185b02bc36f8c91129bf78dfb0
-  FBSDKCoreKit: 65d7f7a7d6fcc3aa6eb6e093ec737a4184fc6049
-  FBSDKCoreKit_Basics: 7bc9d8fde8f70985fba2ed7c1d07e319f969a991
-  FBSDKLoginKit: 66d20fcb7afcafc0c420477662f96845cd1a5179
+  CapgoCapacitorSocialLogin: a6084e910ce61d78173fa215460c00523a6c4536
+  FBAEMKit: e34530df538b8eb8aeb53c35867715ba6c63ef0c
+  FBSDKCoreKit: d3f479a69127acebb1c6aad91c1a33907bcf6c2f
+  FBSDKCoreKit_Basics: 017b6dc2a1862024815a8229e75661e627ac1e29
+  FBSDKLoginKit: 5875762d1fe09ddcb05d03365d4f5dc34413843d
   GoogleSignIn: c7f09cfbc85a1abf69187be091997c317cc33b77
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMAppAuth: 217a876b249c3c585a54fd6f73e6b58c4f5c4238
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
+  IONGeolocationLib: 6a7b6f76063fb1b01cfb14fae7d0f526e3c9b271
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
 
-PODFILE CHECKSUM: 4d06e22c43754ae80974870b6c5b4fec4d084e02
+PODFILE CHECKSUM: 71c94272216d417b1e48126afa5d7f65adb73463
 
 COCOAPODS: 1.16.2

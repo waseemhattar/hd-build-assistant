@@ -2,21 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.840227267450-abot6d3srrj0pko9jan8ltg23mvgulh9</string>
-			</array>
-			<key>CFBundleURLName</key>
-			<string></string>
-		</dict>
-	</array>
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>com.googleusercontent.apps.840227267450-abot6d3srrj0pko9jan8ltg23mvgulh9</string>
+        </array>
+    </dict>
+</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sidestand</string>
+        <string>Sidestand</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -56,5 +54,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Sidestand uses your location to record GPS-tracked rides.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Sidestand records your ride in the background so you can put your phone away and ride.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Sidestand records your ride in the background so you can put your phone away and ride.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>
