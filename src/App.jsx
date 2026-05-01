@@ -14,11 +14,13 @@ import Home from './components/Home.jsx'
 import Landing from './components/Landing.jsx'
 import SignInPage from './components/SignInPage.jsx'
 import PublicBike from './components/PublicBike.jsx'
+import Settings from './components/Settings.jsx'
 import TopNav from './components/TopNav.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser, getUserLogoUrl, subscribe } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
 import { intervals } from './data/serviceIntervals.js'
+import { formatMileage } from './data/userPrefs.js'
 
 // URL → public-bike-slug helper. /b/<slug> is the share-link route.
 function readPublicBikeSlug() {
@@ -202,6 +204,7 @@ function AuthedApp() {
         activeSection={activeSection()}
         onNavigate={navigate}
         userLogoUrl={userLogoUrl}
+        onOpenSettings={() => setView('settings')}
       />
 
       {view === 'home' && (
@@ -209,6 +212,8 @@ function AuthedApp() {
           onOpenGarage={() => navigate('garage')}
           onOpenManual={() => navigate('manual')}
           onOpenIntervals={() => navigate('intervals')}
+          onOpenRides={() => navigate('rides')}
+          onStartRide={() => setView('ride-tracker')}
           onPickJob={(matchedBike, matchedJob) => {
             if (matchedBike) setBike(matchedBike)
             setJob(matchedJob)
@@ -350,6 +355,10 @@ function AuthedApp() {
           onOpenGarage={() => navigate('garage')}
         />
       )}
+
+      {view === 'settings' && (
+        <Settings onBack={() => navigate('home')} />
+      )}
     </div>
   )
 }
@@ -400,11 +409,9 @@ function IntervalsLanding({ onBack, onOpenGarage }) {
             <div className="mt-1 text-xs text-hd-muted">{i.description}</div>
             <div className="mt-2 text-xs text-hd-orange">
               {i.mileageInterval
-                ? `Every ${i.mileageInterval.toLocaleString()} mi · first at ${(
-                    i.firstDue || i.mileageInterval
-                  ).toLocaleString()} mi`
+                ? `Every ${formatMileage(i.mileageInterval)} · first at ${formatMileage(i.firstDue || i.mileageInterval)}`
                 : i.firstDue
-                ? `One-time, at ${i.firstDue.toLocaleString()} mi`
+                ? `One-time, at ${formatMileage(i.firstDue)}`
                 : ''}
             </div>
           </li>

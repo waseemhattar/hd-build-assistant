@@ -166,26 +166,43 @@ export async function updateRide(rideId, patch) {
 }
 
 // ---------- formatting ----------
+//
+// These are kept as thin wrappers for callers that already pass an
+// explicit unit ('mi'/'km'/'mph'/'kmh'). New callers should prefer
+// userPrefs.formatDistance/formatSpeed which respect the user's
+// regional preferences from Settings. Eventually we'll migrate every
+// call site to userPrefs and delete these wrappers.
 
-export function formatDistance(meters, unit = 'mi') {
-  if (!meters) return '0 mi'
-  if (unit === 'km') return `${(meters / 1000).toFixed(1)} km`
-  // miles
-  return `${(meters / 1609.344).toFixed(1)} mi`
+import {
+  formatDistance as prefsFormatDistance,
+  formatSpeed as prefsFormatSpeed,
+  formatDuration as prefsFormatDuration
+} from './userPrefs.js'
+
+export function formatDistance(meters, unit) {
+  // Legacy path: explicit unit override still honored.
+  if (unit === 'km') {
+    if (!meters) return '0 km'
+    return `${(meters / 1000).toFixed(1)} km`
+  }
+  if (unit === 'mi') {
+    if (!meters) return '0 mi'
+    return `${(meters / 1609.344).toFixed(1)} mi`
+  }
+  // No explicit unit → user prefs drive it.
+  return prefsFormatDistance(meters)
 }
 
-export function formatDuration(seconds) {
-  if (!seconds) return '0m'
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  if (h > 0) return `${h}h ${m}m`
-  if (m > 0) return `${m}m ${s}s`
-  return `${s}s`
-}
+export const formatDuration = prefsFormatDuration
 
-export function formatSpeed(mps, unit = 'mph') {
-  if (!mps) return '0 mph'
-  if (unit === 'kmh') return `${(mps * 3.6).toFixed(0)} km/h`
-  return `${(mps * 2.23694).toFixed(0)} mph`
+export function formatSpeed(mps, unit) {
+  if (unit === 'kmh') {
+    if (!mps) return '0 km/h'
+    return `${(mps * 3.6).toFixed(0)} km/h`
+  }
+  if (unit === 'mph') {
+    if (!mps) return '0 mph'
+    return `${(mps * 2.23694).toFixed(0)} mph`
+  }
+  return prefsFormatSpeed(mps)
 }

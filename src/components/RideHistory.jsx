@@ -161,14 +161,14 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
           </div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-hd-muted">
             <span className="text-hd-text">
-              {formatDistance(ride.distance_m, 'mi')}
+              {formatDistance(ride.distance_m)}
             </span>
             <span>{formatDuration(ride.duration_seconds || 0)}</span>
             {ride.avg_speed_mps != null && (
-              <span>avg {formatSpeed(ride.avg_speed_mps, 'mph')}</span>
+              <span>avg {formatSpeed(ride.avg_speed_mps)}</span>
             )}
             {ride.max_speed_mps != null && ride.max_speed_mps > 0 && (
-              <span>max {formatSpeed(ride.max_speed_mps, 'mph')}</span>
+              <span>max {formatSpeed(ride.max_speed_mps)}</span>
             )}
           </div>
         </div>

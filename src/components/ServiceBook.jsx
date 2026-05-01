@@ -24,6 +24,7 @@ import {
   MOD_STATUSES,
   CATEGORY_TO_GROUP
 } from '../data/modCategories.js'
+import { formatMileage } from '../data/userPrefs.js'
 import RideHistory from './RideHistory.jsx'
 
 // ServiceBook = per-bike service history + HD-interval reference panel.
@@ -298,7 +299,7 @@ function LogPanel({ log, onAdd, onRemove, onTogglePublic }) {
                     </span>
                     <span className="chip">{e.date}</span>
                     <span className="text-xs text-hd-orange">
-                      @ {(e.mileage || 0).toLocaleString()} mi
+                      @ {formatMileage(e.mileage || 0)}
                     </span>
                   </div>
                   {e.notes && (
@@ -389,7 +390,7 @@ function IntervalsPanel({ currentMileage, log, onLogInterval }) {
                   <>
                     Last logged:{' '}
                     <span className="text-hd-text">
-                      {(last.mileage || 0).toLocaleString()} mi
+                      {formatMileage(last.mileage || 0)}
                     </span>{' '}
                     ({last.date})
                   </>
@@ -400,17 +401,17 @@ function IntervalsPanel({ currentMileage, log, onLogInterval }) {
               <div className="mt-1 text-xs">
                 {status === 'overdue' && (
                   <span className="text-red-400">
-                    Overdue by {milesOver.toLocaleString()} mi (HD suggested {dueAt.toLocaleString()})
+                    Overdue by {formatMileage(milesOver)} (suggested {formatMileage(dueAt)})
                   </span>
                 )}
                 {status === 'due-soon' && (
                   <span className="text-amber-300">
-                    Due in {milesLeft.toLocaleString()} mi (at {dueAt.toLocaleString()})
+                    Due in {formatMileage(milesLeft)} (at {formatMileage(dueAt)})
                   </span>
                 )}
                 {status === 'ok' && dueAt && (
                   <span className="text-hd-muted">
-                    Next suggested at {dueAt.toLocaleString()} mi
+                    Next suggested at {formatMileage(dueAt)}
                   </span>
                 )}
                 {status === 'never-due' && (
@@ -748,7 +749,7 @@ function BuildPanel({ mods, onAdd, onEdit, onRemove, onTogglePublic, bikeId }) {
                           )}
                           {m.installMileage != null && (
                             <span>
-                              @ {m.installMileage.toLocaleString()} mi
+                              @ {formatMileage(m.installMileage)}
                             </span>
                           )}
                           {m.cost != null && (

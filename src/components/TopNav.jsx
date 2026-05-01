@@ -23,7 +23,11 @@ export default function TopNav({
   // When `signedOut` is true we render a "Sign in" button on the right
   // instead of the Clerk user widget (used on Landing).
   signedOut = false,
-  onSignInClick
+  onSignInClick,
+  // Callback when the user picks "Settings" from the user menu. Parent
+  // (App.jsx) routes this to view='settings' so the Settings page
+  // renders in place of the current view.
+  onOpenSettings
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   // Close the mobile menu when the user picks a destination.
@@ -91,7 +95,7 @@ export default function TopNav({
               Sign in
             </button>
           ) : (
-            <UserMenu />
+            <UserMenu onOpenSettings={onOpenSettings} />
           )}
           {/* Mobile hamburger — only when there are nav links to show */}
           {!signedOut && (
@@ -162,7 +166,7 @@ export default function TopNav({
 // <UserButton />. Click → reveals a dropdown with the user's email and
 // a sign-out action. We keep it minimal here; profile management can
 // land in a separate Settings page later.
-function UserMenu() {
+function UserMenu({ onOpenSettings }) {
   const { user } = useUser()
   const { signOut } = useAuth()
   const [open, setOpen] = useState(false)
@@ -212,6 +216,17 @@ function UserMenu() {
               {user?.primaryEmailAddress?.emailAddress || user?.fullName || 'rider'}
             </div>
           </div>
+          {onOpenSettings && (
+            <button
+              onClick={() => {
+                setOpen(false)
+                onOpenSettings()
+              }}
+              className="w-full px-3 py-2 text-left text-hd-text hover:bg-hd-card hover:text-hd-orange"
+            >
+              Settings
+            </button>
+          )}
           <button
             onClick={async () => {
               setOpen(false)

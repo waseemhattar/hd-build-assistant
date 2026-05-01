@@ -19,6 +19,7 @@ import {
   evaluateInterval,
   findLastMatchingEntry
 } from '../data/serviceIntervals.js'
+import { formatMileage, distanceUnitLabel, isMetric } from '../data/userPrefs.js'
 import {
   decodeVinLocal,
   decodeVinRemote,
@@ -353,8 +354,12 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
         <div className="mt-4 grid grid-cols-3 gap-2">
           <Stat
             label="Mileage"
-            value={(bike.mileage || 0).toLocaleString()}
-            unit="mi"
+            value={
+              isMetric()
+                ? Math.round((bike.mileage || 0) * 1.609344).toLocaleString()
+                : (bike.mileage || 0).toLocaleString()
+            }
+            unit={distanceUnitLabel()}
           />
           <Stat
             label="Mods"
@@ -512,8 +517,8 @@ function NextDueChip({ nextDue }) {
         title={nextDue.intervalLabel}
       >
         {overdue
-          ? `${nextDue.intervalLabel} (${nextDue.milesOver.toLocaleString()} mi over)`
-          : `${nextDue.intervalLabel} in ${nextDue.milesLeft.toLocaleString()} mi`}
+          ? `${nextDue.intervalLabel} (${formatMileage(nextDue.milesOver)} over)`
+          : `${nextDue.intervalLabel} in ${formatMileage(nextDue.milesLeft)}`}
       </div>
     </div>
   )

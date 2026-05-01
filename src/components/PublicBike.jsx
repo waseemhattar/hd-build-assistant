@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getPublicBikeBySlug } from '../data/storage.js'
+import { formatMileage } from '../data/userPrefs.js'
 import Logo from './Logo.jsx'
 
 // Public, unauthenticated build sheet. Rendered by App.jsx when the URL
@@ -369,7 +370,7 @@ function ServiceRow({ entry, striped }) {
       <div className="text-right text-xs text-hd-muted">
         {entry.date && <div>{entry.date}</div>}
         {entry.mileage > 0 && (
-          <div>@ {Number(entry.mileage).toLocaleString()} mi</div>
+          <div>@ {formatMileage(Number(entry.mileage))}</div>
         )}
       </div>
     </div>
@@ -414,7 +415,7 @@ function ModRow({ mod, striped }) {
       <div className="text-right text-xs text-hd-muted">
         {mod.installDate && <div>Installed {mod.installDate}</div>}
         {mod.installMileage != null && (
-          <div>@ {Number(mod.installMileage).toLocaleString()} mi</div>
+          <div>@ {formatMileage(Number(mod.installMileage))}</div>
         )}
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   formatSpeed
 } from '../data/rides.js'
 import { getGarage, updateBikeMileage } from '../data/storage.js'
+import { formatMileage } from '../data/userPrefs.js'
 
 // Live ride tracker.
 //
@@ -123,6 +124,9 @@ export default function RideTracker({ onBack, onSaved }) {
         setPhase('idle')
         return
       }
+      // Mileage column is always stored as miles in the DB regardless of
+      // user's display unit, so we always convert from meters → miles when
+      // bumping. The display layer (formatMileage) handles km rendering.
       const startMileage = bikeId
         ? garage.find((b) => b.id === bikeId)?.mileage || null
         : null
@@ -231,7 +235,7 @@ export default function RideTracker({ onBack, onSaved }) {
             {garage.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.nickname || b.model || b.year || 'Bike'}{' '}
-                ({(b.mileage || 0).toLocaleString()} mi)
+                ({formatMileage(b.mileage || 0)})
               </option>
             ))}
           </select>
@@ -244,7 +248,7 @@ export default function RideTracker({ onBack, onSaved }) {
           <div className="grid grid-cols-2 gap-4">
             <Stat
               label="Distance"
-              value={formatDistance(stats.distanceM, 'mi')}
+              value={formatDistance(stats.distanceM)}
               big
             />
             <Stat
@@ -252,10 +256,10 @@ export default function RideTracker({ onBack, onSaved }) {
               value={formatDuration(stats.durationSec)}
               big
             />
-            <Stat label="Speed" value={formatSpeed(stats.speedMps, 'mph')} />
+            <Stat label="Speed" value={formatSpeed(stats.speedMps)} />
             <Stat
               label="Max speed"
-              value={formatSpeed(stats.maxSpeedMps, 'mph')}
+              value={formatSpeed(stats.maxSpeedMps)}
             />
           </div>
           <div className="mt-4 text-xs text-hd-muted">
