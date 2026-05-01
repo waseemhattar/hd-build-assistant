@@ -908,7 +908,13 @@ async function applyOp(supabase, op) {
       const b = op.bike
       const row = {
         id: localIdToUuid(b.id),
+        // Old Clerk-shaped column. We keep populating it (with the
+        // Supabase UUID now) for backward compat with any code that
+        // still reads user_id; new RLS uses auth_user_id below.
         user_id: currentUserId,
+        // Supabase Auth user id — what the new RLS policies check
+        // against via auth.uid(). Required for inserts.
+        auth_user_id: currentUserId,
         bike_type_id: b.bikeTypeId || null,
         year: b.year || null,
         model: b.model || '',
@@ -947,6 +953,7 @@ async function applyOp(supabase, op) {
       const row = {
         id: localIdToUuid(e.id),
         user_id: currentUserId,
+        auth_user_id: currentUserId,
         bike_id: localIdToUuid(e.bikeId),
         job_id: e.jobId || null,
         title: e.title || '',
@@ -981,6 +988,7 @@ async function applyOp(supabase, op) {
       const row = {
         id: localIdToUuid(b.id),
         user_id: currentUserId,
+        auth_user_id: currentUserId,
         bike_id: localIdToUuid(b.bikeId),
         title: b.title || '',
         status: b.status || 'planned',
@@ -1009,6 +1017,7 @@ async function applyOp(supabase, op) {
       const row = {
         id: localIdToUuid(m.id),
         user_id: currentUserId,
+        auth_user_id: currentUserId,
         bike_id: localIdToUuid(m.bikeId),
         build_id: m.buildId ? localIdToUuid(m.buildId) : null,
         title: m.title || '',
@@ -1109,6 +1118,19 @@ async function pullFromServer() {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
 
   const supabase = getSupabaseClient()
+
+  // Resolve the current Supabase auth user. We scope every pull to
+  // this user so the public-read RLS policy (which lets ANYONE read
+  // is_public=true rows for share links) doesn't leak other users'
+  // public bikes into the signed-in user's Garage. Belt-and-braces:
+  // RLS narrows server-side, .eq() narrows client-side.
+  const { data: authData } = await supabase.auth.getUser()
+  const myAuthUserId = authData?.user?.id || null
+  if (!myAuthUserId) {
+    // Not signed in via Supabase yet — nothing to pull.
+    return
+  }
+
   const [
     { data: bikes, error: bErr },
     { data: entries, error: eErr },
@@ -1118,18 +1140,22 @@ async function pullFromServer() {
     supabase
       .from('garage_bikes')
       .select('*')
+      .eq('auth_user_id', myAuthUserId)
       .order('created_at', { ascending: true }),
     supabase
       .from('service_entries')
       .select('*')
+      .eq('auth_user_id', myAuthUserId)
       .order('created_at', { ascending: true }),
     supabase
       .from('bike_builds')
       .select('*')
+      .eq('auth_user_id', myAuthUserId)
       .order('created_at', { ascending: true }),
     supabase
       .from('bike_mods')
       .select('*')
+      .eq('auth_user_id', myAuthUserId)
       .order('created_at', { ascending: true })
   ])
   if (bErr || eErr || buErr || mErr) {
