@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getPublicBikeBySlug } from '../data/storage.js'
-import { formatMileage } from '../data/userPrefs.js'
+import { formatMileage, formatDate } from '../data/userPrefs.js'
 import Logo from './Logo.jsx'
 
 // Public, unauthenticated build sheet. Rendered by App.jsx when the URL
@@ -8,15 +8,24 @@ import Logo from './Logo.jsx'
 // bike's is_public flag is true and a public_slug is set, so a 404 here
 // usually means the rider unpublished the bike (or the slug is wrong).
 //
-// What's shown:
-//   - Cover photo (if set), display name, year/family/model, mileage
-//   - Builds, each with their mods grouped under the build
-//   - Mods that don't belong to any build, grouped by category
-// What's NOT shown:
-//   - Service log (rider's maintenance history stays private)
-//   - VIN, purchase date, notes, cost (we don't expose those at all,
-//     even when the public RLS would technically permit it — keeping
-//     the public payload minimal is a defense-in-depth thing)
+// Shown:
+//   - Hero with cover photo + name + year + owner
+//   - Stats grid: mileage, mods total, installed, services
+//   - Builds (named build groupings) with their mods
+//   - Orphan mods (mods not in a build), grouped by category
+//   - Optional public service history (entries the owner left as public)
+//
+// NOT shown — even when RLS would technically permit it:
+//   - VIN, purchase date, internal notes, cost (defense-in-depth)
+//
+// Visual rules (iOS-native, matches Home dashboard):
+//   - Cards have NO border. Bg contrast (hd-black under, hd-dark on)
+//     is the separation.
+//   - rounded-3xl corners. Generous.
+//   - Section header = small uppercase kicker + optional subtitle.
+//   - Inside cards: thin border-white/5 dividers between rows.
+//   - Hero photo is full-bleed with a dark gradient at the bottom
+//     for the bike-name overlay.
 
 export default function PublicBike({ slug }) {
   const [state, setState] = useState({ status: 'loading' })
@@ -40,9 +49,7 @@ export default function PublicBike({ slug }) {
     }
   }, [slug])
 
-  // Set the document title + a basic meta description while we're on this
-  // page so link previews and tab titles are sensible. Cleanup on unmount
-  // restores the app's defaults.
+  // Document title + meta description for sharing.
   useEffect(() => {
     if (state.status !== 'ready') return
     const { bike } = state.data
@@ -57,49 +64,51 @@ export default function PublicBike({ slug }) {
   if (state.status === 'loading') {
     return (
       <Shell>
-        <div className="card text-center text-sm text-hd-muted">
-          Loading bike…
-        </div>
+        <Centered>
+          <div className="text-sm text-hd-muted">Loading bike…</div>
+        </Centered>
       </Shell>
     )
   }
   if (state.status === 'not-found') {
     return (
       <Shell>
-        <div className="card text-center">
-          <div className="font-display text-2xl tracking-wider text-hd-orange">
-            BIKE NOT FOUND
+        <Centered>
+          <div className="text-2xl font-bold text-hd-text">
+            Bike not found
           </div>
-          <p className="mt-2 text-sm text-hd-muted">
+          <p className="mt-2 max-w-md text-[14px] text-hd-muted">
             This build sheet either doesn't exist or has been unpublished
-            by the owner. Links from before it was unpublished will start
-            working again if the owner re-publishes.
+            by the owner. If they re-publish, the original link will work
+            again.
           </p>
           <a
             href="/"
-            className="mt-4 inline-block rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+            className="mt-5 inline-block rounded-full bg-hd-orange px-6 py-3 text-[15px] font-semibold text-white"
           >
             Build your own
           </a>
-        </div>
+        </Centered>
       </Shell>
     )
   }
   if (state.status === 'error') {
     return (
       <Shell>
-        <div className="card text-center">
-          <div className="font-display text-2xl tracking-wider text-hd-orange">
-            COULDN'T LOAD
+        <Centered>
+          <div className="text-2xl font-bold text-hd-text">
+            Couldn't load
           </div>
-          <p className="mt-2 text-sm text-hd-muted">{state.message}</p>
+          <p className="mt-2 max-w-md text-[14px] text-hd-muted">
+            {state.message}
+          </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-text hover:border-hd-orange hover:text-hd-orange"
+            className="mt-5 rounded-full bg-hd-dark px-6 py-3 text-[15px] font-semibold text-hd-text"
           >
             Try again
           </button>
-        </div>
+        </Centered>
       </Shell>
     )
   }
@@ -107,7 +116,7 @@ export default function PublicBike({ slug }) {
   const { bike, builds, mods, serviceEntries = [] } = state.data
 
   // Bucket mods by buildId. Anything with a null/unknown buildId goes
-  // into the "Other mods" bucket so it still gets surfaced.
+  // into "orphan mods" so it still gets surfaced.
   const knownBuildIds = new Set(builds.map((b) => b.id))
   const modsByBuild = new Map()
   const orphanMods = []
@@ -127,193 +136,283 @@ export default function PublicBike({ slug }) {
   return (
     <Shell>
       {/* Hero */}
-      <div className="overflow-hidden rounded-md border border-hd-border bg-hd-dark">
-        {bike.coverPhotoUrl ? (
-          // object-contain (not cover) so the full bike fits regardless of
-          // whether the rider uploaded a portrait or landscape shot. The
-          // black backdrop fills any letterboxing and matches the page bg.
-          <div className="flex max-h-[80vh] w-full items-center justify-center bg-hd-black">
-            <img
-              src={bike.coverPhotoUrl}
-              alt={bike.nickname || bike.model || 'bike'}
-              className="max-h-[80vh] w-full object-contain"
-            />
-          </div>
-        ) : (
-          <div className="flex h-32 w-full items-center justify-center bg-hd-black/60 text-xs uppercase tracking-widest text-hd-muted">
-            No cover photo
-          </div>
-        )}
-        <div className="p-5 sm:p-6">
-          {bike.year && (
-            <div className="text-xs uppercase tracking-widest text-hd-orange">
-              {bike.year}
+      <section className="px-4 pb-4 pt-3 sm:px-6 sm:pt-6">
+        <div className="relative overflow-hidden rounded-3xl bg-hd-dark">
+          {bike.coverPhotoUrl ? (
+            <div className="relative aspect-[4/3] w-full bg-hd-black sm:aspect-[16/9]">
+              <img
+                src={bike.coverPhotoUrl}
+                alt={bike.nickname || bike.model || 'bike'}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              {/* Dark gradient at bottom so overlay text is readable. */}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+              {/* Bike name overlay */}
+              <div className="absolute inset-x-0 bottom-0 p-5">
+                {bike.year && (
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
+                    {bike.year}
+                  </div>
+                )}
+                <div className="mt-0.5 text-3xl font-bold text-white sm:text-4xl">
+                  {bike.nickname || bike.model || 'Unnamed bike'}
+                </div>
+                {bike.nickname && bike.model && (
+                  <div className="mt-0.5 text-[14px] text-white/70">
+                    {bike.model}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-6">
+              {bike.year && (
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
+                  {bike.year}
+                </div>
+              )}
+              <div className="mt-0.5 text-3xl font-bold text-hd-text sm:text-4xl">
+                {bike.nickname || bike.model || 'Unnamed bike'}
+              </div>
+              {bike.nickname && bike.model && (
+                <div className="mt-0.5 text-[14px] text-hd-muted">
+                  {bike.model}
+                </div>
+              )}
             </div>
           )}
-          <div className="mt-1 font-display text-3xl tracking-wider sm:text-4xl">
-            {bike.nickname || bike.model || 'Unnamed bike'}
-          </div>
-          {bike.nickname && bike.model && (
-            <div className="mt-1 text-sm text-hd-muted">{bike.model}</div>
-          )}
-          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <Stat label="Mileage" value={(bike.mileage || 0).toLocaleString()} />
-            <Stat label="Mods" value={String(totalMods)} />
-            <Stat label="Installed" value={String(installedCount)} />
-            {serviceEntries.length > 0 && (
-              <Stat label="Services" value={String(serviceEntries.length)} />
-            )}
-            {bike.displayName && (
-              <Stat label="Owner" value={bike.displayName} />
-            )}
-          </div>
         </div>
-      </div>
+
+        {/* Owner attribution sits below the hero for breathing room */}
+        {bike.displayName && (
+          <div className="mt-3 px-1 text-[13px] text-hd-muted">
+            By <span className="text-hd-text">{bike.displayName}</span>
+          </div>
+        )}
+      </section>
+
+      {/* Stats grid */}
+      <section className="px-4 pb-6 sm:px-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <StatTile
+            label="Mileage"
+            value={formatMileage(bike.mileage || 0)}
+          />
+          <StatTile
+            label="Mods"
+            value={String(totalMods)}
+            suffix={totalMods === 1 ? 'item' : 'items'}
+          />
+          <StatTile
+            label="Installed"
+            value={String(installedCount)}
+            tone={installedCount > 0 ? 'good' : 'muted'}
+          />
+          {serviceEntries.length > 0 && (
+            <StatTile
+              label="Services"
+              value={String(serviceEntries.length)}
+              suffix={
+                serviceEntries.length === 1 ? 'entry' : 'entries'
+              }
+            />
+          )}
+        </div>
+      </section>
 
       {/* Builds */}
       {builds.length > 0 && (
-        <section className="mt-6">
-          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
-            BUILDS
-          </h2>
-          <div className="mt-3 grid grid-cols-1 gap-3">
-            {builds.map((b) => (
-              <BuildCard
-                key={b.id}
-                build={b}
-                mods={modsByBuild.get(b.id) || []}
-              />
-            ))}
-          </div>
-        </section>
+        <SectionHeader
+          title="Builds"
+          subtitle="Themed mod groupings."
+        />
       )}
+      {builds.map((b) => (
+        <BuildSection
+          key={b.id}
+          build={b}
+          mods={modsByBuild.get(b.id) || []}
+        />
+      ))}
 
-      {/* Orphan mods (not associated with a named build) */}
+      {/* Orphan mods */}
       {orphanMods.length > 0 && (
-        <section className="mt-6">
-          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
-            {builds.length > 0 ? 'OTHER MODS' : 'MODS'}
-          </h2>
-          <ModList mods={orphanMods} />
-        </section>
+        <>
+          <SectionHeader
+            title={builds.length > 0 ? 'Other mods' : 'Mods'}
+            subtitle="Parts not part of a named build."
+          />
+          <ModsSection mods={orphanMods} />
+        </>
       )}
 
       {builds.length === 0 && orphanMods.length === 0 && (
-        <div className="mt-6 card text-center text-sm text-hd-muted">
-          No mods listed yet — owner hasn't filled in their build sheet.
-        </div>
-      )}
-
-      {/* Service history (only entries the owner left as public). Costs
-          are deliberately omitted even when the entry is public — riders
-          are happy to share what they did, less happy to share what
-          they paid for it. */}
-      {serviceEntries.length > 0 && (
-        <section className="mt-6">
-          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
-            SERVICE HISTORY
-          </h2>
-          <div className="mt-3 overflow-hidden rounded border border-hd-border">
-            {serviceEntries.map((e, i) => (
-              <ServiceRow
-                key={e.id}
-                entry={e}
-                striped={i % 2 === 1}
-              />
-            ))}
+        <section className="px-4 pb-6 sm:px-6">
+          <div className="rounded-3xl bg-hd-dark p-6 text-center text-[14px] text-hd-muted">
+            No mods listed yet — owner hasn't filled in their build sheet.
           </div>
         </section>
       )}
 
-      <footer className="mt-10 text-center text-xs text-hd-muted">
-        Built on{' '}
+      {/* Service history (only entries the owner left as public) */}
+      {serviceEntries.length > 0 && (
+        <>
+          <SectionHeader
+            title="Service history"
+            subtitle="Maintenance entries the owner published."
+          />
+          <ServiceSection entries={serviceEntries} />
+        </>
+      )}
+
+      <footer className="px-6 pb-8 pt-6 text-center">
         <a
           href="/"
-          className="underline hover:text-hd-orange"
+          className="inline-flex items-center gap-1.5 text-[12px] text-hd-muted hover:text-hd-orange"
           title="Sidestand"
         >
-          Sidestand
+          <span>Built on</span>
+          <Logo size={14} />
+          <span className="font-semibold">Sidestand</span>
         </a>
       </footer>
     </Shell>
   )
 }
 
-// Reusable shell that keeps spacing + the top brand bar consistent
-// across loading / 404 / ready states. Deliberately minimal — no nav,
-// no auth widgets, since this is a public page.
+// ============================================================
+// Layout primitives
+// ============================================================
+
 function Shell({ children }) {
   return (
-    <div className="min-h-screen bg-hd-black text-hd-text">
-      <header className="border-b border-hd-border bg-hd-dark">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <a
-            href="/"
-            className="hover:opacity-80 transition"
-            title="Sidestand"
-          >
+    <div
+      className="min-h-screen bg-hd-black pb-12 text-hd-text"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'max(3rem, env(safe-area-inset-bottom))'
+      }}
+    >
+      <header className="sticky top-0 z-30 border-b border-white/5 bg-hd-black/85 backdrop-blur-xl">
+        <div
+          className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <a href="/" className="hover:opacity-80 transition" title="Sidestand">
             <Logo size={22} />
           </a>
           <a
             href="/"
-            className="text-xs uppercase tracking-widest text-hd-muted hover:text-hd-orange"
+            className="rounded-full border border-white/10 px-3.5 py-1.5 text-[12px] font-semibold text-hd-text hover:border-hd-orange hover:text-hd-orange"
           >
             Build your own
           </a>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        {children}
-      </main>
+      <main className="mx-auto max-w-3xl">{children}</main>
     </div>
   )
 }
 
-function Stat({ label, value }) {
+function Centered({ children }) {
   return (
-    <div>
-      <div className="text-xs uppercase tracking-widest text-hd-muted">
+    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-6 text-center">
+      {children}
+    </div>
+  )
+}
+
+function SectionHeader({ title, subtitle, action }) {
+  return (
+    <div className="mb-2 flex items-end justify-between gap-3 px-5 pt-2 sm:px-7">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
+          {title}
+        </div>
+        {subtitle && (
+          <div className="mt-0.5 text-[13px] text-hd-muted">{subtitle}</div>
+        )}
+      </div>
+      {action}
+    </div>
+  )
+}
+
+// ============================================================
+// Stat tiles
+// ============================================================
+
+function StatTile({ label, value, suffix, tone }) {
+  const valueClr =
+    tone === 'good'
+      ? 'text-emerald-400'
+      : tone === 'muted'
+      ? 'text-hd-muted'
+      : 'text-hd-text'
+  return (
+    <div className="rounded-2xl bg-hd-dark px-4 py-3.5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
         {label}
       </div>
-      <div className="font-display text-xl tracking-wider text-hd-text">
+      <div
+        className={`mt-1 text-lg font-bold tracking-tight sm:text-xl ${valueClr}`}
+      >
         {value}
       </div>
+      {suffix && (
+        <div className="text-[10px] text-hd-muted">{suffix}</div>
+      )}
     </div>
   )
 }
 
-function BuildCard({ build, mods }) {
+// ============================================================
+// Builds and mods
+// ============================================================
+
+function BuildSection({ build, mods }) {
   return (
-    <div className="card">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <div className="font-display text-xl tracking-wider text-hd-text">
-          {build.title || 'Untitled build'}
+    <section className="px-4 pb-4 sm:px-6">
+      <div className="overflow-hidden rounded-3xl bg-hd-dark">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pb-3 pt-5">
+          <div className="text-xl font-bold text-hd-text">
+            {build.title || 'Untitled build'}
+          </div>
+          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+            {build.status || 'planned'}
+          </span>
         </div>
-        <span className="rounded border border-hd-border bg-hd-black/40 px-2 py-0.5 text-[10px] uppercase tracking-widest text-hd-muted">
-          {build.status || 'planned'}
-        </span>
+        {build.notes && (
+          <div className="px-5 pb-4 text-[14px] leading-relaxed text-hd-text/85">
+            {build.notes}
+          </div>
+        )}
+        {mods.length > 0 ? (
+          <ModsList mods={mods} />
+        ) : (
+          <div className="border-t border-white/5 px-5 py-4 text-[13px] text-hd-muted">
+            No mods in this build yet.
+          </div>
+        )}
       </div>
-      {build.notes && (
-        <div className="mt-2 whitespace-pre-wrap text-sm text-hd-text">
-          {build.notes}
-        </div>
-      )}
-      {mods.length > 0 ? (
-        <div className="mt-3">
-          <ModList mods={mods} />
-        </div>
-      ) : (
-        <div className="mt-3 text-xs text-hd-muted">
-          No mods in this build yet.
-        </div>
-      )}
-    </div>
+    </section>
   )
 }
 
-// Mod list grouped by category so a long build sheet reads tidily. Each
-// row keeps to the public-friendly fields only (no cost, no source URL).
-function ModList({ mods }) {
+// Top-level "orphan mods" container. Same visual treatment as a build,
+// without the build header.
+function ModsSection({ mods }) {
+  return (
+    <section className="px-4 pb-4 sm:px-6">
+      <div className="overflow-hidden rounded-3xl bg-hd-dark">
+        <ModsList mods={mods} />
+      </div>
+    </section>
+  )
+}
+
+function ModsList({ mods }) {
+  // Group by category (alphabetical, "Uncategorized" floats to bottom).
   const byCategory = new Map()
   for (const m of mods) {
     const key = m.category || 'Uncategorized'
@@ -321,103 +420,129 @@ function ModList({ mods }) {
     list.push(m)
     byCategory.set(key, list)
   }
-  // Stable category order: alphabetical, but float "Uncategorized" to the end.
   const categories = [...byCategory.keys()].sort((a, b) => {
     if (a === 'Uncategorized') return 1
     if (b === 'Uncategorized') return -1
     return a.localeCompare(b)
   })
+
   return (
-    <div className="grid grid-cols-1 gap-3">
-      {categories.map((cat) => (
-        <div key={cat}>
-          <div className="mb-1 text-xs uppercase tracking-widest text-hd-muted">
+    <div>
+      {categories.map((cat, ci) => (
+        <div key={cat} className={ci > 0 ? 'border-t border-white/5' : ''}>
+          <div className="px-5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
             {cat}
           </div>
-          <div className="overflow-hidden rounded border border-hd-border">
-            {byCategory.get(cat).map((m, i) => (
-              <ModRow key={m.id} mod={m} striped={i % 2 === 1} />
+          <ul>
+            {byCategory.get(cat).map((m) => (
+              <ModRow key={m.id} mod={m} />
             ))}
-          </div>
+          </ul>
         </div>
       ))}
     </div>
   )
 }
 
-// One row in the public service-history list. Mirrors ModRow's layout
-// so the two sections feel related, but trims to service-relevant fields.
-function ServiceRow({ entry, striped }) {
-  return (
-    <div
-      className={`flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-baseline sm:justify-between ${
-        striped ? 'bg-hd-black/30' : ''
-      }`}
-    >
-      <div className="min-w-0">
-        <div className="text-sm text-hd-text">
-          {entry.title || 'Service'}
-        </div>
-        {entry.parts && (
-          <div className="text-xs text-hd-muted">{entry.parts}</div>
-        )}
-        {entry.notes && (
-          <div className="mt-1 whitespace-pre-wrap text-xs text-hd-muted">
-            {entry.notes}
-          </div>
-        )}
-      </div>
-      <div className="text-right text-xs text-hd-muted">
-        {entry.date && <div>{entry.date}</div>}
-        {entry.mileage > 0 && (
-          <div>@ {formatMileage(Number(entry.mileage))}</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function ModRow({ mod, striped }) {
+function ModRow({ mod }) {
   const meta = []
   if (mod.brand) meta.push(mod.brand)
   if (mod.partNumber) meta.push(`PN ${mod.partNumber}`)
   if (mod.vendor) meta.push(mod.vendor)
   return (
-    <div
-      className={`flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-baseline sm:justify-between ${
-        striped ? 'bg-hd-black/30' : ''
-      }`}
-    >
-      <div>
-        <div className="text-sm text-hd-text">
-          {mod.title || 'Untitled mod'}
-          <span
-            className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${
-              mod.status === 'installed'
-                ? 'border border-green-700 bg-green-900/30 text-green-400'
-                : mod.status === 'in_progress'
-                ? 'border border-amber-700 bg-amber-900/30 text-amber-300'
-                : 'border border-hd-border bg-hd-black/40 text-hd-muted'
-            }`}
-          >
-            {mod.status || 'planned'}
-          </span>
-        </div>
-        {meta.length > 0 && (
-          <div className="text-xs text-hd-muted">{meta.join(' · ')}</div>
-        )}
-        {mod.notes && (
-          <div className="mt-1 whitespace-pre-wrap text-xs text-hd-muted">
-            {mod.notes}
+    <li className="border-t border-white/5 px-5 py-3 first:border-t-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <div className="text-[15px] font-medium text-hd-text">
+              {mod.title || 'Untitled mod'}
+            </div>
+            <ModStatusPill status={mod.status} />
           </div>
-        )}
+          {meta.length > 0 && (
+            <div className="mt-0.5 text-[12px] text-hd-muted">
+              {meta.join(' · ')}
+            </div>
+          )}
+          {mod.notes && (
+            <div className="mt-1.5 whitespace-pre-wrap text-[13px] text-hd-muted/90">
+              {mod.notes}
+            </div>
+          )}
+        </div>
+        <div className="shrink-0 text-right text-[12px] text-hd-muted">
+          {mod.installDate && <div>{formatDate(mod.installDate)}</div>}
+          {mod.installMileage != null && (
+            <div className="mt-0.5">
+              @ {formatMileage(Number(mod.installMileage))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="text-right text-xs text-hd-muted">
-        {mod.installDate && <div>Installed {mod.installDate}</div>}
-        {mod.installMileage != null && (
-          <div>@ {formatMileage(Number(mod.installMileage))}</div>
-        )}
+    </li>
+  )
+}
+
+function ModStatusPill({ status }) {
+  const map = {
+    installed: 'bg-emerald-500/10 text-emerald-300',
+    in_progress: 'bg-amber-500/10 text-amber-300',
+    planned: 'bg-white/5 text-hd-muted',
+    removed: 'bg-red-500/10 text-red-300'
+  }
+  const cls = map[status] || map.planned
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${cls}`}
+    >
+      {status || 'planned'}
+    </span>
+  )
+}
+
+// ============================================================
+// Service history
+// ============================================================
+
+function ServiceSection({ entries }) {
+  return (
+    <section className="px-4 pb-4 sm:px-6">
+      <div className="overflow-hidden rounded-3xl bg-hd-dark">
+        <ul>
+          {entries.map((e, i) => (
+            <li
+              key={e.id}
+              className={i > 0 ? 'border-t border-white/5' : ''}
+            >
+              <div className="flex items-start justify-between gap-3 px-5 py-3.5">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-medium text-hd-text">
+                    {e.title || 'Service'}
+                  </div>
+                  {e.parts && (
+                    <div className="mt-0.5 text-[12px] text-hd-muted">
+                      {e.parts}
+                    </div>
+                  )}
+                  {e.notes && (
+                    <div className="mt-1.5 whitespace-pre-wrap text-[13px] text-hd-muted/90">
+                      {e.notes}
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0 text-right text-[12px] text-hd-muted">
+                  {e.date && <div>{formatDate(e.date)}</div>}
+                  {e.mileage > 0 && (
+                    <div className="mt-0.5">
+                      @ {formatMileage(Number(e.mileage))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
+    </section>
   )
 }
