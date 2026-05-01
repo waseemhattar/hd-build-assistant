@@ -45,6 +45,15 @@ import {
 
 let currentUserId = null
 
+// Tracks the very first pull for the current user so the UI can show
+// "Loading your garage…" instead of "0 bikes" while we're waiting for
+// Supabase. Flips to false the moment pullFromServer settles.
+let initialPullPending = false
+
+export function isInitialPullPending() {
+  return initialPullPending
+}
+
 // React 18 StrictMode double-invokes mount effects in dev, so App.jsx calls
 // us as: setUser(id) → setUser(null) (cleanup) → setUser(id). If we cleared
 // state on every null call, the Supabase pull we queued against the real
@@ -59,6 +68,7 @@ export function setStorageUser(userId) {
     setTimeout(() => {
       if (pendingClear === myToken) {
         currentUserId = null
+        initialPullPending = false
         pendingClear = 0
         notify()
       }
@@ -73,12 +83,22 @@ export function setStorageUser(userId) {
   if (!changed) return
 
   currentUserId = userId
+  // Mark "loading" before we kick off the pull so any component that
+  // reads isInitialPullPending() during this render gets `true`.
+  initialPullPending = true
   notify()
 
   if (currentUserId && isSupabaseConfigured()) {
     Promise.resolve()
       .then(() => pullFromServer())
       .catch((e) => console.warn('pullFromServer threw', e))
+      .finally(() => {
+        initialPullPending = false
+        notify()
+      })
+  } else {
+    // No Supabase configured — nothing to wait for.
+    initialPullPending = false
   }
 }
 

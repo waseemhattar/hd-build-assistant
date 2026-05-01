@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useUser } from '../auth/AuthProvider.jsx'
 import {
   getGarage,
   getServiceLog,
-  getMods
+  getMods,
+  subscribe,
+  isInitialPullPending
 } from '../data/storage.js'
 import { intervals, evaluateInterval, findLastMatchingEntry } from '../data/serviceIntervals.js'
 import SearchBar from './SearchBar.jsx'
@@ -23,7 +25,24 @@ export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPi
   const { user } = useUser()
   const firstName = user?.firstName || 'rider'
 
-  const garage = useMemo(() => getGarage(), [])
+  // Re-render whenever the storage layer notifies us (pulls, writes,
+  // sign-in user changes). Without this the dashboard captures the
+  // empty cache at first paint and never updates until you navigate.
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const unsub = subscribe(() => setTick((t) => t + 1))
+    return unsub
+  }, [])
+
+  // True until the very first server pull settles. Lets us show
+  // "Loading your garage…" instead of "0 bikes" on a fresh sign-in.
+  const [pullPending, setPullPending] = useState(() => isInitialPullPending())
+  useEffect(() => {
+    setPullPending(isInitialPullPending())
+  }, [tick])
+
+  // tick is intentionally a dep so the memos rebuild on every notify().
+  const garage = useMemo(() => getGarage(), [tick])
   const summary = useMemo(() => buildSummary(garage), [garage])
 
   return (
@@ -37,7 +56,9 @@ export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPi
             HEY, {firstName.toUpperCase()}.
           </h1>
           <p className="mt-1 text-sm text-hd-muted">
-            {garage.length === 0
+            {pullPending
+              ? 'Loading your garage…'
+              : garage.length === 0
               ? 'Add your first bike to get rolling.'
               : `${garage.length} bike${garage.length > 1 ? 's' : ''} in the garage. Here's what's up.`}
           </p>
@@ -54,12 +75,16 @@ export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPi
         <StatCard
           kicker="Garage"
           headline={
-            garage.length === 0
+            pullPending
+              ? '…'
+              : garage.length === 0
               ? 'No bikes yet'
               : `${garage.length} bike${garage.length > 1 ? 's' : ''}`
           }
           sub={
-            garage.length === 0
+            pullPending
+              ? 'Loading…'
+              : garage.length === 0
               ? 'Tap to add your first bike.'
               : garage
                   .slice(0, 3)
@@ -73,12 +98,16 @@ export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPi
           kicker="Due soon"
           tone={summary.dueSoon.length > 0 ? 'warn' : 'ok'}
           headline={
-            summary.dueSoon.length === 0
+            pullPending
+              ? '…'
+              : summary.dueSoon.length === 0
               ? 'Nothing due'
               : `${summary.dueSoon.length} item${summary.dueSoon.length > 1 ? 's' : ''}`
           }
           sub={
-            summary.dueSoon.length === 0
+            pullPending
+              ? 'Loading…'
+              : summary.dueSoon.length === 0
               ? 'Service intervals all green for now.'
               : summary.dueSoon
                   .slice(0, 2)
@@ -97,12 +126,16 @@ export default function Home({ onOpenGarage, onOpenManual, onOpenIntervals, onPi
         <StatCard
           kicker="Recent"
           headline={
-            summary.recent
+            pullPending
+              ? '…'
+              : summary.recent
               ? formatTimeAgo(summary.recent.date)
               : 'No activity yet'
           }
           sub={
-            summary.recent
+            pullPending
+              ? 'Loading…'
+              : summary.recent
               ? `${summary.recent.title || 'Service'} on ${summary.recent.bikeName}`
               : 'Your service entries will show up here.'
           }
