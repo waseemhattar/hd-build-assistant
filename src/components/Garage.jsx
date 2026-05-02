@@ -866,7 +866,7 @@ function BikeEditor({ bike, onCancel, onSave }) {
                 onClick={handleScan}
                 disabled={scanning}
                 className="inline-flex items-center gap-1.5 rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-hd-text hover:border-hd-orange hover:text-hd-orange disabled:opacity-40 disabled:hover:border-hd-border disabled:hover:text-hd-text"
-                title="Scan the VIN barcode on the steering-head plate"
+                title="Scan the steering-head VIN plate. Tries the barcode first; if there isn't one (European bikes are text-only) you'll be prompted to take a photo and we'll OCR the VIN."
               >
                 <svg
                   viewBox="0 0 24 24"

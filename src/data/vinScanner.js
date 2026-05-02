@@ -1,61 +1,89 @@
-// VIN scanner — Capacitor barcode-scanning wrapper.
+// VIN scanner — Capacitor barcode + OCR wrapper.
 //
-// Why a separate module: the scanner only loads on native (iOS/Android),
-// but the rest of the app still runs in any web context. We dynamic-
-// import @capacitor-mlkit/barcode-scanning so the web bundle isn't
-// forced to include a native-only plugin (and the import cost only
-// happens the first time the rider taps "Scan VIN").
+// Two-stage scan flow so we cover both spec variants:
 //
-// HD VIN tags use Code 39 (linear) barcodes on the steering-head plate
-// and on the frame near the seat. ML Kit decodes those reliably via
-// the iPhone's main camera. We also accept Code 128 + QR as a safety
-// net for anything atypical (older or non-HD bikes).
+//   1. BARCODE — open ML Kit's live barcode scanner. US-spec Harleys
+//      print a Code 39 barcode on the steering-head plate; that path
+//      is fast (sub-second) and very reliable.
 //
-// What we return:
-//   { ok: true, vin }   — clean 17-char VIN, normalized
-//   { ok: false, reason } — why it failed (permission denied, cancelled, no VIN found)
+//   2. OCR FALLBACK — European-spec (and many other-region) bikes
+//      have a TEXT-ONLY VIN plate with no barcode at all. When the
+//      barcode scan returns nothing useful, we capture a still photo
+//      via @capacitor/camera and run @capacitor-mlkit/text-recognition
+//      on the image, then regex out the 17-character VIN.
+//
+// Both stages are dynamically imported so the web bundle stays light.
+// scanVin() resolves to:
+//   { ok: true, vin, source: 'barcode'|'ocr' }
+//   { ok: false, reason: 'cancelled'|'permission'|<message> }
 
 import { isNativeApp } from './platform.js'
 import { normalizeVin } from './vinDecoder.js'
 
-let pluginPromise = null
-function loadPlugin() {
-  if (!pluginPromise) {
-    pluginPromise = import('@capacitor-mlkit/barcode-scanning').then(
-      (mod) => mod
-    )
+let barcodePromise = null
+let textRecPromise = null
+let cameraPromise = null
+
+function loadBarcode() {
+  if (!barcodePromise) {
+    barcodePromise = import('@capacitor-mlkit/barcode-scanning')
   }
-  return pluginPromise
+  return barcodePromise
+}
+function loadTextRec() {
+  if (!textRecPromise) {
+    textRecPromise = import('@capacitor-mlkit/text-recognition')
+  }
+  return textRecPromise
+}
+function loadCamera() {
+  if (!cameraPromise) {
+    cameraPromise = import('@capacitor/camera')
+  }
+  return cameraPromise
 }
 
-// Returns true on iOS/Android Capacitor builds where the scanner plugin
-// is available. Web builds always return false — caller hides the
-// "Scan VIN" button in that case.
 export function isVinScanSupported() {
   return isNativeApp()
 }
 
-export async function scanVin() {
-  if (!isNativeApp()) {
-    return { ok: false, reason: 'Camera scanning is only available on the iOS app.' }
+// Pull the first 17-char VIN-shaped substring out of a free-text blob.
+// VINs use alphanumerics minus I/O/Q (so they can't be confused with
+// digits 1, 0). The OCR text usually has the VIN as its own line plus
+// a bunch of metadata around it (kg, kW, dB, etc.) — this regex picks
+// out the right run.
+export function extractVinFromText(text) {
+  if (!text) return null
+  const upper = String(text).toUpperCase()
+  // Drop anything that isn't VIN-legal (I/O/Q excluded, no whitespace).
+  // Replace runs of disallowed chars with a single space so legit
+  // 17-char runs don't get fused into longer non-VIN strings.
+  const cleaned = upper.replace(/[^A-HJ-NPR-Z0-9]+/g, ' ')
+  // First pass — exactly 17-char run with letter+digit mix (a real
+  // VIN must contain at least one digit and at least one letter).
+  const tokens = cleaned.split(/\s+/).filter((t) => t.length === 17)
+  for (const t of tokens) {
+    if (/[A-Z]/.test(t) && /[0-9]/.test(t)) return t
   }
+  // Second pass — looser: a 17-char run anywhere inside a longer
+  // alphanumeric blob.
+  const m = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/)
+  if (m && /[A-Z]/.test(m[0]) && /[0-9]/.test(m[0])) return m[0]
+  return null
+}
 
+// ----- Stage 1: live barcode scan -----
+
+async function scanVinBarcode() {
   let mod
   try {
-    mod = await loadPlugin()
+    mod = await loadBarcode()
   } catch (e) {
-    return {
-      ok: false,
-      reason:
-        'Couldn’t load the barcode scanner. Try reinstalling the app or scan the VIN manually.'
-    }
+    return { ok: false, reason: 'plugin-load-failed' }
   }
 
   const { BarcodeScanner, BarcodeFormat } = mod
 
-  // Permissions: ML Kit auto-prompts the first time, but we ask
-  // explicitly so we can short-circuit a denied permission with a
-  // friendly message instead of letting scan() throw.
   try {
     const perm = await BarcodeScanner.requestPermissions()
     if (perm.camera !== 'granted' && perm.camera !== 'limited') {
@@ -65,60 +93,156 @@ export async function scanVin() {
           'Camera permission is off. Enable it in iOS Settings → Sidestand to scan VINs.'
       }
     }
-  } catch (e) {
-    // Some plugin versions don't surface permission state — fall
-    // through to scan(); it'll prompt natively.
+  } catch (_) {
+    // Some plugin versions don't surface permission state — let scan() prompt natively.
   }
 
-  // Some Android builds need an ML Kit module installed on first run.
-  // Safe no-op on iOS (ML Kit ships in the framework).
+  // Android may need an ML Kit module on first run. iOS no-op.
   try {
-    if (typeof BarcodeScanner.isGoogleBarcodeScannerModuleAvailable === 'function') {
+    if (
+      typeof BarcodeScanner.isGoogleBarcodeScannerModuleAvailable === 'function'
+    ) {
       const { available } =
         await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable()
-      if (!available) {
-        await BarcodeScanner.installGoogleBarcodeScannerModule()
-      }
+      if (!available) await BarcodeScanner.installGoogleBarcodeScannerModule()
     }
-  } catch (_) {
-    // Non-fatal. Continue.
-  }
+  } catch (_) {}
 
   let res
   try {
     res = await BarcodeScanner.scan({
       formats: [
-        BarcodeFormat.Code39, // HD steering-head VIN tag
-        BarcodeFormat.Code128, // some non-HD bikes
-        BarcodeFormat.QrCode, // future-proofing
+        BarcodeFormat.Code39,
+        BarcodeFormat.Code128,
+        BarcodeFormat.QrCode,
         BarcodeFormat.DataMatrix
       ]
     })
   } catch (e) {
     const msg = String(e?.message || e || '')
-    if (/cancel/i.test(msg)) {
+    if (/cancel/i.test(msg)) return { ok: false, reason: 'cancelled' }
+    return { ok: false, reason: 'no-result', detail: msg }
+  }
+
+  for (const b of res?.barcodes || []) {
+    const v = normalizeVin(b.rawValue || b.displayValue || '')
+    if (v.length === 17) return { ok: true, vin: v }
+  }
+  return { ok: false, reason: 'no-result' }
+}
+
+// ----- Stage 2: photo + text-recognition fallback -----
+
+async function scanVinFromPhoto() {
+  let cam, ocr
+  try {
+    cam = await loadCamera()
+    ocr = await loadTextRec()
+  } catch (_) {
+    return {
+      ok: false,
+      reason: 'Couldn’t load the text scanner. Reinstall the app or enter the VIN manually.'
+    }
+  }
+
+  const { Camera, CameraResultType, CameraSource } = cam
+  const { TextRecognition } = ocr
+
+  let photo
+  try {
+    photo = await Camera.getPhoto({
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Camera,
+      quality: 85,
+      allowEditing: false,
+      saveToGallery: false,
+      // High enough for OCR but not so big that the file path bloats.
+      width: 1600,
+      height: 1600,
+      correctOrientation: true,
+      promptLabelHeader: 'Scan VIN plate',
+      promptLabelPicture: 'Take photo',
+      promptLabelCancel: 'Cancel'
+    })
+  } catch (e) {
+    const msg = String(e?.message || e || '')
+    if (/cancel|user.*cancel/i.test(msg)) {
       return { ok: false, reason: 'cancelled' }
     }
     return {
       ok: false,
-      reason: msg || 'Scan failed. Try again or enter the VIN manually.'
+      reason: msg || 'Photo capture failed. Try again or enter the VIN manually.'
     }
   }
 
-  const barcodes = res?.barcodes || []
-  // Pick the first scan that normalizes to a 17-char VIN. Some HD
-  // tags also encode the build number (10-12 chars) on a second
-  // barcode strip — we ignore those.
-  for (const b of barcodes) {
-    const v = normalizeVin(b.rawValue || b.displayValue || '')
-    if (v.length === 17) {
-      return { ok: true, vin: v }
+  const path = photo?.path || photo?.webPath
+  if (!path) {
+    return { ok: false, reason: 'No image was captured.' }
+  }
+
+  let textResult
+  try {
+    // Most plugin versions expose `detectText({ filename })`. Some
+    // earlier ones expose `recognizeText`. Prefer detectText.
+    if (typeof TextRecognition.detectText === 'function') {
+      textResult = await TextRecognition.detectText({ filename: path })
+    } else if (typeof TextRecognition.recognizeText === 'function') {
+      textResult = await TextRecognition.recognizeText({ filename: path })
+    } else {
+      throw new Error('Text recognition API not available')
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      reason: e?.message || 'Couldn’t read text from the photo.'
     }
   }
+
+  // Plugin returns either { matches: [{ text, ... }] } or a flat string.
+  const allText =
+    typeof textResult === 'string'
+      ? textResult
+      : Array.isArray(textResult?.matches)
+      ? textResult.matches.map((m) => m.text || '').join('\n')
+      : Array.isArray(textResult?.lines)
+      ? textResult.lines.map((l) => l.text || '').join('\n')
+      : textResult?.text || ''
+
+  const vin = extractVinFromText(allText)
+  if (vin) return { ok: true, vin }
 
   return {
     ok: false,
     reason:
-      'No 17-character VIN found in that scan. Frame the steering-head VIN tag and try again.'
+      'No 17-character VIN found in the photo. Frame the VIN plate and try again with steady hands and good light.'
   }
+}
+
+// ----- Public entry point -----
+
+export async function scanVin() {
+  if (!isNativeApp()) {
+    return {
+      ok: false,
+      reason: 'Camera scanning is only available on the iOS app.'
+    }
+  }
+
+  const r1 = await scanVinBarcode()
+  if (r1.ok) return { ...r1, source: 'barcode' }
+  if (r1.reason === 'cancelled') return r1
+  // Permission errors and plugin-load errors aren't recoverable via OCR.
+  if (
+    typeof r1.reason === 'string' &&
+    /permission|plugin-load-failed/.test(r1.reason)
+  ) {
+    return r1
+  }
+
+  // Barcode found nothing usable (no barcode on this plate, or scan
+  // closed without a hit). Fall through to text-recognition. The
+  // caller's loading state stays true across both stages.
+  const r2 = await scanVinFromPhoto()
+  if (r2.ok) return { ...r2, source: 'ocr' }
+  return r2
 }
