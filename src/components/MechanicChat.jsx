@@ -63,6 +63,7 @@ function MechanicFAB({ onClick, streaming }) {
       onClick={onClick}
       title="Ask the mechanic"
       aria-label="Ask the mechanic"
+      data-tour-anchor="mechanic-fab"
       className="group fixed bottom-24 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-hd-orange text-white shadow-xl shadow-black/40 transition active:scale-90 sm:bottom-6"
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
     >

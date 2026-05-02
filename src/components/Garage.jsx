@@ -679,28 +679,17 @@ function BikeEditor({ bike, onCancel, onSave }) {
   const preset = bikeCatalog.find((p) => p.id === form.bikeTypeId)
 
   return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
-      onClick={onCancel}
-    >
-      <form
-        onSubmit={submit}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl rounded-md border border-hd-border bg-hd-dark p-5"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
-            {bike ? 'EDIT BIKE' : 'ADD BIKE'}
-          </h2>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-2xl leading-none text-hd-muted hover:text-hd-orange"
-          >
-            ×
-          </button>
-        </div>
-
+    <BottomSheet open={true} onClose={onCancel} size="lg">
+      <BottomSheet.Header
+        title={bike ? 'Edit bike' : 'Add bike'}
+        subtitle={
+          bike
+            ? 'Update specs, mileage, and the public-page profile.'
+            : 'Add a bike to track service, mods, and rides.'
+        }
+        onClose={onCancel}
+      />
+      <form onSubmit={submit}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Platform" wide>
             <select
@@ -905,23 +894,23 @@ function BikeEditor({ bike, onCancel, onSave }) {
           </Field>
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text"
+            className="rounded-full bg-hd-card px-5 py-3 text-sm text-hd-muted transition active:scale-95"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+            className="rounded-full bg-hd-orange px-5 py-3 text-sm font-semibold text-white transition active:scale-95"
           >
             {bike ? 'Save changes' : 'Add to garage'}
           </button>
         </div>
       </form>
-    </div>
+    </BottomSheet>
   )
 }
 

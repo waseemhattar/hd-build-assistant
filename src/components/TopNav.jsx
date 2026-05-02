@@ -125,6 +125,7 @@ function UserMenu({ onOpenSettings }) {
         className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-hd-border bg-hd-card text-[11px] font-semibold text-hd-text hover:border-hd-orange"
         aria-label="User menu"
         aria-expanded={open}
+        data-tour-anchor="user-menu"
       >
         {user?.imageUrl ? (
           <img

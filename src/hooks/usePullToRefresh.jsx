@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 // usePullToRefresh — wire iOS-style "drag down at top of list to
 // refresh" gesture to any scrollable container.
@@ -19,9 +19,8 @@ import { useEffect, useRef, useState } from 'react'
 // awaiting, the spinner spins. The user can keep scrolling normally
 // any other time.
 //
-// We deliberately keep this self-contained — no external lib — because
-// most pull-to-refresh libraries pull in their own scroll-locking and
-// fight the WebView's native scrolling.
+// File extension is .jsx because the indicator returned to the caller
+// includes inline JSX. Vite only transforms JSX in .jsx/.tsx files.
 
 export default function usePullToRefresh(onRefresh, opts = {}) {
   const threshold = opts.threshold ?? 60

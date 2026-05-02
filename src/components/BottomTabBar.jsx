@@ -25,6 +25,7 @@ export default function BottomTabBar({ activeSection, onNavigate }) {
       className="fixed inset-x-0 bottom-0 z-30 border-t border-white/5 bg-hd-black sm:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Primary navigation"
+      data-tour-anchor="bottom-tabs"
     >
       <ul className="grid grid-cols-4">
         {TABS.map((t) => {

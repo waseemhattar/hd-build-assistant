@@ -9,7 +9,7 @@ import {
 } from '../data/rides.js'
 import RideMap from './RideMap.jsx'
 import EmptyState from './ui/EmptyState.jsx'
-import usePullToRefresh from '../hooks/usePullToRefresh.js'
+import usePullToRefresh from '../hooks/usePullToRefresh.jsx'
 
 // Ride history list. Two flavors:
 //   - bikeId provided → list rides for that bike only
