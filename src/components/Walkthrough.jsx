@@ -52,11 +52,15 @@ export default function Walkthrough({
     if (!isLast) {
       setStepIndex((i) => i + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
+    } else if (bike) {
       // On the last step, "Next" turns into "Mark complete" → open
       // the log-service form with prefilled fields. The form is the
       // existing EntryEditor used everywhere else.
       setLogEditorOpen(true)
+    } else {
+      // No bike attached — procedures are bike-scoped now so this is
+      // a fallback path. Just exit cleanly without trying to log.
+      onComplete && onComplete()
     }
   }
   function prev() {
@@ -70,18 +74,44 @@ export default function Walkthrough({
   }
 
   // Build the prefill for EntryEditor when user marks complete.
+  // Title sources, in priority order:
+  //   1. The actual loaded procedure title from `detail` (most accurate;
+  //      reflects which direction of a paired Remove/Install was done).
+  //   2. The paired item's baseTitle (e.g. "Brake Caliper, Front").
+  //   3. The legacy `procedure.title` (kept as a fallback for old code
+  //      paths that still pass a single procedure object directly).
   const logPrefill = useMemo(() => {
     const partsList = (detail?.parts || [])
       .filter((p) => p.description)
       .map((p) => `${p.qty ? p.qty + 'x ' : ''}${p.part_number ? p.part_number + ' ' : ''}${p.description}`)
       .join(', ')
+    const rawTitle =
+      detail?.procedure?.title ||
+      procedure?.baseTitle ||
+      procedure?.title ||
+      ''
     return {
-      title: procedure?.title || '',
-      jobId: procedure?.legacy_id || procedure?.id || null,
+      title: titleCase(rawTitle),
+      jobId:
+        detail?.procedure?.legacy_id ||
+        detail?.procedure?.id ||
+        procedure?.legacy_id ||
+        procedure?.id ||
+        null,
       parts: partsList,
       notes: ''
     }
   }, [procedure, detail])
+
+  // HD service-manual titles arrive in ALL CAPS ("BRAKE CALIPER, FRONT
+  // REMOVAL"). The service-log "What was done" reads more naturally in
+  // sentence case ("Brake caliper, front removal"). User can still
+  // edit before saving — this is just a friendlier default.
+  function titleCase(s) {
+    if (!s) return ''
+    const lower = s.toLowerCase()
+    return lower.charAt(0).toUpperCase() + lower.slice(1)
+  }
 
   return (
     <div className="min-h-screen bg-hd-black text-hd-text">
@@ -240,37 +270,6 @@ export default function Walkthrough({
         />
       )}
 
-      {/* No bike attached — surface a notice and just exit */}
-      {logEditorOpen && !bike && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLogEditorOpen(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-md border border-hd-border bg-hd-dark p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="font-display text-xl tracking-wider text-hd-orange">
-              ALL DONE
-            </div>
-            <p className="mt-2 text-sm text-hd-muted">
-              You completed all {steps.length} steps. Add this bike to your
-              Garage to log the service automatically next time.
-            </p>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => {
-                  setLogEditorOpen(false)
-                  onComplete && onComplete()
-                }}
-                className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -16,7 +16,7 @@ const TABS = [
   { id: 'home', label: 'Home', icon: IconHome },
   { id: 'garage', label: 'Garage', icon: IconGarage },
   { id: 'rides', label: 'Rides', icon: IconRide },
-  { id: 'manual', label: 'Manual', icon: IconManual }
+  { id: 'manual', label: 'Procedures', icon: IconManual }
 ]
 
 export default function BottomTabBar({ activeSection, onNavigate }) {

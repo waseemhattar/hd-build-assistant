@@ -18,18 +18,23 @@ const STORAGE_KEY = 'sidestand:userPrefs/v1'
 // We resolve once at startup; if the user later overrides, their pick
 // wins forever (until they reset).
 function detectFromLocale() {
-  const lang = (typeof navigator !== 'undefined' && navigator.language) || 'en-US'
+  const lang = (typeof navigator !== 'undefined' && navigator.language) || 'en'
   // The handful of countries on imperial: US, Liberia, Myanmar. The rest
   // of the planet is metric. We also bucket UK as 'imperial' because UK
   // riders typically still talk in miles even though everything else
   // (fuel, weather) is metric — see uk-specific overrides below.
-  const region = lang.split('-')[1]?.toUpperCase() || 'US'
+  //
+  // Important: when navigator.language has no region (e.g. just "en"),
+  // we leave region undefined and fall through to the metric default.
+  // Defaulting to "US" here would push every region-less English user
+  // into imperial, which is wrong for the vast majority of the world.
+  const region = lang.split('-')[1]?.toUpperCase()
   const imperialRegions = new Set(['US', 'LR', 'MM'])
   const ukRegions = new Set(['GB', 'UK'])
 
   let units = 'metric' // 'imperial' | 'metric'
-  if (imperialRegions.has(region)) units = 'imperial'
-  else if (ukRegions.has(region)) units = 'imperial' // miles for UK roads
+  if (region && imperialRegions.has(region)) units = 'imperial'
+  else if (region && ukRegions.has(region)) units = 'imperial' // miles for UK roads
 
   // Date format. en-US is mm/dd/yyyy; everywhere else is dd/mm/yyyy or
   // ISO-ish. We normalize to two buckets and let display code expand.

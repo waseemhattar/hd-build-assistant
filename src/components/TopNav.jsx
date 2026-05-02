@@ -5,11 +5,15 @@ import { useAuth, useUser } from '../auth/AuthProvider.jsx'
 // Persistent top navigation, used on every signed-in screen.
 //
 // Layout (sm+):
-//   [Logo]   Garage   Manual   Rides   Intervals          [user]
+//   [Logo]   My Garage   Service Procedures   Rides          [user]
 //
 // On mobile (< sm) and inside the native app, the middle links are
 // hidden — BottomTabBar handles primary navigation. Top bar collapses
 // to logo + user avatar so the screen feels app-like, not webby.
+//
+// Note: HD service-interval reference no longer has its own top-level
+// nav slot — it lives inside each bike's Service Book where it can
+// actually use the bike's mileage to evaluate "due / overdue".
 export default function TopNav({
   activeSection,
   onNavigate,
@@ -28,10 +32,9 @@ export default function TopNav({
   }
 
   const links = [
-    { id: 'garage', label: 'Garage' },
-    { id: 'manual', label: 'Manual' },
-    { id: 'rides', label: 'Rides' },
-    { id: 'intervals', label: 'Intervals' }
+    { id: 'garage', label: 'My Garage' },
+    { id: 'manual', label: 'Service Procedures' },
+    { id: 'rides', label: 'Rides' }
   ]
 
   return (

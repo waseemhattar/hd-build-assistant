@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { getProcedureDetail } from '../data/procedures.js'
 
 // Procedure detail page. Shows everything the rider needs to decide
@@ -9,16 +9,53 @@ import { getProcedureDetail } from '../data/procedures.js'
 // Tapping it transitions to the Walkthrough component (full-screen
 // step-by-step UI).
 //
+// Two prop modes (caller picks one):
+//   - procedureId  → load that single procedure as-is.
+//   - item         → a paired item from the procedure browser; if it
+//                    has both `remove` and `install` halves we render
+//                    a Remove ⇄ Install toggle at the top and load
+//                    detail for whichever direction is selected. If
+//                    only one half exists, we treat it like a single.
+//
 // Read-only — no edits here. Editing happens in the admin tools or
 // via JSON ingest.
 
-export default function ProcedureDetail({ procedureId, bike, onBack, onStartWalkthrough }) {
+export default function ProcedureDetail({
+  procedureId,
+  item, // optional paired item from ProcedureBrowser
+  bike,
+  onBack,
+  onStartWalkthrough
+}) {
+  // Resolve the active procedure id from either prop. For a paired
+  // item we keep direction in local state so the user can flip it.
+  const initialDirection = item?.hasPair
+    ? 'remove'
+    : item?.remove
+    ? 'remove'
+    : item?.install
+    ? 'install'
+    : null
+  const [direction, setDirection] = useState(initialDirection)
+
+  const activeId = useMemo(() => {
+    if (item?.hasPair) {
+      return direction === 'install' ? item.install?.id : item.remove?.id
+    }
+    if (item) return item.remove?.id || item.install?.id || item.id
+    return procedureId
+  }, [item, direction, procedureId])
+
   const [state, setState] = useState({ status: 'loading' })
 
   useEffect(() => {
+    if (!activeId) {
+      setState({ status: 'not-found' })
+      return
+    }
     let alive = true
     setState({ status: 'loading' })
-    getProcedureDetail(procedureId)
+    getProcedureDetail(activeId)
       .then((detail) => {
         if (!alive) return
         if (!detail?.procedure) {
@@ -32,7 +69,7 @@ export default function ProcedureDetail({ procedureId, bike, onBack, onStartWalk
         setState({ status: 'error', message: e?.message || 'Load failed.' })
       })
     return () => { alive = false }
-  }, [procedureId])
+  }, [activeId])
 
   if (state.status === 'loading') {
     return (
@@ -96,13 +133,42 @@ export default function ProcedureDetail({ procedureId, bike, onBack, onStartWalk
           Procedure
         </div>
         <h1 className="mt-1 font-display text-3xl tracking-wider sm:text-4xl">
-          {procedure.title}
+          {(item?.baseTitle || procedure.title || '').toUpperCase()}
         </h1>
-        {procedure.summary && (
+        {(item?.summary || procedure.summary) && (
           <p className="mt-2 text-sm text-hd-muted sm:text-base">
-            {procedure.summary}
+            {item?.summary || procedure.summary}
           </p>
         )}
+
+        {/* Direction toggle — only shown when both halves of a pair
+            are available. Flipping it re-loads the other procedure's
+            detail above. */}
+        {item?.hasPair && (
+          <div className="mt-4 inline-flex rounded-md border border-hd-border bg-hd-dark p-1">
+            <button
+              onClick={() => setDirection('remove')}
+              className={`rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-widest transition ${
+                direction === 'remove'
+                  ? 'bg-hd-orange text-white'
+                  : 'text-hd-muted hover:text-hd-text'
+              }`}
+            >
+              Remove
+            </button>
+            <button
+              onClick={() => setDirection('install')}
+              className={`rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-widest transition ${
+                direction === 'install'
+                  ? 'bg-hd-orange text-white'
+                  : 'text-hd-muted hover:text-hd-text'
+              }`}
+            >
+              Install
+            </button>
+          </div>
+        )}
+
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
           {procedure.difficulty && (
             <span className="rounded border border-hd-border bg-hd-dark px-2 py-1 uppercase tracking-widest text-hd-muted">

@@ -11,7 +11,8 @@ import {
   addMod,
   updateMod,
   removeMod,
-  getModsTotalCost
+  getModsTotalCost,
+  getJobCards
 } from '../data/storage.js'
 import {
   intervals,
@@ -25,8 +26,9 @@ import {
   CATEGORY_TO_GROUP
 } from '../data/modCategories.js'
 import { formatMileage, isMetric, distanceUnitLabel } from '../data/userPrefs.js'
-import RideHistory from './RideHistory.jsx'
+import { useUserPrefs } from '../hooks/useUserPrefs.js'
 import BottomSheet from './ui/BottomSheet.jsx'
+import JobCardsPanel from './JobCardsPanel.jsx'
 
 // ServiceBook = per-bike service history + HD-interval reference panel.
 // Two tabs:
@@ -36,7 +38,19 @@ import BottomSheet from './ui/BottomSheet.jsx'
 // Members never get blocked by the schedule — it's there to answer
 // "when did I last do X and what's HD's suggestion for next time?"
 
-export default function ServiceBook({ bike: initialBike, onBack }) {
+export default function ServiceBook({
+  bike: initialBike,
+  onBack,
+  onOpenJobCard,
+  // Optional: which tab to open initially. Defaults to 'log'.
+  initialTab = 'log',
+  // Optional: auto-open the "log service" editor on first paint —
+  // used by Home's "Log service" quick action.
+  autoOpenEditor = false
+}) {
+  // Re-render this whole subtree whenever the rider flips a unit
+  // pref in Settings — so mileage, distances, etc. swap right away.
+  useUserPrefs()
   // Bike may be mutated (mileage bump after logging service), so we
   // pull the latest from storage each refresh.
   const [bikeId] = useState(initialBike.id)
@@ -44,9 +58,10 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
   const bike = useMemo(() => getBike(bikeId) || initialBike, [bikeId, refreshKey])
   const log = useMemo(() => getServiceLog(bikeId), [bikeId, refreshKey])
   const mods = useMemo(() => getMods(bikeId), [bikeId, refreshKey])
+  const jobCards = useMemo(() => getJobCards(bikeId), [bikeId, refreshKey])
 
-  const [tab, setTab] = useState('log')
-  const [adding, setAdding] = useState(false)
+  const [tab, setTab] = useState(initialTab)
+  const [adding, setAdding] = useState(autoOpenEditor)
   const [editingMileage, setEditingMileage] = useState(false)
   // Mod add/edit modal: null = closed, { mod: null } = new, { mod: existing } = edit
   const [modEditing, setModEditing] = useState(null)
@@ -134,7 +149,7 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
           {!editingMileage ? (
             <div className="flex items-center gap-3">
               <div className="font-display text-3xl tracking-wider text-hd-orange">
-                {(bike.mileage || 0).toLocaleString()}
+                {formatMileage(bike.mileage || 0)}
               </div>
               <button
                 onClick={() => setEditingMileage(true)}
@@ -160,8 +175,8 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
       <nav className="mb-4 flex flex-wrap gap-1 border-b border-hd-border">
         {[
           { id: 'log', label: `Service log (${log.length})` },
+          { id: 'jobs', label: `Jobs (${jobCards.length})` },
           { id: 'build', label: `Build / Mods (${mods.length})` },
-          { id: 'rides', label: `Rides` },
           { id: 'intervals', label: `HD intervals (reference)` }
         ].map((t) => {
           const active = tab === t.id
@@ -196,6 +211,15 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
         />
       )}
 
+      {tab === 'jobs' && (
+        <JobCardsPanel
+          bike={bike}
+          cards={jobCards}
+          onOpen={(cardId) => onOpenJobCard && onOpenJobCard(cardId)}
+          onCreated={() => refresh()}
+        />
+      )}
+
       {tab === 'build' && (
         <BuildPanel
           mods={mods}
@@ -213,10 +237,6 @@ export default function ServiceBook({ bike: initialBike, onBack }) {
           }}
           bikeId={bikeId}
         />
-      )}
-
-      {tab === 'rides' && (
-        <RidesPanel bike={bike} />
       )}
 
       {tab === 'intervals' && (
@@ -433,27 +453,6 @@ function IntervalsPanel({ currentMileage, log, onLogInterval }) {
   )
 }
 
-// Per-bike Rides panel — read-only list of rides for THIS bike.
-//
-// Starting a new ride happens from the global Rides nav (top-level
-// page) so the user can pick a bike at start. Here we just show the
-// history scoped to one bike, with the same expand-inline-map UX as
-// the global page.
-function RidesPanel({ bike }) {
-  // Pass the single bike so RideHistory can show "bike: <nickname>"
-  // labels — even though we already know it, the row formatter is
-  // shared with the global view and reads from the garage list.
-  return (
-    <div>
-      <div className="mb-4 rounded-md border border-hd-border bg-hd-dark/60 p-3 text-xs text-hd-muted">
-        GPS-tracked rides on <span className="text-hd-text">{bike.nickname || bike.model || `${bike.year} ${bike.model}`}</span>.
-        Start a new ride from the <span className="text-hd-text">Rides</span> tab in the top nav.
-      </div>
-      <RideHistory bikeId={bike.id} garage={[bike]} />
-    </div>
-  )
-}
-
 function StatusPill({ status }) {
   const map = {
     overdue: { label: 'Overdue', cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
@@ -534,10 +533,12 @@ export function EntryEditor({ bike, prefill, onCancel, onSave }) {
     mileage: initialMileage,
     date: today,
     notes: prefill?.notes || '',
-    parts: '',
+    parts: prefill?.parts || '',
     cost: '',
-    // Default new entries to public so they show up on the public bike page.
-    isPublic: true
+    // New entries are private by default — the rider can flip the
+    // toggle on if they want this specific service to appear on
+    // their public bike page.
+    isPublic: prefill?.isPublic ?? false
   }))
 
   function submit(e) {

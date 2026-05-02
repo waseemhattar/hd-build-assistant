@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 // iOS-style bottom sheet modal. Slides up from the bottom edge with
 // a drag handle. Tap outside or swipe the handle down to dismiss.
@@ -67,9 +68,14 @@ export default function BottomSheet({
       ? 'max-h-[100vh]'
       : 'max-h-[80vh]'
 
-  return (
+  // Portal to <body> so we escape any parent that has its own
+  // stacking context (e.g. transforms from the pull-to-refresh
+  // hook). Without this, Leaflet's tile pane — which uses z-index
+  // up to ~1000 internally — can render on top of our overlay.
+  const node = (
     <div
-      className="fixed inset-0 z-40 flex items-end justify-center bg-black/65 sm:items-center"
+      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/85 sm:items-center"
+      style={{ isolation: 'isolate' }}
       onClick={onClose}
     >
       <div
@@ -100,6 +106,9 @@ export default function BottomSheet({
       </div>
     </div>
   )
+
+  if (typeof document === 'undefined') return node
+  return createPortal(node, document.body)
 }
 
 // Optional named header — handy for most sheet contents.

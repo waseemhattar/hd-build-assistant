@@ -132,6 +132,12 @@ function modsKey() {
     : 'hd-ba:mods:v1'
 }
 
+function jobCardsKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:jobCards:v1`
+    : 'hd-ba:jobCards:v1'
+}
+
 // User-level brand prefs (e.g. a custom logo URL the user has uploaded).
 // Stored locally for now; when we build a real `user_profile` table in
 // Supabase later, swap these two functions to talk to it. Call sites
@@ -235,11 +241,36 @@ function notify() {
 // ---------- Garage (sync API, backed by cache + queue) ----------
 
 export function getGarage() {
-  return read(garageKey(), [])
+  const garage = read(garageKey(), [])
+  // Silent backfill: any pre-existing bike record without a modelCode
+  // (everything saved before this column existed) gets one derived
+  // from its model string. Idempotent — once a bike has a code we
+  // never touch it again, so this is a no-op on subsequent reads.
+  let changed = false
+  for (const b of garage) {
+    if (!b.modelCode && b.model) {
+      const code = deriveModelCode(b.model)
+      if (code) {
+        b.modelCode = code
+        changed = true
+      }
+    }
+  }
+  if (changed) write(garageKey(), garage)
+  return garage
 }
 
 export function getBike(id) {
   return getGarage().find((b) => b.id === id) || null
+}
+
+// Pull the leading uppercase token out of a model string, which is
+// the canonical Harley model code. "FLHXSE CVO Street Glide" → "FLHXSE".
+// Returns '' if no leading uppercase token is found.
+export function deriveModelCode(model) {
+  if (!model) return ''
+  const m = String(model).match(/^([A-Z][A-Z0-9]+)\b/)
+  return m ? m[1] : ''
 }
 
 export function addBike(input) {
@@ -249,6 +280,10 @@ export function addBike(input) {
     bikeTypeId: input.bikeTypeId || null,
     year: input.year || null,
     model: input.model || '',
+    // modelCode drives manual / procedure scoping. We auto-derive it
+    // from the model string but accept an explicit override so the
+    // user can fix unusual cases (CVO supplements, prototypes, ...).
+    modelCode: (input.modelCode || deriveModelCode(input.model) || '').toUpperCase(),
     nickname: input.nickname || '',
     vin: input.vin || '',
     mileage: Number(input.mileage) || 0,
@@ -276,9 +311,29 @@ export function updateBike(id, patch) {
   const garage = getGarage()
   const idx = garage.findIndex((b) => b.id === id)
   if (idx < 0) return null
+  // If the model changed and the caller didn't supply an explicit
+  // modelCode in the patch, keep modelCode in sync by re-deriving
+  // from the new model string. Explicit modelCode in the patch
+  // always wins (handles the "rider knows better than us" override).
+  let derivedPatch = patch
+  if (
+    patch.model != null &&
+    patch.model !== garage[idx].model &&
+    patch.modelCode == null
+  ) {
+    derivedPatch = {
+      ...patch,
+      modelCode: (deriveModelCode(patch.model) || '').toUpperCase()
+    }
+  } else if (typeof patch.modelCode === 'string') {
+    derivedPatch = {
+      ...patch,
+      modelCode: patch.modelCode.toUpperCase()
+    }
+  }
   garage[idx] = {
     ...garage[idx],
-    ...patch,
+    ...derivedPatch,
     id: garage[idx].id,
     updatedAt: new Date().toISOString()
   }
@@ -289,6 +344,8 @@ export function updateBike(id, patch) {
 
 export function removeBike(id) {
   addTombstone('bikes', id)
+  const target = getGarage().find((b) => b.id === id)
+  const vin = target?.vin || null
   const garage = getGarage().filter((b) => b.id !== id)
   write(garageKey(), garage)
   // Also drop any service entries for that bike.
@@ -300,7 +357,11 @@ export function removeBike(id) {
   const mods = getAllMods().filter((m) => m.bikeId !== id)
   write(modsKey(), mods)
   // ON DELETE CASCADE in Postgres handles the server-side rows.
-  enqueue({ op: 'deleteBike', id })
+  // We pass the VIN along so the server-side handler can also scrub
+  // any orphan duplicates that share this VIN — protects against a
+  // case where a previous (failed) sync left a stray row that would
+  // otherwise re-collide on the partial unique-VIN index.
+  enqueue({ op: 'deleteBike', id, vin })
 }
 
 export function updateBikeMileage(id, mileage) {
@@ -953,18 +1014,60 @@ async function applyOp(supabase, op) {
         created_at: b.createdAt,
         updated_at: b.updatedAt
       }
-      const { error } = await supabase
+      let { error } = await supabase
         .from('garage_bikes')
         .upsert(row, { onConflict: 'id' })
+      // Self-heal a VIN collision: if Postgres rejects the upsert
+      // because another active row already claims this VIN AND that
+      // row belongs to the same user, that other row is a stale
+      // duplicate from an earlier sync. Delete it (RLS allows owner
+      // delete) and retry. If the conflicting row belongs to a
+      // DIFFERENT user, we don't touch it — that's the cross-user
+      // transfer flow and surfaces as an error to the UI.
+      if (error && /23505|active_vin_unique/i.test(error.message || '') && row.vin) {
+        const { data: dupes } = await supabase
+          .from('garage_bikes')
+          .select('id, auth_user_id')
+          .eq('vin', row.vin)
+          .is('archived_at', null)
+        const ownDupes = (dupes || []).filter(
+          (d) => d.auth_user_id === currentUserId && d.id !== row.id
+        )
+        if (ownDupes.length > 0) {
+          await supabase
+            .from('garage_bikes')
+            .delete()
+            .in('id', ownDupes.map((d) => d.id))
+          const retry = await supabase
+            .from('garage_bikes')
+            .upsert(row, { onConflict: 'id' })
+          error = retry.error
+        }
+      }
       if (error) throw error
       return
     }
     case 'deleteBike': {
+      // Hard delete by id (RLS lets the owner do this).
       const { error } = await supabase
         .from('garage_bikes')
         .delete()
         .eq('id', localIdToUuid(op.id))
       if (error) throw error
+      // Belt-and-suspenders: if a VIN was attached to the op,
+      // also scrub any other rows owned by the same user that
+      // claim the same active VIN. Catches stale duplicates from
+      // a prior failed sync that would otherwise re-collide on
+      // the partial unique-VIN index when the rider re-adds the
+      // bike.
+      if (op.vin) {
+        await supabase
+          .from('garage_bikes')
+          .delete()
+          .eq('vin', op.vin)
+          .eq('auth_user_id', currentUserId)
+          .is('archived_at', null)
+      }
       clearTombstone('bikes', op.id)
       return
     }
@@ -1510,5 +1613,141 @@ if (typeof window !== 'undefined') {
   window.addEventListener('focus', () => {
     pullFromServer().catch(() => {})
     flushQueue().catch(() => {})
+  })
+}
+
+
+// ---------- Job cards (per-bike planning lists) ----------
+//
+// A job card groups multiple procedures the rider plans to tackle as
+// a single shop visit (e.g. "Spring service: oil + brakes + air filter").
+// Cards live per-bike. When the rider runs a card, each procedure
+// gets walked through in sequence, and the whole job lands as ONE
+// combined service-log entry.
+//
+// Storage shape:
+//   {
+//     id, bikeId, title, notes,
+//     status: 'draft' | 'in-progress' | 'complete',
+//     procedures: [
+//       { id, procedureId, pairId?, direction, title, doneAt, sortOrder }
+//     ],
+//     createdAt, updatedAt, completedAt
+//   }
+//
+// Local-only for now (matches builds/mods); Supabase sync can be
+// layered on later without touching call sites.
+
+export function getAllJobCards() {
+  return read(jobCardsKey(), [])
+}
+
+export function getJobCards(bikeId) {
+  if (!bikeId) return []
+  return read(jobCardsKey(), [])
+    .filter((c) => c.bikeId === bikeId)
+    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+}
+
+export function getJobCard(id) {
+  return read(jobCardsKey(), []).find((c) => c.id === id) || null
+}
+
+export function addJobCard(bikeId, input = {}) {
+  const now = new Date().toISOString()
+  const card = {
+    id: uid('jc'),
+    bikeId,
+    title: (input.title || 'New job').trim(),
+    notes: input.notes || '',
+    status: 'draft',
+    procedures: [],
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null
+  }
+  const all = read(jobCardsKey(), [])
+  all.push(card)
+  write(jobCardsKey(), all)
+  return card
+}
+
+export function updateJobCard(id, patch) {
+  const all = read(jobCardsKey(), [])
+  const idx = all.findIndex((c) => c.id === id)
+  if (idx < 0) return null
+  all[idx] = {
+    ...all[idx],
+    ...patch,
+    id: all[idx].id,
+    bikeId: all[idx].bikeId, // bikeId is immutable
+    updatedAt: new Date().toISOString()
+  }
+  write(jobCardsKey(), all)
+  return all[idx]
+}
+
+export function removeJobCard(id) {
+  const all = read(jobCardsKey(), []).filter((c) => c.id !== id)
+  write(jobCardsKey(), all)
+}
+
+// Adds a procedure to a card. `procRef` shape:
+//   { procedureId, pairId?, direction?, title }
+// `direction` is 'remove' | 'install' | null. For paired procedures
+// the caller passes both halves as separate calls (sortOrder reflects
+// the order the rider added them).
+export function addProcedureToJobCard(cardId, procRef) {
+  const card = getJobCard(cardId)
+  if (!card) return null
+  const item = {
+    id: uid('jcp'),
+    procedureId: procRef.procedureId,
+    pairId: procRef.pairId || null,
+    direction: procRef.direction || null,
+    title: procRef.title || '',
+    doneAt: null,
+    sortOrder: card.procedures.length
+  }
+  return updateJobCard(cardId, {
+    procedures: [...card.procedures, item]
+  })
+}
+
+export function removeProcedureFromJobCard(cardId, itemId) {
+  const card = getJobCard(cardId)
+  if (!card) return null
+  const procedures = card.procedures
+    .filter((p) => p.id !== itemId)
+    .map((p, i) => ({ ...p, sortOrder: i }))
+  return updateJobCard(cardId, { procedures })
+}
+
+export function setJobCardProcedureDone(cardId, itemId, isDone = true) {
+  const card = getJobCard(cardId)
+  if (!card) return null
+  const procedures = card.procedures.map((p) =>
+    p.id === itemId
+      ? { ...p, doneAt: isDone ? new Date().toISOString() : null }
+      : p
+  )
+  return updateJobCard(cardId, { procedures })
+}
+
+export function reorderJobCardProcedures(cardId, orderedIds) {
+  const card = getJobCard(cardId)
+  if (!card) return null
+  const byId = new Map(card.procedures.map((p) => [p.id, p]))
+  const procedures = orderedIds
+    .map((id) => byId.get(id))
+    .filter(Boolean)
+    .map((p, i) => ({ ...p, sortOrder: i }))
+  return updateJobCard(cardId, { procedures })
+}
+
+export function markJobCardComplete(id) {
+  return updateJobCard(id, {
+    status: 'complete',
+    completedAt: new Date().toISOString()
   })
 }

@@ -14,17 +14,48 @@ export const bikes = [
     models: [
       'FLHX Street Glide',
       'FLHXS Street Glide Special',
+      'FLHXSE CVO Street Glide',
       'FLHTK Ultra Limited',
       'FLHTKL Ultra Limited Low',
+      'FLHTKSE CVO Limited',
       'FLHR Road King',
       'FLHRXS Road King Special',
       'FLTRX Road Glide',
       'FLTRXS Road Glide Special',
+      'FLTRXSE CVO Road Glide',
+      'FLTRK Road Glide Limited',
+      'FLTRKSE CVO Road Glide Limited',
       'FLHTCU Electra Glide Ultra Classic',
-      'FLTRK Road Glide Limited'
+      'FLHTCUTG Tri Glide Ultra'
     ],
     manualFolder: 'Touring--2020',
     manuals: ['2020 HD Touring Service Manual.pdf', '2020 HD Touring Parts Catalog.pdf']
+  },
+  {
+    id: 'softail-2018',
+    family: 'Softail',
+    year: 2020,
+    label: 'Milwaukee 8 Gen 1 Softail (2018 - 2023)',
+    models: [
+      'FLDE Softail Deluxe',
+      'FLHC Heritage Classic',
+      'FLHCS Heritage Classic 114',
+      'FLSL Softail Slim',
+      'FLSB Sport Glide',
+      'FLFB Fat Boy',
+      'FLFBS Fat Boy 114',
+      'FXBB Street Bob',
+      'FXBBS Street Bob 114',
+      'FXBR Breakout',
+      'FXBRS Breakout 114',
+      'FXFB Fat Bob',
+      'FXFBS Fat Bob 114',
+      'FXLR Low Rider',
+      'FXLRS Low Rider S',
+      'FXST Standard'
+    ],
+    manualFolder: 'SOFTAIL--2018',
+    manuals: ['2020 HD Softail Service Manual.pdf']
   },
   {
     id: 'softail-2025',

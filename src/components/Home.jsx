@@ -51,11 +51,15 @@ import RideMap from './RideMap.jsx'
 export default function Home({
   onOpenGarage,
   onOpenManual,
-  onOpenIntervals,
-  onPickJob,
   onOpenServiceBook,
   onOpenRides,
-  onStartRide
+  onStartRide,
+  // Action-flavored quick tiles. Each accepts the picked bike (the
+  // first in the garage) and a "tab" hint that App.jsx threads into
+  // the destination so the rider lands on the right tab.
+  onPlanJob,
+  onLogService,
+  onAddBike
 }) {
   const { user } = useUser()
   const firstName =
@@ -148,29 +152,41 @@ export default function Home({
         )}
       </div>
 
-      {/* Quick actions */}
+      {/* Quick actions — these are ACTIONS, not nav. Bottom tab bar
+          handles nav (Home / Garage / Rides / Procedures). These four
+          let the rider start something useful in one tap. */}
       <div className="px-4 pb-6 sm:px-6">
         <div className="grid grid-cols-4 gap-2">
           <QuickTile
-            label="Ride"
+            label="Start a ride"
             icon={<IconRide />}
             tone="primary"
             onClick={onStartRide}
           />
           <QuickTile
-            label="Garage"
-            icon={<IconGarage />}
-            onClick={onOpenGarage}
+            label="Log service"
+            icon={<IconWrench />}
+            onClick={() =>
+              onLogService && onLogService(garage[0] || null)
+            }
+            disabled={garage.length === 0}
           />
           <QuickTile
-            label="Manual"
-            icon={<IconManual />}
-            onClick={onOpenManual}
+            label="Plan a job"
+            icon={<IconClipboard />}
+            onClick={() => onPlanJob && onPlanJob(garage[0] || null)}
+            disabled={garage.length === 0}
           />
           <QuickTile
-            label="Rides"
-            icon={<IconHistory />}
-            onClick={onOpenRides}
+            label={garage.length === 0 ? 'Add a bike' : 'Update mileage'}
+            icon={<IconGauge />}
+            onClick={() => {
+              if (garage.length === 0) {
+                onAddBike ? onAddBike() : onOpenGarage()
+              } else {
+                onOpenServiceBook && onOpenServiceBook(garage[0])
+              }
+            }}
           />
         </div>
       </div>
@@ -635,12 +651,13 @@ function Section({ title, subtitle, action, children, accent }) {
   )
 }
 
-function QuickTile({ label, icon, onClick, tone }) {
+function QuickTile({ label, icon, onClick, tone, disabled = false }) {
   const isPrimary = tone === 'primary'
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 text-center transition active:scale-95 ${
+      disabled={disabled}
+      className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 text-center transition active:scale-95 disabled:opacity-40 disabled:active:scale-100 ${
         isPrimary
           ? 'bg-hd-orange text-white'
           : 'bg-hd-dark text-hd-text'
@@ -703,29 +720,28 @@ function IconRide() {
     </svg>
   )
 }
-function IconGarage() {
+function IconWrench() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21V9l9-6 9 6v12" />
-      <path d="M7 21V11h10v10" />
-      <path d="M9 14h6M9 17h6" />
+      <path d="M14.7 6.3a4 4 0 0 1 .9 4.4l5.4 5.4-2.9 2.9-5.4-5.4a4 4 0 0 1-4.4-.9 4 4 0 0 1-.9-4.4l2.7 2.7 2.1-2.1-2.7-2.7a4 4 0 0 1 5.2.1z" />
     </svg>
   )
 }
-function IconManual() {
+function IconClipboard() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 5a2 2 0 0 1 2-2h11v18H6a2 2 0 0 1-2-2V5z" />
-      <path d="M4 19a2 2 0 0 1 2-2h11" />
-      <path d="M9 7h5M9 11h5" />
+      <rect x="6" y="4" width="12" height="16" rx="2" />
+      <path d="M9 4V3h6v1" />
+      <path d="M9 9h6M9 13h6M9 17h4" />
     </svg>
   )
 }
-function IconHistory() {
+function IconGauge() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
+      <path d="M3 12a9 9 0 0 1 18 0" />
+      <path d="M12 12l4-3" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
     </svg>
   )
 }

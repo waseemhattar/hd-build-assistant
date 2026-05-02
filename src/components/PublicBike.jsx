@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getPublicBikeBySlug } from '../data/storage.js'
 import { formatMileage, formatDate } from '../data/userPrefs.js'
+import { useUserPrefs } from '../hooks/useUserPrefs.js'
 import Logo from './Logo.jsx'
 import Skeleton from './ui/Skeleton.jsx'
 
@@ -29,6 +30,9 @@ import Skeleton from './ui/Skeleton.jsx'
 //     for the bike-name overlay.
 
 export default function PublicBike({ slug }) {
+  // Re-render on pref changes so a visitor flipping their own units
+  // sees the public bike page swap mileage/dates accordingly.
+  useUserPrefs()
   const [state, setState] = useState({ status: 'loading' })
 
   useEffect(() => {

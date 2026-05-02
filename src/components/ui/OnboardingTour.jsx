@@ -29,7 +29,7 @@ const STEPS = [
     anchor: 'bottom-tabs',
     title: 'Tap to navigate',
     body:
-      'Use the bottom tab bar to jump between Home, Garage, Rides, and the Manual.',
+      'Use the bottom tab bar to jump between Home, your Garage, Rides, and Service Procedures.',
     placement: 'top'
   },
   {
@@ -43,7 +43,7 @@ const STEPS = [
     anchor: 'user-menu',
     title: 'Settings live here',
     body:
-      'Switch units (mi / km), update your profile, or sign out from the user menu.',
+      'Switch units, update your profile, or sign out from the user menu.',
     placement: 'bottom'
   }
 ]

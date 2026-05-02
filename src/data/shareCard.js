@@ -35,11 +35,58 @@ const ORANGE = '#E03A36'
 const TEXT = '#f5efe2'
 const MUTED = '#7d7872'
 
+// Stadia Maps API key — optional. If absent, only the silhouette
+// template is offered (no map tiles fetched). Add it via the
+// VITE_STADIA_API_KEY env var. Free tier is generous (~200K/month).
+// Sign up at https://client.stadiamaps.com/dashboard/.
+const STADIA_KEY = import.meta.env.VITE_STADIA_API_KEY || ''
+
+// All available templates. `requiresKey` controls whether a particular
+// template can be shown without VITE_STADIA_API_KEY set — silhouette
+// is pure-canvas and always available.
+export const SHARE_TEMPLATES = [
+  {
+    id: 'silhouette',
+    label: 'Silhouette',
+    description: 'Glowing route on black. Iconic.',
+    requiresKey: false
+  },
+  {
+    id: 'dark-map',
+    label: 'Dark map',
+    description: 'Real road map underneath the route.',
+    requiresKey: true,
+    stadiaStyle: 'alidade_smooth_dark'
+  },
+  {
+    id: 'satellite',
+    label: 'Satellite',
+    description: 'Earth-from-above with the route on top.',
+    requiresKey: true,
+    stadiaStyle: 'alidade_satellite'
+  }
+]
+
+export function isStadiaConfigured() {
+  return Boolean(STADIA_KEY)
+}
+
+// Returns the SHARE_TEMPLATES filtered to those usable in the current
+// environment (silhouette is always available; map-based templates are
+// gated behind VITE_STADIA_API_KEY being present).
+export function availableTemplates() {
+  return SHARE_TEMPLATES.filter((t) => !t.requiresKey || isStadiaConfigured())
+}
+
 // Generate the share card and return it as a Blob.
+//
+// `template` — one of SHARE_TEMPLATES[].id. Defaults to 'silhouette'
+// because it works without any third-party API key.
 export async function generateRideCard({
   ride,
   bike,
-  weather
+  weather,
+  template = 'silhouette'
 } = {}) {
   if (!ride) throw new Error('No ride to render')
 
@@ -69,19 +116,66 @@ export async function generateRideCard({
   ctx.textAlign = 'left'
 
   // ---------- 2. Route polyline hero ----------
-  // The whole point of the share card. Render the route HUGE, glowing
-  // red, on the dark canvas. We give it the most pixel real-estate
-  // because the route IS the story.
+  // The whole point of the share card. Render the route HUGE on
+  // whatever background the chosen template calls for:
+  //   - silhouette: glowing red polyline on solid black (canvas only)
+  //   - dark-map:   route over Stadia "alidade_smooth_dark" tiles
+  //   - satellite:  route over Stadia "alidade_satellite" tiles
+  //
+  // For the map-backed templates we ask Stadia to draw the polyline as
+  // part of the static map (two stacked paths give a halo). If the
+  // fetch fails we silently fall back to silhouette so the user still
+  // gets a card.
   const ROUTE_TOP = 130
   const ROUTE_H = 970
-  drawRouteHero(
-    ctx,
-    ride.route || [],
-    60,
-    ROUTE_TOP,
-    W - 120,
-    ROUTE_H
-  )
+  const ROUTE_X = 60
+  const ROUTE_W = W - 120
+
+  const tpl =
+    SHARE_TEMPLATES.find((t) => t.id === template) || SHARE_TEMPLATES[0]
+  const wantsMap = tpl.requiresKey
+
+  let mapBg = null
+  if (wantsMap && isStadiaConfigured()) {
+    try {
+      mapBg = await fetchStadiaMap(tpl, ride.route || [], ROUTE_W, ROUTE_H)
+    } catch (e) {
+      console.warn('Stadia map fetch failed, falling back to silhouette', e)
+    }
+  }
+
+  if (mapBg) {
+    // Paint the tile image as background then overlay our glowing
+    // polyline using the SAME projection Stadia rendered with so the
+    // route lines up perfectly with the roads underneath.
+    drawCovered(ctx, mapBg.img, ROUTE_X, ROUTE_TOP, ROUTE_W, ROUTE_H)
+    // Subtle vertical fade at the bottom so the title sits on a
+    // darker base — improves text contrast when the map is bright
+    // (esp. satellite at midday).
+    const fade = ctx.createLinearGradient(
+      0,
+      ROUTE_TOP + ROUTE_H - 200,
+      0,
+      ROUTE_TOP + ROUTE_H
+    )
+    fade.addColorStop(0, 'rgba(14,12,16,0)')
+    fade.addColorStop(1, 'rgba(14,12,16,0.85)')
+    ctx.fillStyle = fade
+    ctx.fillRect(ROUTE_X, ROUTE_TOP + ROUTE_H - 200, ROUTE_W, 200)
+    drawGlowingPolylineMercator(
+      ctx,
+      ride.route || [],
+      ROUTE_X,
+      ROUTE_TOP,
+      ROUTE_W,
+      ROUTE_H,
+      mapBg.centerLat,
+      mapBg.centerLng,
+      mapBg.zoom
+    )
+  } else {
+    drawRouteHero(ctx, ride.route || [], ROUTE_X, ROUTE_TOP, ROUTE_W, ROUTE_H)
+  }
 
   // ---------- 3. Title — big distance + bike name kicker ----------
   const TITLE_TOP = ROUTE_TOP + ROUTE_H + 30
@@ -458,4 +552,189 @@ function loadImage(url) {
     img.onerror = () => reject(new Error(`Could not load ${url}`))
     img.src = url
   })
+}
+
+// ============================================================
+// Stadia Maps integration
+// ============================================================
+//
+// We use the Stadia Maps Static Maps API to fetch a tile-rendered
+// background for "dark-map" and "satellite" templates.
+//
+// IMPORTANT: Stadia uses different URL conventions than Google Maps
+// Static API:
+//   - Polyline goes in `l=encoded,HEXCOLOR,WIDTH` (comma-separated)
+//   - Polyline precision is 6 (Math.round * 1e6), not 5
+//   - Size is `WxH` with optional `@2x` for retina
+//   - There's no auto-fit; we have to compute center+zoom ourselves
+//
+// We deliberately don't pass a polyline to Stadia — instead we ask
+// for tiles only (center+zoom we computed) and draw our own glowing
+// polyline on top using the same web-mercator projection. This keeps
+// the signature halo glow consistent with the silhouette template.
+
+async function fetchStadiaMap(tpl, route, w, h) {
+  if (!STADIA_KEY) throw new Error('Stadia API key not configured')
+  if (!tpl?.stadiaStyle) {
+    throw new Error(`Template "${tpl?.id}" has no stadiaStyle`)
+  }
+
+  const points = (route || [])
+    .map((p) => (Array.isArray(p) ? [p[0], p[1]] : null))
+    .filter(Boolean)
+  if (points.length < 1) {
+    throw new Error('Need at least 1 route point for a map')
+  }
+
+  const { centerLat, centerLng, zoom } = computeCenterZoom(points, w, h)
+
+  // Stadia accepts up to 2000×2000 base size on paid plans; free
+  // tier caps at 800×800 base. We use @2x to get effective 2× pixel
+  // density without bumping the base over the cap.
+  // Base pixels: 480×485, with @2x yields 960×970 in the response.
+  const baseW = Math.min(Math.round(w / 2), 800)
+  const baseH = Math.min(Math.round(h / 2), 800)
+
+  const url =
+    `https://tiles.stadiamaps.com/static/${encodeURIComponent(tpl.stadiaStyle)}.png` +
+    `?api_key=${encodeURIComponent(STADIA_KEY)}` +
+    `&center=${centerLat.toFixed(6)},${centerLng.toFixed(6)}` +
+    `&zoom=${zoom}` +
+    `&size=${baseW}x${baseH}@2x`
+
+  const img = await loadImage(url)
+  return { img, centerLat, centerLng, zoom }
+}
+
+// ============================================================
+// Web-mercator projection helpers
+// ============================================================
+//
+// At zoom z the entire world is (256 * 2^z) pixels wide and tall.
+// Our share card uses the same projection Stadia uses (Web Mercator
+// EPSG:3857) so we can overlay our polyline pixel-perfect on top of
+// their tiles given matching center+zoom.
+
+function latLngToWorldPixel(lat, lng, zoom) {
+  const scale = 256 * Math.pow(2, zoom)
+  const x = ((lng + 180) / 360) * scale
+  const sinLat = Math.sin((lat * Math.PI) / 180)
+  // Clamp sinLat to avoid Infinity at the poles (we'll never see this
+  // for motorcycle rides but cheap insurance).
+  const clamped = Math.max(-0.9999, Math.min(0.9999, sinLat))
+  const y =
+    (0.5 - Math.log((1 + clamped) / (1 - clamped)) / (4 * Math.PI)) * scale
+  return [x, y]
+}
+
+// Pick the highest zoom that still fits the whole route bbox inside
+// the requested image with 8% padding. Caps at 17 so degenerate
+// (~stationary) rides don't zoom in to neighbourhood-fence detail.
+function computeCenterZoom(points, w, h) {
+  let minLat = Infinity
+  let maxLat = -Infinity
+  let minLng = Infinity
+  let maxLng = -Infinity
+  for (const [lat, lng] of points) {
+    if (lat < minLat) minLat = lat
+    if (lat > maxLat) maxLat = lat
+    if (lng < minLng) minLng = lng
+    if (lng > maxLng) maxLng = lng
+  }
+  const centerLat = (minLat + maxLat) / 2
+  const centerLng = (minLng + maxLng) / 2
+
+  const padW = w * 0.84
+  const padH = h * 0.84
+
+  // For a degenerate (single-point or near-zero-span) route, just
+  // use a sensible default zoom showing the surrounding ~1km.
+  if (maxLat - minLat < 1e-5 && maxLng - minLng < 1e-5) {
+    return { centerLat, centerLng, zoom: 16 }
+  }
+
+  // Search from high zoom (most detailed) downward — first zoom at
+  // which the bbox fits in the padded canvas wins.
+  for (let z = 17; z >= 1; z--) {
+    const [x1, y1] = latLngToWorldPixel(maxLat, minLng, z)
+    const [x2, y2] = latLngToWorldPixel(minLat, maxLng, z)
+    if (Math.abs(x2 - x1) <= padW && Math.abs(y2 - y1) <= padH) {
+      return { centerLat, centerLng, zoom: z }
+    }
+  }
+  return { centerLat, centerLng, zoom: 1 }
+}
+
+// Overlay a glowing red polyline on top of an existing map background,
+// projected to match the given center+zoom (same projection as Stadia).
+function drawGlowingPolylineMercator(
+  ctx,
+  route,
+  x,
+  y,
+  w,
+  h,
+  centerLat,
+  centerLng,
+  zoom
+) {
+  const pts = (route || [])
+    .map((p) => (Array.isArray(p) ? [p[0], p[1]] : null))
+    .filter(Boolean)
+  if (pts.length === 0) return
+
+  const [cx, cy] = latLngToWorldPixel(centerLat, centerLng, zoom)
+  const xy = pts.map(([lat, lng]) => {
+    const [px, py] = latLngToWorldPixel(lat, lng, zoom)
+    return [x + w / 2 + (px - cx), y + h / 2 + (py - cy)]
+  })
+
+  // Outer halo — wide, mostly transparent
+  ctx.strokeStyle = 'rgba(224, 58, 54, 0.22)'
+  ctx.lineWidth = 32
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  strokePath(ctx, xy)
+
+  // Inner halo
+  ctx.strokeStyle = 'rgba(224, 58, 54, 0.4)'
+  ctx.lineWidth = 18
+  strokePath(ctx, xy)
+
+  // Core — solid signal red
+  ctx.strokeStyle = ORANGE
+  ctx.lineWidth = 8
+  strokePath(ctx, xy)
+
+  // Start marker — gray dot, white halo
+  const [sx, sy] = xy[0]
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(sx, sy, 18, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#9CA3AF'
+  ctx.beginPath()
+  ctx.arc(sx, sy, 11, 0, Math.PI * 2)
+  ctx.fill()
+
+  // End marker — red dot, white halo
+  const [ex, ey] = xy[xy.length - 1]
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(ex, ey, 18, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = ORANGE
+  ctx.beginPath()
+  ctx.arc(ex, ey, 11, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function strokePath(ctx, xy) {
+  ctx.beginPath()
+  for (let i = 0; i < xy.length; i++) {
+    const [px, py] = xy[i]
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.stroke()
 }

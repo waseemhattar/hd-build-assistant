@@ -261,28 +261,82 @@ export function matchToBikeCatalog(decoded, catalog = defaultCatalog) {
     }
   }
 
-  // 3. Year-range fallback (e.g. we know it's a 2020 touring-year but the
-  //    model string is unfamiliar).
+  // 3. Marketing-name match. NHTSA frequently returns just the friendly
+  //    name without the alphanumeric prefix — e.g. "Softail Deluxe"
+  //    (no "FLDE"), "Heritage Classic" (no "FLHC"), "Road King" (no
+  //    "FLHR"). For each catalog model "<CODE> <Marketing Name>", strip
+  //    the leading code token and compare on the rest. This gives us the
+  //    canonical catalog entry (and therefore the proper code) even
+  //    when NHTSA's payload is incomplete.
+  if (modelStr && year) {
+    for (const { entry, range } of withRanges) {
+      if (!inRange(year, range)) continue
+      const hit = (entry.models || []).some((m) => {
+        const idx = m.indexOf(' ')
+        if (idx <= 0) return false
+        const marketing = m.slice(idx + 1).toUpperCase()
+        return marketing === modelStr
+      })
+      if (hit) return { id: entry.id, confidence: 'marketing', entry }
+    }
+  }
+
+  // 4. Family-hint fallback. We know the year and NHTSA's Body Class
+  //    suggests a family — pick the catalog entry whose range covers
+  //    the year AND whose family matches. We deliberately do NOT fall
+  //    back to "any entry that covers the year" anymore: that used to
+  //    misfile e.g. a 2020 Softail Deluxe under the touring-2020
+  //    catalog (the only entry covering 2020), which then poisoned
+  //    procedure scoping and the family chip on the bike card.
   if (year) {
-    // Prefer the entry whose range contains the year AND whose family hint
-    // matches what NHTSA calls it (Touring / Softail / CVO).
     const bodyHint = (decoded.bodyClass || '').toUpperCase()
     const family = /SOFTAIL/.test(bodyHint)
       ? 'Softail'
       : /TOUR/.test(bodyHint)
         ? 'Touring'
-        : null
+        : /SPORTSTER/.test(bodyHint)
+          ? 'Sportster'
+          : null
     if (family) {
       const match = withRanges.find(
         (r) => inRange(year, r.range) && r.entry.family === family
       )
       if (match) return { id: match.entry.id, confidence: 'loose', entry: match.entry }
     }
-    const any = withRanges.find((r) => inRange(year, r.range))
-    if (any) return { id: any.entry.id, confidence: 'loose', entry: any.entry }
   }
 
   return { id: null, confidence: null, entry: null }
+}
+
+// Look up the canonical catalog model string for an NHTSA-style decoded
+// result. Used by the form to construct the friendly model "FLDE Softail
+// Deluxe" even when NHTSA only returned "Softail Deluxe".
+export function canonicalModelFor(decoded, catalog = defaultCatalog) {
+  if (!decoded) return null
+  const { entry } = matchToBikeCatalog(decoded, catalog)
+  if (!entry) return null
+  const modelStr = (decoded.model || '').toString().trim().toUpperCase()
+  if (!modelStr) return null
+
+  // Try exact, then code-prefix, then marketing-name match — return the
+  // catalog's canonical "<CODE> Marketing Name" string in each case.
+  const direct = (entry.models || []).find(
+    (m) => m.toUpperCase() === modelStr
+  )
+  if (direct) return direct
+  const firstToken = modelStr.split(/\s+/)[0]
+  const byCode = (entry.models || []).find((m) => {
+    const code = m.split(/\s+/)[0].toUpperCase()
+    return code === firstToken
+  })
+  if (byCode) return byCode
+  const byMarketing = (entry.models || []).find((m) => {
+    const idx = m.indexOf(' ')
+    if (idx <= 0) return false
+    return m.slice(idx + 1).toUpperCase() === modelStr
+  })
+  if (byMarketing) return byMarketing
+  return null
 }
 
 // Pull "(2017 - 2023)" style ranges out of a catalog label. Falls back to

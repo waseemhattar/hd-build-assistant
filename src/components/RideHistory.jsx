@@ -10,8 +10,8 @@ import {
 import RideMap from './RideMap.jsx'
 import EmptyState from './ui/EmptyState.jsx'
 import usePullToRefresh from '../hooks/usePullToRefresh.jsx'
-import { generateRideCard } from '../data/shareCard.js'
-import { sharePngBlob } from '../data/share.js'
+import { useUserPrefs } from '../hooks/useUserPrefs.js'
+import ShareRideSheet from './ShareRideSheet.jsx'
 
 // Ride history list. Two flavors:
 //   - bikeId provided → list rides for that bike only
@@ -22,6 +22,9 @@ import { sharePngBlob } from '../data/share.js'
 // a quick glance, not a deep navigation.
 
 export default function RideHistory({ bikeId = null, onStartRide, garage = [] }) {
+  // Re-render whenever the rider flips a unit pref so distance,
+  // speed, etc. swap mi ⇄ km without a remount.
+  useUserPrefs()
   const [rides, setRides] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(null)
@@ -128,7 +131,7 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
   const [detail, setDetail] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [sharing, setSharing] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   // Fetch full route only when expanded (saves bandwidth)
   useEffect(() => {
@@ -153,28 +156,9 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
     minute: '2-digit'
   })
 
-  async function handleShare() {
+  function handleShareClick() {
     if (!detail) return
-    setSharing(true)
-    try {
-      const blob = await generateRideCard({
-        ride: detail,
-        bike,
-        // Weather lives on the ride row as JSONB; fall back to null
-        // if absent (older rides predate the weather feature).
-        weather: detail.weather || ride.weather || null
-      })
-      await sharePngBlob(blob, {
-        filename: `sidestand-ride-${ride.id.slice(0, 8)}.jpg`,
-        title: bike?.nickname || bike?.model || 'My ride',
-        text: 'Recorded on Sidestand.'
-      })
-    } catch (e) {
-      console.warn('share failed', e)
-      alert(`Could not share ride: ${e?.message || e}`)
-    } finally {
-      setSharing(false)
-    }
+    setShareOpen(true)
   }
 
   async function handleDelete() {
@@ -243,8 +227,7 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
           {detail && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
-                onClick={handleShare}
-                disabled={sharing}
+                onClick={handleShareClick}
                 className="inline-flex items-center gap-2 rounded-full bg-hd-orange px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
               >
                 <svg
@@ -262,7 +245,7 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
                   <polyline points="16 6 12 2 8 6" />
                   <line x1="12" y1="2" x2="12" y2="15" />
                 </svg>
-                {sharing ? 'Preparing…' : 'Share ride'}
+                Share ride
               </button>
               <button
                 onClick={handleDelete}
@@ -275,6 +258,14 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
           )}
         </div>
       )}
+
+      <ShareRideSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        ride={detail}
+        bike={bike}
+        weather={detail?.weather || ride.weather || null}
+      />
     </li>
   )
 }

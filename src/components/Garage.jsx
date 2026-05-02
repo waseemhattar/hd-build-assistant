@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { bikes as bikeCatalog } from '../data/bikes.js'
+import { useUser } from '../auth/AuthProvider.jsx'
 import {
   getGarage,
   addBike,
@@ -12,6 +13,7 @@ import {
   setUserLogoUrl,
   getServiceLog,
   getMods,
+  deriveModelCode,
   subscribe
 } from '../data/storage.js'
 import {
@@ -20,10 +22,12 @@ import {
   findLastMatchingEntry
 } from '../data/serviceIntervals.js'
 import { formatMileage, distanceUnitLabel, isMetric } from '../data/userPrefs.js'
+import { useUserPrefs } from '../hooks/useUserPrefs.js'
 import {
   decodeVinLocal,
   decodeVinRemote,
   matchToBikeCatalog,
+  canonicalModelFor,
   normalizeVin
 } from '../data/vinDecoder.js'
 import StickyActionBar from './ui/StickyActionBar.jsx'
@@ -34,9 +38,20 @@ import BottomSheet from './ui/BottomSheet.jsx'
 // current mileage, which drives the maintenance-due dashboard in the
 // Service Book.
 
-export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
+export default function Garage({
+  onBack,
+  onOpenBike,
+  onOpenServiceBook,
+  // Optional: pop the "Add bike" editor on first paint — used by
+  // Home's "Add a bike" quick action so the rider lands directly in
+  // the form.
+  autoOpenAdd = false
+}) {
+  // Re-render whenever the rider flips a unit pref so mileage/etc.
+  // update instantly across every BikeCard.
+  useUserPrefs()
   const [garage, setGarage] = useState(() => getGarage())
-  const [editing, setEditing] = useState(null) // bike or {new:true}
+  const [editing, setEditing] = useState(autoOpenAdd ? { new: true } : null) // bike or {new:true}
   const [confirmingRemove, setConfirmingRemove] = useState(null)
   const [sharing, setSharing] = useState(null) // bike to share/publish
   const [brandOpen, setBrandOpen] = useState(false) // brand-settings modal
@@ -330,6 +345,8 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
         {bike.nickname && bike.model && (
           <div className="text-[13px] text-hd-muted">{bike.model}</div>
         )}
+        <BikeIdChips bike={bike} />
+        {bike.vin && <VinLine vin={bike.vin} />}
 
         {/* Stat strip: mileage / mods / next-due */}
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -443,6 +460,101 @@ function BikeCard({ bike, onEdit, onRemove, onShare, onOpenServiceBook, onOpenJo
 }
 
 // ---------- Bike-card sub-bits ----------
+
+// At-a-glance reference chips: family (Touring / Softail / Sportster)
+// and model code (FLHXSE, FXBRS, etc.). Most riders know their model
+// name but blank out on the alphanumeric code or which platform
+// family it sits on — these chips put both right next to the bike.
+function BikeIdChips({ bike }) {
+  const family = useMemo(() => {
+    const entry = bikeCatalog.find((p) => p.id === bike.bikeTypeId)
+    return entry?.family || ''
+  }, [bike.bikeTypeId])
+  const code = bike.modelCode || ''
+  if (!family && !code) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {family && (
+        <span className="rounded-full border border-hd-border bg-hd-card px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-hd-muted">
+          {family}
+        </span>
+      )}
+      {code && (
+        <span className="rounded-full border border-hd-orange/40 bg-hd-orange/10 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-hd-orange">
+          {code}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Renders the bike's VIN under the model line with a small one-tap
+// "copy to clipboard" affordance. The chip flips to "Copied!" for
+// ~1.4s after a successful copy so the rider gets feedback without a
+// toast system.
+function VinLine({ vin }) {
+  const [copied, setCopied] = useState(false)
+  async function copy(e) {
+    e.stopPropagation()
+    e.preventDefault()
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(vin)
+      } else {
+        // Fallback for older browsers / non-secure contexts
+        const ta = document.createElement('textarea')
+        ta.value = vin
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1400)
+    } catch (_) {
+      // Silently no-op if clipboard isn't available; user can still
+      // long-press the VIN to select.
+    }
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <span className="font-mono text-[12px] tracking-wider text-hd-muted">
+        VIN {vin}
+      </span>
+      <button
+        type="button"
+        onClick={copy}
+        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest transition ${
+          copied
+            ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
+            : 'border-hd-border bg-hd-card text-hd-muted hover:border-hd-orange hover:text-hd-orange'
+        }`}
+        title="Copy VIN to clipboard"
+        aria-label={copied ? 'Copied' : 'Copy VIN'}
+      >
+        {copied ? (
+          <>
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Copied
+          </>
+        ) : (
+          <>
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="11" height="11" rx="1.5" />
+              <path d="M5 15V5a1 1 0 0 1 1-1h10" />
+            </svg>
+            Copy
+          </>
+        )}
+      </button>
+    </div>
+  )
+}
 
 function Stat({ label, value, unit }) {
   return (
@@ -574,20 +686,35 @@ function BikeEditor({ bike, onCancel, onSave }) {
         ? Math.round(bike.mileage * 1.609344)
         : bike.mileage
       : ''
+
+  // Pull the signed-in user so we can pre-populate the public-page
+  // owner credit. Falls back through fullName → first/last → email
+  // prefix so we always have something sensible.
+  const { user } = useUser()
+  const defaultDisplayName = useMemo(() => {
+    if (user?.fullName) return user.fullName.trim()
+    const fn = (user?.firstName || '').trim()
+    const ln = (user?.lastName || '').trim()
+    if (fn && ln) return `${fn} ${ln.charAt(0)}.`
+    if (fn) return fn
+    const email = user?.primaryEmailAddress?.emailAddress
+    if (email) {
+      const prefix = email.split('@')[0]
+      return prefix.charAt(0).toUpperCase() + prefix.slice(1)
+    }
+    return ''
+  }, [user])
+
   const [form, setForm] = useState(() => ({
-    bikeTypeId: bike?.bikeTypeId || bikeCatalog[0]?.id || '',
-    year: bike?.year || bikeCatalog[0]?.year || new Date().getFullYear(),
+    bikeTypeId: bike?.bikeTypeId || '',
+    year: bike?.year || '',
     model: bike?.model || '',
+    modelCode: bike?.modelCode || deriveModelCode(bike?.model || ''),
     nickname: bike?.nickname || '',
     vin: bike?.vin || '',
     mileage: initialMileage,
     purchaseDate: bike?.purchaseDate || '',
-    notes: bike?.notes || '',
-    // Public-page profile fields. displayName is what shows up as the
-    // owner credit on /b/<slug>; coverPhotoUrl is the hero image. We
-    // surface them on every bike edit (not just when publishing) so the
-    // user can prep the page before flipping the toggle.
-    displayName: bike?.displayName || '',
+    displayName: bike?.displayName || defaultDisplayName,
     coverPhotoUrl: bike?.coverPhotoUrl || ''
   }))
 
@@ -606,24 +733,12 @@ function BikeEditor({ bike, onCancel, onSave }) {
   const [autoDecoded, setAutoDecoded] = useState(false)
   const abortRef = useRef(null)
 
-  // When the user picks a preset, auto-fill year + a reasonable default model.
-  function pickPreset(id) {
-    const preset = bikeCatalog.find((p) => p.id === id)
-    setForm((f) => ({
-      ...f,
-      bikeTypeId: id,
-      year: preset?.year || f.year,
-      model: f.model || preset?.models?.[0] || ''
-    }))
-  }
-
-  // Kick off a NHTSA decode. Safe to call anytime — if the VIN isn't 17
-  // chars it just no-ops. `autofill`=true will fill empty form fields with
-  // the decoded data; the manual "Decode" button passes autofill=true.
+  // Kick off a NHTSA decode. Year, model, and model-code on the bike
+  // are derived strictly from this — never user-edited — so the public
+  // build page always reflects the actual VIN's identity.
   async function runRemoteDecode({ autofill } = { autofill: true }) {
     const vin = normalizeVin(form.vin)
     if (vin.length !== 17) return
-    // Cancel any in-flight decode so a fast typist doesn't stack requests.
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -637,23 +752,20 @@ function BikeEditor({ bike, onCancel, onSave }) {
     if (!autofill || !result.ok) return
 
     const patch = {}
-    if (result.year && !form.year) patch.year = result.year
-    if (result.year) patch.year = patch.year ?? result.year
-
-    // Upgrade model name via catalog if we can.
+    if (result.year) patch.year = result.year
     const match = matchToBikeCatalog(result)
-    if (result.model && !form.model) {
-      const friendly = upgradeModel(result.model, match.entry)
-      patch.model = friendly
+    // Prefer the catalog's canonical "<CODE> Marketing Name" string so
+    // the model code is always present, even when NHTSA returned just
+    // the marketing name (e.g. "Softail Deluxe" → "FLDE Softail Deluxe").
+    const canonical = canonicalModelFor(result)
+    if (canonical) {
+      patch.model = canonical
+      patch.modelCode = deriveModelCode(canonical)
+    } else if (result.model) {
+      patch.model = upgradeModel(result.model, match.entry)
+      patch.modelCode = deriveModelCode(patch.model)
     }
-    if (match.id && !form.bikeTypeId) {
-      patch.bikeTypeId = match.id
-    }
-    // If the matched catalog entry differs from the current one and we're
-    // reasonably confident, upgrade it.
-    if (match.id && match.confidence === 'exact' && form.bikeTypeId !== match.id) {
-      patch.bikeTypeId = match.id
-    }
+    if (match.id) patch.bikeTypeId = match.id
 
     if (Object.keys(patch).length) {
       setForm((f) => ({ ...f, ...patch }))
@@ -661,14 +773,13 @@ function BikeEditor({ bike, onCancel, onSave }) {
     }
   }
 
-  // Auto-decode when the user reaches 17 characters for the first time.
+  // Auto-decode whenever the user reaches a full 17-character VIN.
   useEffect(() => {
     const vin = normalizeVin(form.vin)
     if (vin.length === 17 && !remote && !decoding) {
       runRemoteDecode({ autofill: true })
     }
     if (vin.length !== 17 && remote) {
-      // User edited the VIN down; clear stale decode.
       setRemote(null)
       setAutoDecoded(false)
     }
@@ -678,11 +789,17 @@ function BikeEditor({ bike, onCancel, onSave }) {
   // Clean up any pending request on unmount.
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  // Has the rider supplied enough info to save? We require:
+  //   - a 17-char VIN (the new primary identifier), OR a pre-existing
+  //     bike record (so editing a legacy bike without VIN still works)
+  //   - a year and model (auto-filled by VIN, or manually entered)
+  const vinValid = normalizeVin(form.vin).length === 17
+  const hasYearModel = !!form.year && !!form.model
+  const canSave = (vinValid || !!bike) && hasYearModel
+
   function submit(e) {
     e.preventDefault()
-    // Convert user-entered value (in their unit) back to miles before
-    // saving. DB column stays canonical (miles) so service-interval
-    // math and other consumers keep working unchanged.
+    if (!canSave) return
     const enteredMileage = Number(form.mileage) || 0
     const milesValue = userMetric
       ? Math.round(enteredMileage / 1.609344)
@@ -694,67 +811,84 @@ function BikeEditor({ bike, onCancel, onSave }) {
     })
   }
 
-  const preset = bikeCatalog.find((p) => p.id === form.bikeTypeId)
-
   return (
     <BottomSheet open={true} onClose={onCancel} size="lg">
       <BottomSheet.Header
         title={bike ? 'Edit bike' : 'Add bike'}
         subtitle={
           bike
-            ? 'Update specs, mileage, and the public-page profile.'
-            : 'Add a bike to track service, mods, and rides.'
+            ? 'Update mileage, photo, or fix decoded details.'
+            : 'Enter the VIN — we’ll fill in the rest.'
         }
         onClose={onCancel}
       />
       <form onSubmit={submit}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Platform" wide>
-            <select
-              value={form.bikeTypeId}
-              onChange={(e) => pickPreset(e.target.value)}
-              className="input"
-            >
-              {bikeCatalog.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Year">
+        {/* ---------- VIN — primary input ---------- */}
+        <Field label="VIN" wide>
+          <div className="flex gap-2">
             <input
-              type="number"
-              value={form.year}
-              onChange={(e) => setForm({ ...form, year: e.target.value })}
-              className="input"
-              min={1900}
-              max={2100}
-              required
+              type="text"
+              value={form.vin}
+              onChange={(e) =>
+                setForm({ ...form, vin: normalizeVin(e.target.value) })
+              }
+              className="input flex-1 font-mono uppercase"
+              maxLength={17}
+              placeholder="e.g. 1HD1KHM18LB610234"
+              required={!bike}
+              autoFocus={!bike}
             />
-          </Field>
-
-          <Field label="Model">
-            <select
-              value={form.model}
-              onChange={(e) => setForm({ ...form, model: e.target.value })}
-              className="input"
+            <button
+              type="button"
+              onClick={() => runRemoteDecode({ autofill: true })}
+              disabled={!vinValid || decoding}
+              className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-hd-text hover:border-hd-orange hover:text-hd-orange disabled:opacity-40 disabled:hover:border-hd-border disabled:hover:text-hd-text"
+              title="Look up this VIN via the NHTSA public database"
             >
-              <option value="">— pick a model —</option>
-              {(preset?.models || []).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </Field>
+              {decoding ? 'Decoding…' : 'Decode'}
+            </button>
+          </div>
+          <VinChip
+            vin={form.vin}
+            local={local}
+            remote={remote}
+            decoding={decoding}
+            autoDecoded={autoDecoded}
+          />
+        </Field>
 
+        {/* ---------- Decoded details (read-only) ----------
+             We deliberately don't expose an edit affordance here:
+             year, model, and model-code are derived from the VIN so
+             the public build page always reflects the bike's true
+             identity. If NHTSA returns the wrong data for a VIN, the
+             fix is data-side (improve the decoder), not user-side. */}
+        {(form.year || form.model || form.modelCode) && (
+          <div className="mt-4 rounded-md border border-hd-border bg-hd-dark p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-hd-orange">
+              Decoded from VIN
+            </div>
+            <div className="mt-1 font-display text-lg tracking-wider text-hd-text">
+              {form.year ? `${form.year} ` : ''}
+              {form.model || '—'}
+            </div>
+            {form.modelCode && (
+              <div className="mt-0.5 font-mono text-xs text-hd-muted">
+                {form.modelCode}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---------- Manual fields ---------- */}
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Nickname (optional)">
             <input
               type="text"
               value={form.nickname}
-              onChange={(e) => setForm({ ...form, nickname: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, nickname: e.target.value })
+              }
               className="input"
               placeholder="e.g. Old Faithful"
             />
@@ -764,44 +898,12 @@ function BikeEditor({ bike, onCancel, onSave }) {
             <input
               type="number"
               value={form.mileage}
-              onChange={(e) => setForm({ ...form, mileage: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, mileage: e.target.value })
+              }
               className="input"
               min={0}
               required
-            />
-          </Field>
-
-          <Field label="VIN (optional — auto-decodes 17-char Harley VINs)" wide>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.vin}
-                onChange={(e) => {
-                  // Uppercase and strip banned VIN chars (I/O/Q) + whitespace
-                  // so the user can't get into an invalid state by typing or
-                  // pasting. normalizeVin handles both.
-                  setForm({ ...form, vin: normalizeVin(e.target.value) })
-                }}
-                className="input flex-1 font-mono uppercase"
-                maxLength={17}
-                placeholder="e.g. 1HD1KHM18LB610234"
-              />
-              <button
-                type="button"
-                onClick={() => runRemoteDecode({ autofill: true })}
-                disabled={normalizeVin(form.vin).length !== 17 || decoding}
-                className="rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-hd-text hover:border-hd-orange hover:text-hd-orange disabled:opacity-40 disabled:hover:border-hd-border disabled:hover:text-hd-text"
-                title="Look up this VIN via the NHTSA public database"
-              >
-                {decoding ? 'Decoding…' : 'Decode'}
-              </button>
-            </div>
-            <VinChip
-              vin={form.vin}
-              local={local}
-              remote={remote}
-              decoding={decoding}
-              autoDecoded={autoDecoded}
             />
           </Field>
 
@@ -816,19 +918,7 @@ function BikeEditor({ bike, onCancel, onSave }) {
             />
           </Field>
 
-          <Field label="Notes (optional)" wide>
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="input min-h-[80px]"
-              placeholder="Mods, quirks, tuneup notes..."
-            />
-          </Field>
-
-          <Field
-            label="Owner display name (optional — shown on public build page)"
-            wide
-          >
+          <Field label="Owner display name">
             <input
               type="text"
               value={form.displayName}
@@ -836,7 +926,7 @@ function BikeEditor({ bike, onCancel, onSave }) {
                 setForm({ ...form, displayName: e.target.value })
               }
               className="input"
-              placeholder="e.g. Waseem H."
+              placeholder="Shown on the public bike page"
               maxLength={60}
             />
           </Field>
@@ -876,7 +966,6 @@ function BikeEditor({ bike, onCancel, onSave }) {
                       setPhotoError(err?.message || 'Upload failed.')
                     } finally {
                       setPhotoUploading(false)
-                      // Reset the input so the same file can be re-picked.
                       e.target.value = ''
                     }
                   }}
@@ -922,7 +1011,13 @@ function BikeEditor({ bike, onCancel, onSave }) {
           </button>
           <button
             type="submit"
-            className="rounded-full bg-hd-orange px-5 py-3 text-sm font-semibold text-white transition active:scale-95"
+            disabled={!canSave}
+            className="rounded-full bg-hd-orange px-5 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+            title={
+              !canSave
+                ? 'Enter a VIN — model and year auto-fill from there.'
+                : ''
+            }
           >
             {bike ? 'Save changes' : 'Add to garage'}
           </button>

@@ -15,6 +15,7 @@ import {
 } from '../data/rides.js'
 import { getGarage, updateBikeMileage } from '../data/storage.js'
 import { formatMileage, formatTemperature } from '../data/userPrefs.js'
+import { useUserPrefs } from '../hooks/useUserPrefs.js'
 import { fetchCurrentWeather, formatWeatherShort } from '../data/weather.js'
 import RideMap from './RideMap.jsx'
 
@@ -37,6 +38,9 @@ import RideMap from './RideMap.jsx'
 //     route updates (which may stall when the bike is stopped).
 
 export default function RideTracker({ onBack, onSaved }) {
+  // Re-render whenever the rider flips a unit pref so live distance,
+  // speed, and stopwatch labels swap mi ⇄ km without remounting.
+  useUserPrefs()
   const { user } = useUser()
   const garage = useMemo(() => getGarage(), [])
   const [bikeId, setBikeId] = useState(garage[0]?.id || null)

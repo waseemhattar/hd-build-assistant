@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth, useUser } from './auth/AuthProvider.jsx'
-import BikePicker from './components/BikePicker.jsx'
-import JobBrowser from './components/JobBrowser.jsx'
-import JobView from './components/JobView.jsx'
 import ProcedureBrowser from './components/ProcedureBrowser.jsx'
 import ProcedureDetail from './components/ProcedureDetail.jsx'
 import Walkthrough from './components/Walkthrough.jsx'
+import JobCardDetail from './components/JobCardDetail.jsx'
 import RidesPage from './components/RidesPage.jsx'
 import RideTracker from './components/RideTracker.jsx'
 import Garage from './components/Garage.jsx'
@@ -27,8 +25,6 @@ import {
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser, getUserLogoUrl, subscribe, getBike } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
-import { intervals } from './data/serviceIntervals.js'
-import { formatMileage } from './data/userPrefs.js'
 
 // URL → public-bike-slug helper. /b/<slug> is the share-link route.
 function readPublicBikeSlug() {
@@ -152,17 +148,24 @@ function AuthedApp() {
 
   // Internal view for the state machine (page-level routing inside the
   // signed-in app).
-  //   home / garage / service / intervals
-  //   procedures / procedure / walkthrough — new procedure flow (Supabase)
-  //   picker / browse / job — legacy job flow (bundled jobs.js, deprecated)
+  //   home / garage / service / job-card
+  //   procedures / procedure / walkthrough — Supabase-backed procedure flow
   const [view, setView] = useState('home')
-  const [bike, setBike] = useState(null)         // catalog bike (platform) — legacy
   const [garageBike, setGarageBike] = useState(null) // user-owned bike — used for procedures + service book
-  const [job, setJob] = useState(null)
-  // New procedure flow state — separate from the legacy job/bike state
-  // because they live on different data sources (Supabase vs bundled JSON).
+  // Procedure flow state (Supabase-backed).
   const [procedure, setProcedure] = useState(null)
   const [procedureDetail, setProcedureDetail] = useState(null)
+  // Hints for the destination view, set by Home's quick actions and
+  // consumed once on first paint of the target screen. We clear them
+  // after the first read so navigating back doesn't re-trigger.
+  const [serviceInitial, setServiceInitial] = useState(null) // { tab, autoOpenEditor }
+  const [autoOpenAddBike, setAutoOpenAddBike] = useState(false)
+  // Active job-card id when the rider is viewing one card's detail
+  // page. When `addingProceduresToJobCardId` is also set, the
+  // procedure browser is in select-mode and tapping a procedure adds
+  // it to that card instead of starting a walkthrough.
+  const [activeJobCardId, setActiveJobCardId] = useState(null)
+  const [addingProceduresToJobCardId, setAddingProceduresToJobCardId] = useState(null)
 
   // Live brand-logo URL so the top nav swaps when the user uploads.
   const [userLogoUrl, setUserLogoUrl] = useState(() => getUserLogoUrl())
@@ -179,9 +182,6 @@ function AuthedApp() {
     if (view === 'home') return 'home'
     if (view === 'garage' || view === 'service') return 'garage'
     if (
-      view === 'picker' ||
-      view === 'browse' ||
-      view === 'job' ||
       view === 'procedures' ||
       view === 'procedure' ||
       view === 'walkthrough'
@@ -189,7 +189,6 @@ function AuthedApp() {
       return 'manual'
     }
     if (view === 'rides' || view === 'ride-tracker') return 'rides'
-    if (view === 'intervals') return 'intervals'
     return null
   }
 
@@ -199,11 +198,9 @@ function AuthedApp() {
 
 
   // Single navigation handler used by TopNav and Home's quick actions.
-  // Resets transient state (selected bike/job) so we don't carry stale
-  // context into a new section.
+  // Resets transient state so we don't carry stale context into a
+  // new section.
   function navigate(section) {
-    setBike(null)
-    setJob(null)
     setProcedure(null)
     setProcedureDetail(null)
     if (section === 'home') {
@@ -213,14 +210,9 @@ function AuthedApp() {
       setGarageBike(null)
       setView('garage')
     } else if (section === 'manual') {
-      // New behavior: tap Manual → procedure browser. If there's no
-      // garageBike already in state, default to the first bike in the
-      // user's garage for the bike-scoped view. ProcedureBrowser will
-      // fall back to all-mode if there's no bike at all.
+      // Tap Service Procedures → procedure browser. ProcedureBrowser
+      // self-sources the active bike from the garage if none is set.
       setView('procedures')
-    } else if (section === 'intervals') {
-      setGarageBike(null)
-      setView('intervals')
     } else if (section === 'rides') {
       // Rides list is global (shows all bikes) so we drop any
       // currently-scoped garageBike. The RidesPage itself surfaces
@@ -246,62 +238,62 @@ function AuthedApp() {
         <Home
           onOpenGarage={() => navigate('garage')}
           onOpenManual={() => navigate('manual')}
-          onOpenIntervals={() => navigate('intervals')}
           onOpenRides={() => navigate('rides')}
           onStartRide={() => setView('ride-tracker')}
-          onPickJob={(matchedBike, matchedJob) => {
-            if (matchedBike) setBike(matchedBike)
-            setJob(matchedJob)
-            setView('job')
-          }}
           onOpenServiceBook={(b) => {
             setGarageBike(b)
             setView('service')
           }}
-        />
-      )}
-
-      {view === 'picker' && (
-        <BikePicker
-          onSelect={(b) => {
-            setBike(b)
-            setView('browse')
+          // Action-flavored quick tiles (replacing the old nav-tile
+          // duplicates). Each routes to a specific tab + auto-open
+          // mode in the destination so the rider can act in one tap.
+          onPlanJob={(b) => {
+            if (!b) return navigate('garage')
+            setGarageBike(b)
+            setServiceInitial({ tab: 'jobs', autoOpenEditor: false })
+            setView('service')
+          }}
+          onLogService={(b) => {
+            if (!b) return navigate('garage')
+            setGarageBike(b)
+            setServiceInitial({ tab: 'log', autoOpenEditor: true })
+            setView('service')
+          }}
+          onAddBike={() => {
+            setAutoOpenAddBike(true)
+            navigate('garage')
           }}
         />
       )}
 
-      {view === 'browse' && bike && (
-        <JobBrowser
-          bike={bike}
-          onBack={() => {
-            setBike(null)
-            setView('picker')
-          }}
-          onSelectJob={(j) => {
-            setJob(j)
-            setView('job')
-          }}
-        />
-      )}
-
-      {view === 'job' && bike && job && (
-        <JobView
-          bike={bike}
-          job={job}
-          onBack={() => {
-            setJob(null)
-            setView('browse')
-          }}
-        />
-      )}
-
-      {/* New Supabase-backed procedure flow */}
+      {/* Supabase-backed procedure flow */}
       {view === 'procedures' && (
         <ProcedureBrowser
           bike={garageBike}
-          onBack={() => navigate('home')}
-          onSelectProcedure={(p) => {
-            setProcedure(p)
+          onBack={() => {
+            // If we entered the browser from a job card "+ Add
+            // procedure" tap, going Back returns to that card. Else
+            // back to home.
+            if (addingProceduresToJobCardId) {
+              setAddingProceduresToJobCardId(null)
+              setView('job-card')
+            } else {
+              navigate('home')
+            }
+          }}
+          addingToJobCardId={addingProceduresToJobCardId}
+          onDoneAdding={() => {
+            setAddingProceduresToJobCardId(null)
+            setView('job-card')
+          }}
+          onSelectProcedure={(item, activeBike) => {
+            // `item` is a paired-or-single object from the browser:
+            //   { id, baseTitle, summary, remove?, install?, hasPair }
+            // `activeBike` is whichever bike the rider was viewing
+            // procedures for — propagate it up so ProcedureDetail
+            // and Walkthrough know which bike to log service against.
+            setProcedure(item)
+            if (activeBike) setGarageBike(activeBike)
             setView('procedure')
           }}
         />
@@ -309,7 +301,8 @@ function AuthedApp() {
 
       {view === 'procedure' && procedure && (
         <ProcedureDetail
-          procedureId={procedure.id}
+          item={procedure}
+          procedureId={procedure.id /* fallback for legacy callers */}
           bike={garageBike}
           onBack={() => {
             setProcedure(null)
@@ -359,15 +352,18 @@ function AuthedApp() {
       {view === 'garage' && (
         <Garage
           onBack={() => navigate('home')}
+          autoOpenAdd={autoOpenAddBike}
           onOpenServiceBook={(b) => {
+            setAutoOpenAddBike(false)
             setGarageBike(b)
             setView('service')
           }}
           onOpenBike={(b) => {
-            // "Browse jobs" from a bike card → procedure browser scoped
-            // to this user-owned bike. The new flow uses garageBike
-            // (the user's bike) directly so procedure filtering can
-            // match year + model code via the manuals.
+            // Tapping into a bike card → procedure browser scoped to
+            // this user-owned bike. The new flow uses garageBike
+            // directly so procedure filtering can match year + model
+            // code via the manuals.
+            setAutoOpenAddBike(false)
             setGarageBike(b)
             setView('procedures')
           }}
@@ -377,17 +373,47 @@ function AuthedApp() {
       {view === 'service' && garageBike && (
         <ServiceBook
           bike={garageBike}
+          initialTab={serviceInitial?.tab || 'log'}
+          autoOpenEditor={!!serviceInitial?.autoOpenEditor}
           onBack={() => {
             setGarageBike(null)
+            setServiceInitial(null)
             setView('garage')
+          }}
+          onOpenJobCard={(cardId) => {
+            setServiceInitial(null)
+            setActiveJobCardId(cardId)
+            setView('job-card')
           }}
         />
       )}
 
-      {view === 'intervals' && (
-        <IntervalsLanding
-          onBack={() => navigate('home')}
-          onOpenGarage={() => navigate('garage')}
+      {view === 'job-card' && activeJobCardId && garageBike && (
+        <JobCardDetail
+          cardId={activeJobCardId}
+          bike={garageBike}
+          onBack={() => {
+            setActiveJobCardId(null)
+            setView('service')
+          }}
+          onAddProcedures={() => {
+            setAddingProceduresToJobCardId(activeJobCardId)
+            setView('procedures')
+          }}
+          onRunJob={() => {
+            // Phase 2 — sequential walkthrough lands here.
+            alert('Sequential walkthrough is coming next. For now, tap a procedure to walk it individually.')
+          }}
+          onOpenProcedure={(item) => {
+            // Tapping a row in the card list opens that single
+            // procedure's walkthrough as a one-off.
+            setProcedure({
+              id: item.procedureId,
+              baseTitle: item.title,
+              hasPair: false
+            })
+            setView('procedure')
+          }}
         />
       )}
 
@@ -434,60 +460,3 @@ function AuthedApp() {
   )
 }
 
-// Lightweight reference page for HD intervals. The real per-bike
-// evaluation lives inside ServiceBook → Intervals tab; this page is
-// the "what does Harley recommend in general?" reference, accessible
-// from the top nav even when the user has no bikes yet.
-function IntervalsLanding({ onBack, onOpenGarage }) {
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-      <button
-        onClick={onBack}
-        className="mb-4 text-sm text-hd-muted hover:text-hd-orange"
-      >
-        ← Back
-      </button>
-
-      <div className="mb-6">
-        <div className="text-xs uppercase tracking-widest text-hd-orange">
-          Reference
-        </div>
-        <h1 className="mt-1 font-display text-3xl tracking-wider sm:text-4xl">
-          HD SERVICE INTERVALS
-        </h1>
-        <p className="mt-2 text-sm text-hd-muted">
-          Harley's recommended schedule. For your own bikes, these
-          intervals are evaluated against current mileage in each
-          bike's Service Book.
-        </p>
-        <button
-          onClick={onOpenGarage}
-          className="mt-4 inline-block rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-text hover:border-hd-orange hover:text-hd-orange"
-        >
-          Open my garage →
-        </button>
-      </div>
-
-      <ul className="space-y-2">
-        {intervals.map((i) => (
-          <li
-            key={i.id}
-            className="rounded-md border border-hd-border bg-hd-dark p-4"
-          >
-            <div className="font-display text-lg tracking-wider">
-              {i.label}
-            </div>
-            <div className="mt-1 text-xs text-hd-muted">{i.description}</div>
-            <div className="mt-2 text-xs text-hd-orange">
-              {i.mileageInterval
-                ? `Every ${formatMileage(i.mileageInterval)} · first at ${formatMileage(i.firstDue || i.mileageInterval)}`
-                : i.firstDue
-                ? `One-time, at ${formatMileage(i.firstDue)}`
-                : ''}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
