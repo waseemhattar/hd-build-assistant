@@ -23,6 +23,7 @@
 
 import { getSupabaseClient } from './supabaseClient.js'
 import { getBike, getGarage, getServiceLog, getMods } from './storage.js'
+import { getProceduresForBike } from './procedures.js'
 
 const STORAGE_KEY = 'sidestand:mechanic/v1'
 // Note: Vite's env-var replacement is a static text scan for the literal
@@ -103,7 +104,10 @@ export function isConfigured() {
 
 export async function sendMessage(text, opts = {}) {
   const trimmed = (text || '').trim()
-  if (!trimmed) return
+  // Allow empty text when an image is attached (the question can be
+  // implicit — "what is this part?").
+  const hasImage = Boolean(opts.imageBase64)
+  if (!trimmed && !hasImage) return
 
   if (!WORKER_URL) {
     pushSystemMessage(
@@ -112,11 +116,16 @@ export async function sendMessage(text, opts = {}) {
     return
   }
 
-  // 1. Append user message
-  messages = [
-    ...messages,
-    { role: 'user', content: trimmed, ts: Date.now() }
-  ]
+  // 1. Append user message. We store an `imagePreview` (smaller
+  // base64 thumbnail) so the bubble can render the photo the user
+  // sent; the full base64 only lives during this in-flight request.
+  const userMsg = {
+    role: 'user',
+    content: trimmed || (hasImage ? '📷 Photo' : ''),
+    ts: Date.now()
+  }
+  if (opts.imagePreview) userMsg.image = opts.imagePreview
+  messages = [...messages, userMsg]
   pendingAssistantText = ''
   persist()
   notify()
@@ -130,10 +139,22 @@ export async function sendMessage(text, opts = {}) {
     return
   }
 
-  // 3. Build context payload for the system prompt
-  const context = buildContext(opts.bikeId)
+  // 3. Build context payload for the system prompt. This is async
+  // because fetching the bike's available procedures from Supabase
+  // takes a round-trip — but cached, so subsequent calls are instant.
+  const context = await buildContext(opts.bikeId)
 
   // 4. Call the Worker
+  const requestBody = {
+    messages: messages.map((m) => ({
+      role: m.role,
+      content: m.content
+    })),
+    context
+  }
+  if (hasImage) {
+    requestBody.image = opts.imageBase64
+  }
   let response
   try {
     response = await fetch(`${WORKER_URL}/chat`, {
@@ -142,13 +163,7 @@ export async function sendMessage(text, opts = {}) {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: m.content
-        })),
-        context
-      })
+      body: JSON.stringify(requestBody)
     })
   } catch (e) {
     pushSystemMessage(`Network error: ${e?.message || e}`)
@@ -264,7 +279,7 @@ function pushSystemMessage(text) {
 // the Worker doesn't have to make any DB calls — it only needs the
 // data we send.
 
-function buildContext(bikeId) {
+async function buildContext(bikeId) {
   const garage = getGarage()
   const ctx = {}
 
@@ -291,6 +306,25 @@ function buildContext(bikeId) {
         category: m.category,
         status: m.status
       }))
+    }
+
+    // Fetch the manual procedures available for this bike so the
+    // assistant can reference them by id. Capped at 30 titles to keep
+    // the system prompt under control.
+    try {
+      const groups = await getProceduresForBike(bike)
+      const flat = []
+      for (const g of groups) {
+        for (const p of g.procedures) {
+          flat.push({ id: p.id, title: p.title })
+          if (flat.length >= 30) break
+        }
+        if (flat.length >= 30) break
+      }
+      if (flat.length > 0) ctx.availableProcedures = flat
+    } catch (e) {
+      // Non-fatal — chat works without the procedure list.
+      console.warn('[mechanic] procedures fetch failed', e)
     }
   } else if (garage.length > 0) {
     ctx.garage = garage.map(pickBikeFields)

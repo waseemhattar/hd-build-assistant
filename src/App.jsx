@@ -19,7 +19,7 @@ import TopNav from './components/TopNav.jsx'
 import BottomTabBar from './components/BottomTabBar.jsx'
 import MechanicChat from './components/MechanicChat.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
-import { setStorageUser, getUserLogoUrl, subscribe } from './data/storage.js'
+import { setStorageUser, getUserLogoUrl, subscribe, getBike } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
 import { intervals } from './data/serviceIntervals.js'
 import { formatMileage } from './data/userPrefs.js'
@@ -364,8 +364,22 @@ function AuthedApp() {
 
       {/* Floating mechanic chat — available on every signed-in screen.
           Position is absolute fixed; it uses safe-area-inset and avoids
-          overlapping the bottom tab bar via tailwind bottom-24 / sm:bottom-6. */}
-      <MechanicChat />
+          overlapping the bottom tab bar via tailwind bottom-24 / sm:bottom-6.
+          When the AI emits a [PROC:<id>] link in its reply, the chat
+          calls back here so we can navigate the user into the matching
+          procedure walkthrough. */}
+      <MechanicChat
+        onOpenProcedure={(procId, scopedBikeId) => {
+          // Set the bike scope so ProcedureDetail/Walkthrough have
+          // context (mileage logging, applies_to filters, etc).
+          const garageBikeFromId = scopedBikeId
+            ? getBike(scopedBikeId)
+            : null
+          setGarageBike(garageBikeFromId)
+          setProcedure({ id: procId })
+          setView('procedure')
+        }}
+      />
 
       {/* Bottom tab bar — visible on mobile / native, hidden on wide web */}
       <BottomTabBar
