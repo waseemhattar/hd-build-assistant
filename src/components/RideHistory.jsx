@@ -10,6 +10,8 @@ import {
 import RideMap from './RideMap.jsx'
 import EmptyState from './ui/EmptyState.jsx'
 import usePullToRefresh from '../hooks/usePullToRefresh.jsx'
+import { generateRideCard } from '../data/shareCard.js'
+import { sharePngBlob } from '../data/share.js'
 
 // Ride history list. Two flavors:
 //   - bikeId provided → list rides for that bike only
@@ -126,6 +128,7 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
   const [detail, setDetail] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [sharing, setSharing] = useState(false)
 
   // Fetch full route only when expanded (saves bandwidth)
   useEffect(() => {
@@ -149,6 +152,30 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
     hour: 'numeric',
     minute: '2-digit'
   })
+
+  async function handleShare() {
+    if (!detail) return
+    setSharing(true)
+    try {
+      const blob = await generateRideCard({
+        ride: detail,
+        bike,
+        // Weather lives on the ride row as JSONB; fall back to null
+        // if absent (older rides predate the weather feature).
+        weather: detail.weather || ride.weather || null
+      })
+      await sharePngBlob(blob, {
+        filename: `sidestand-ride-${ride.id.slice(0, 8)}.jpg`,
+        title: bike?.nickname || bike?.model || 'My ride',
+        text: 'Recorded on Sidestand.'
+      })
+    } catch (e) {
+      console.warn('share failed', e)
+      alert(`Could not share ride: ${e?.message || e}`)
+    } finally {
+      setSharing(false)
+    }
+  }
 
   async function handleDelete() {
     if (!window.confirm('Delete this ride? Cannot be undone.')) return
@@ -214,7 +241,29 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
             </div>
           )}
           {detail && (
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="inline-flex items-center gap-2 rounded-full bg-hd-orange px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+                {sharing ? 'Preparing…' : 'Share ride'}
+              </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
