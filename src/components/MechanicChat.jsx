@@ -162,22 +162,37 @@ function MechanicModal({ onClose, onOpenProcedure }) {
     }
   }
 
-  // Convert the picked file to base64 strings — full for the Worker,
-  // a smaller resized preview for local display. We use a canvas to
-  // produce the resized version so we don't ship megabytes of base64
-  // into localStorage for every photo.
+  // Pick → downscale → encode. We deliberately AVOID FileReader's
+  // readAsDataURL on the original file because iPhone photos (24-48MP)
+  // produce ~30-50MB base64 strings that OOM the WebView. Instead we
+  // create a blob URL and let the browser's native image decoder
+  // handle the heavy lifting. Only the downscaled JPEGs ever hit the
+  // base64 step.
+  //
+  // Two outputs:
+  //   - workerPayload: ~1024px JPEG q=0.85, sent in the request body
+  //   - preview:       ~256px JPEG q=0.7, persisted in localStorage
   async function pickPhoto(file) {
     if (!file) return
     if (!file.type.startsWith('image/')) {
       alert('Please pick an image file.')
       return
     }
+    const blobUrl = URL.createObjectURL(file)
     try {
-      const fullBase64 = await fileToBase64(file)
-      const preview = await downscaleToDataUrl(fullBase64, 256)
-      setAttachment({ base64Full: fullBase64, preview, name: file.name })
+      const [workerPayload, preview] = await Promise.all([
+        blobUrlToDownscaledJpeg(blobUrl, 1024, 0.85),
+        blobUrlToDownscaledJpeg(blobUrl, 256, 0.7)
+      ])
+      setAttachment({
+        base64Full: workerPayload,
+        preview,
+        name: file.name
+      })
     } catch (e) {
-      alert('Could not load that image.')
+      alert(`Could not load that image: ${e?.message || e}`)
+    } finally {
+      URL.revokeObjectURL(blobUrl)
     }
   }
 
@@ -209,7 +224,7 @@ function MechanicModal({ onClose, onOpenProcedure }) {
         }}
       >
         {/* Header */}
-        <header className="flex items-center justify-between gap-3 border-b border-white/5 bg-hd-dark/95 px-5 py-3 backdrop-blur">
+        <header className="flex items-center justify-between gap-3 border-b border-white/5 bg-hd-dark px-5 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-hd-orange text-white">
               <ChatIcon className="h-5 w-5" />
@@ -295,7 +310,7 @@ function MechanicModal({ onClose, onOpenProcedure }) {
         {/* Composer */}
         <form
           onSubmit={submit}
-          className="border-t border-white/5 bg-hd-dark/95 p-3 backdrop-blur"
+          className="border-t border-white/5 bg-hd-dark p-3"
         >
           {/* Attachment preview (above the input row) */}
           {attachment && (
@@ -649,19 +664,13 @@ function CameraIcon({ className = '' }) {
 // Image helpers
 // ============================================================
 
-// Read a File and resolve to a `data:image/...;base64,...` URL.
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-// Downscale a base64 image so it's suitable for an inline preview.
-// Maintains aspect ratio. Output is always JPEG to keep the size small.
-async function downscaleToDataUrl(srcDataUrl, maxDim = 256) {
+// Load a blob URL into an Image, downscale to maxDim×maxDim, encode
+// as JPEG, and return the resulting data URL. We never hold the
+// original file as base64 — that's what was OOM-ing iPhone WebViews
+// for 48MP photos. This way the browser's image decoder reads the
+// blob in chunks internally; we only string-encode the downscaled
+// output.
+async function blobUrlToDownscaledJpeg(blobUrl, maxDim, quality) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => {
@@ -670,16 +679,20 @@ async function downscaleToDataUrl(srcDataUrl, maxDim = 256) {
         maxDim / img.naturalHeight,
         1
       )
-      const w = Math.round(img.naturalWidth * ratio)
-      const h = Math.round(img.naturalHeight * ratio)
+      const w = Math.max(1, Math.round(img.naturalWidth * ratio))
+      const h = Math.max(1, Math.round(img.naturalHeight * ratio))
       const canvas = document.createElement('canvas')
       canvas.width = w
       canvas.height = h
       const ctx = canvas.getContext('2d')
       ctx.drawImage(img, 0, 0, w, h)
-      resolve(canvas.toDataURL('image/jpeg', 0.7))
+      try {
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      } catch (e) {
+        reject(e)
+      }
     }
-    img.onerror = reject
-    img.src = srcDataUrl
+    img.onerror = () => reject(new Error('Image failed to decode'))
+    img.src = blobUrl
   })
 }

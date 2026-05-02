@@ -22,7 +22,7 @@ const TABS = [
 export default function BottomTabBar({ activeSection, onNavigate }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-white/5 bg-hd-black/85 backdrop-blur-xl sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-white/5 bg-hd-black sm:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Primary navigation"
     >

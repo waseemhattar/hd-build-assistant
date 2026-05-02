@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useUser } from '../auth/AuthProvider.jsx'
 import {
   getGarage,
@@ -82,8 +82,19 @@ export default function Home({
   const garage = useMemo(() => getGarage(), [tick])
   const summary = useMemo(() => buildSummary(garage), [garage])
 
+  // Recent rides — fetched once on mount (and once after first server
+  // pull settles). We deliberately do NOT refetch on every storage tick
+  // because that fires on every cache write, which thrashes the
+  // network on slower devices like the iPhone WebView.
   const [rides, setRides] = useState([])
+  const ridesFetchedRef = useRef(false)
   useEffect(() => {
+    // Fetch once when the user is signed in and the initial server
+    // pull has completed — otherwise we'd race ahead and get an
+    // empty list.
+    if (ridesFetchedRef.current) return
+    if (pullPending) return
+    ridesFetchedRef.current = true
     let cancelled = false
     listRides({ limit: 4 })
       .then((r) => {
@@ -95,7 +106,7 @@ export default function Home({
     return () => {
       cancelled = true
     }
-  }, [tick])
+  }, [pullPending])
 
   const today = useMemo(() => new Date(), [tick])
   const dateLabel = formatDate(today, { long: true })

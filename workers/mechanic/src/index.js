@@ -433,24 +433,50 @@ function buildSystemPrompt(context) {
     }
   }
 
-  // Mods
+  // Mods — grouped by CATEGORY so the model understands what each
+  // mod actually IS, not just what it's called. Without this grouping
+  // the model tends to grab any mod whose name mentions a related
+  // word (e.g. recommending a "Legends shock" when the user asks
+  // about an air filter).
   if (Array.isArray(context.mods) && context.mods.length > 0) {
     const installed = context.mods.filter((m) => m.status === 'installed')
     const planned = context.mods.filter((m) => m.status === 'planned')
-    if (installed.length > 0) {
-      lines.push('', `INSTALLED MODS (${installed.length}):`)
-      for (const m of installed.slice(0, 12)) {
-        lines.push(
-          `- ${[m.title, m.brand].filter(Boolean).join(' — ')}${m.partNumber ? ` (PN ${m.partNumber})` : ''}`
-        )
+
+    function dumpModsGroupedByCategory(label, list, cap) {
+      if (list.length === 0) return
+      const byCategory = new Map()
+      for (const m of list) {
+        const cat = m.category || 'Uncategorized'
+        if (!byCategory.has(cat)) byCategory.set(cat, [])
+        byCategory.get(cat).push(m)
+      }
+      lines.push('', `${label} (${list.length}, grouped by system):`)
+      let printed = 0
+      for (const [cat, mods] of byCategory) {
+        lines.push(`  ${cat}:`)
+        for (const m of mods) {
+          if (printed >= cap) break
+          const tail = []
+          if (m.brand) tail.push(m.brand)
+          if (m.partNumber) tail.push(`PN ${m.partNumber}`)
+          lines.push(
+            `    - ${m.title || cat}${
+              tail.length ? ` (${tail.join(', ')})` : ''
+            }`
+          )
+          printed += 1
+        }
+        if (printed >= cap) break
       }
     }
-    if (planned.length > 0) {
-      lines.push('', `PLANNED MODS (${planned.length}):`)
-      for (const m of planned.slice(0, 8)) {
-        lines.push(`- ${[m.title, m.brand].filter(Boolean).join(' — ')}`)
-      }
-    }
+
+    dumpModsGroupedByCategory('INSTALLED MODS', installed, 16)
+    dumpModsGroupedByCategory('PLANNED MODS', planned, 10)
+
+    lines.push(
+      '',
+      'When the user asks about a system (suspension, exhaust, intake, brakes, electrical, etc.), reference ONLY mods from that matching CATEGORY. Do not pattern-match on brand/title alone.'
+    )
   }
 
   // Available manual procedures
