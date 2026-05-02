@@ -234,7 +234,7 @@ function MechanicModal({ onClose, onOpenProcedure }) {
                 Mechanic
               </div>
               <div className="text-[11px] text-hd-muted">
-                AI · Llama 3.3 · in beta
+                AI · Claude Sonnet 4.6 · in beta
               </div>
             </div>
           </div>
@@ -312,26 +312,32 @@ function MechanicModal({ onClose, onOpenProcedure }) {
           onSubmit={submit}
           className="border-t border-white/5 bg-hd-dark p-3"
         >
-          {/* Attachment preview (above the input row) */}
+          {/* Attachment preview + experimental warning */}
           {attachment && (
-            <div className="mb-2 flex items-center gap-2 rounded-2xl bg-hd-card p-2">
-              <img
-                src={attachment.preview}
-                alt="Attached photo"
-                className="h-12 w-12 rounded-xl object-cover"
-              />
-              <div className="flex-1 truncate text-[12px] text-hd-muted">
-                {attachment.name || 'Photo attached'}
+            <>
+              <div className="mb-2 rounded-2xl bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-200">
+                <span className="font-semibold">Photo identification is experimental.</span>{' '}
+                The AI may misidentify parts or systems. Always verify against your service manual before doing anything irreversible.
               </div>
-              <button
-                type="button"
-                onClick={() => setAttachment(null)}
-                className="rounded-full bg-hd-black/50 px-2.5 py-1 text-[11px] text-hd-muted hover:text-hd-text"
-                aria-label="Remove attachment"
-              >
-                Remove
-              </button>
-            </div>
+              <div className="mb-2 flex items-center gap-2 rounded-2xl bg-hd-card p-2">
+                <img
+                  src={attachment.preview}
+                  alt="Attached photo"
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+                <div className="flex-1 truncate text-[12px] text-hd-muted">
+                  {attachment.name || 'Photo attached'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAttachment(null)}
+                  className="rounded-full bg-hd-black/50 px-2.5 py-1 text-[11px] text-hd-muted hover:text-hd-text"
+                  aria-label="Remove attachment"
+                >
+                  Remove
+                </button>
+              </div>
+            </>
           )}
 
           <div className="flex items-end gap-2">

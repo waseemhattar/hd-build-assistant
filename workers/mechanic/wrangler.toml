@@ -4,13 +4,14 @@
 #   cd workers/mechanic
 #   npm install
 #   npx wrangler login            # one-time
-#   npx wrangler secret put SUPABASE_URL
-#   npx wrangler secret put SUPABASE_ANON_KEY
+#   npx wrangler secret put SUPABASE_URL          # https://<ref>.supabase.co
+#   npx wrangler secret put SUPABASE_ANON_KEY     # eyJ... anon JWT
+#   npx wrangler secret put ANTHROPIC_API_KEY     # sk-ant-...  from console.anthropic.com
 #   npx wrangler deploy
 #
-# (The Worker no longer needs SUPABASE_JWT_SECRET — it verifies tokens
-# by calling Supabase's /auth/v1/user endpoint, which works with both
-# legacy HS256 and the newer ES256 asymmetric signing keys.)
+# The Worker calls Anthropic's API directly (Claude Sonnet 4.6) for
+# both text + vision turns. The AI binding for Workers AI is no longer
+# strictly required, but kept around in case we need a fallback.
 #
 # After deploy you'll get a URL like:
 #   https://sidestand-mechanic.<account>.workers.dev
