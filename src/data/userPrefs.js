@@ -140,6 +140,25 @@ export function isMetric() {
   return prefs.units === 'metric'
 }
 
+// Onboarding state — persisted in the same prefs blob so we don't
+// need a separate storage key. Returns true if the user has completed
+// the first-time setup wizard (or been auto-marked completed because
+// they were an existing user before the wizard shipped).
+export function isOnboardingComplete() {
+  return Boolean(prefs.onboardingCompletedAt) || Boolean(prefs.onboardingSkipped)
+}
+
+export function markOnboardingComplete() {
+  setPrefs({
+    onboardingCompletedAt: new Date().toISOString(),
+    consentDataCollection: true
+  })
+}
+
+export function markOnboardingSkipped() {
+  setPref('onboardingSkipped', true)
+}
+
 // ---------- formatters ----------
 //
 // Centralizing format logic here means callers don't need to know

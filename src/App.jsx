@@ -19,6 +19,11 @@ import TopNav from './components/TopNav.jsx'
 import BottomTabBar from './components/BottomTabBar.jsx'
 import MechanicChat from './components/MechanicChat.jsx'
 import OnboardingTour from './components/ui/OnboardingTour.jsx'
+import FirstTimeSetup from './components/FirstTimeSetup.jsx'
+import {
+  isOnboardingComplete,
+  markOnboardingComplete
+} from './data/userPrefs.js'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser, getUserLogoUrl, subscribe, getBike } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
@@ -105,6 +110,7 @@ function RootRouter({ signInRoute, goToLanding, goToSignIn }) {
 function AuthedApp() {
   const { user } = useUser()
   const { isSignedIn } = useAuth()
+  const [setupOpen, setSetupOpen] = useState(false)
 
   useEffect(() => {
     if (isSignedIn && user?.id) {
@@ -112,6 +118,32 @@ function AuthedApp() {
       // the user id to scope localStorage keys.
       setStorageUser(user.id)
       migrateLegacyLocalDataIfNeeded(user.id)
+
+      // First-time setup gate. New users see the wizard once. Existing
+      // users (who already have at least one bike) are auto-marked
+      // complete so we don't re-prompt them.
+      if (!isOnboardingComplete()) {
+        // Defer the existing-user check by a tick so the storage cache
+        // has time to hydrate from Supabase before we read it.
+        const t = setTimeout(() => {
+          // Read garage size via dynamic import to avoid pulling getGarage
+          // into the import graph alongside the auth path.
+          import('./data/storage.js').then(({ getGarage }) => {
+            const garage = getGarage() || []
+            if (garage.length > 0) {
+              // Existing user — they pre-date the wizard. Mark complete
+              // silently so they're not interrupted.
+              markOnboardingComplete()
+            } else {
+              setSetupOpen(true)
+            }
+          })
+        }, 250)
+        return () => {
+          clearTimeout(t)
+          setStorageUser(null)
+        }
+      }
     }
     return () => {
       setStorageUser(null)
@@ -388,8 +420,15 @@ function AuthedApp() {
         onNavigate={navigate}
       />
 
-      {/* First-launch onboarding tour. Self-gates via localStorage so
-          it only ever shows once per device. */}
+      {/* First-time setup wizard — units + privacy consent. Shown
+          once per device for brand-new users (auto-skipped for
+          existing users who already have bikes). */}
+      {setupOpen && (
+        <FirstTimeSetup onDone={() => setSetupOpen(false)} />
+      )}
+
+      {/* First-launch onboarding tour. Runs AFTER setup is complete
+          (its own localStorage gate ignores the tour gate). */}
       <OnboardingTour />
     </div>
   )

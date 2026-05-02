@@ -563,13 +563,24 @@ function computeNextDue(bike) {
 }
 
 function BikeEditor({ bike, onCancel, onSave }) {
+  // Mileage is ALWAYS stored in miles in the DB (legacy). The form
+  // shows + accepts whichever unit the user prefers — we convert at
+  // load and again at submit. distanceUnitLabel() returns "mi" or "km".
+  const userMetric = isMetric()
+  const unitLabel = distanceUnitLabel()
+  const initialMileage =
+    bike?.mileage != null
+      ? userMetric
+        ? Math.round(bike.mileage * 1.609344)
+        : bike.mileage
+      : ''
   const [form, setForm] = useState(() => ({
     bikeTypeId: bike?.bikeTypeId || bikeCatalog[0]?.id || '',
     year: bike?.year || bikeCatalog[0]?.year || new Date().getFullYear(),
     model: bike?.model || '',
     nickname: bike?.nickname || '',
     vin: bike?.vin || '',
-    mileage: bike?.mileage ?? '',
+    mileage: initialMileage,
     purchaseDate: bike?.purchaseDate || '',
     notes: bike?.notes || '',
     // Public-page profile fields. displayName is what shows up as the
@@ -669,10 +680,17 @@ function BikeEditor({ bike, onCancel, onSave }) {
 
   function submit(e) {
     e.preventDefault()
+    // Convert user-entered value (in their unit) back to miles before
+    // saving. DB column stays canonical (miles) so service-interval
+    // math and other consumers keep working unchanged.
+    const enteredMileage = Number(form.mileage) || 0
+    const milesValue = userMetric
+      ? Math.round(enteredMileage / 1.609344)
+      : enteredMileage
     onSave({
       ...form,
       year: Number(form.year) || null,
-      mileage: Number(form.mileage) || 0
+      mileage: milesValue
     })
   }
 
@@ -742,7 +760,7 @@ function BikeEditor({ bike, onCancel, onSave }) {
             />
           </Field>
 
-          <Field label="Current mileage">
+          <Field label={`Current mileage (${unitLabel})`}>
             <input
               type="number"
               value={form.mileage}

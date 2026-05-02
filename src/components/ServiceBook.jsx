@@ -24,7 +24,7 @@ import {
   MOD_STATUSES,
   CATEGORY_TO_GROUP
 } from '../data/modCategories.js'
-import { formatMileage } from '../data/userPrefs.js'
+import { formatMileage, isMetric, distanceUnitLabel } from '../data/userPrefs.js'
 import RideHistory from './RideHistory.jsx'
 import BottomSheet from './ui/BottomSheet.jsx'
 
@@ -474,19 +474,36 @@ function StatusPill({ status }) {
 // ---------- Editors ----------
 
 function MileageEditor({ initial, onCancel, onSave }) {
-  const [v, setV] = useState(initial)
+  // Initial is in miles (DB convention). Convert to user's unit for
+  // display and back to miles on save.
+  const userMetric = isMetric()
+  const unitLabel = distanceUnitLabel()
+  const initialDisplay = userMetric
+    ? Math.round((Number(initial) || 0) * 1.609344)
+    : Number(initial) || 0
+  const [v, setV] = useState(initialDisplay)
+  function save() {
+    const entered = Number(v) || 0
+    const milesValue = userMetric
+      ? Math.round(entered / 1.609344)
+      : entered
+    onSave(milesValue)
+  }
   return (
     <div className="mt-1 flex items-center gap-2">
       <input
         type="number"
         value={v}
         onChange={(e) => setV(e.target.value)}
-        className="input w-28 text-right"
+        className="input w-24 text-right"
         min={0}
       />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+        {unitLabel}
+      </span>
       <button
-        onClick={() => onSave(Number(v) || 0)}
-        className="rounded bg-hd-orange px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
+        onClick={save}
+        className="rounded-full bg-hd-orange px-3 py-1.5 text-xs font-semibold text-white transition active:scale-95"
       >
         Save
       </button>
@@ -502,10 +519,19 @@ function MileageEditor({ initial, onCancel, onSave }) {
 
 export function EntryEditor({ bike, prefill, onCancel, onSave }) {
   const today = new Date().toISOString().slice(0, 10)
+  // Mileage stored as miles. Display + accept in user's preferred unit.
+  const userMetric = isMetric()
+  const unitLabel = distanceUnitLabel()
+  const initialMileage =
+    bike?.mileage != null
+      ? userMetric
+        ? Math.round(bike.mileage * 1.609344)
+        : bike.mileage
+      : ''
   const [form, setForm] = useState(() => ({
     title: prefill?.title || '',
     jobId: prefill?.jobId || '',
-    mileage: bike?.mileage ?? '',
+    mileage: initialMileage,
     date: today,
     notes: prefill?.notes || '',
     parts: '',
@@ -517,7 +543,12 @@ export function EntryEditor({ bike, prefill, onCancel, onSave }) {
   function submit(e) {
     e.preventDefault()
     if (!form.title.trim()) return
-    onSave(form)
+    // Convert displayed unit back to miles before saving.
+    const enteredMileage = Number(form.mileage) || 0
+    const milesValue = userMetric
+      ? Math.round(enteredMileage / 1.609344)
+      : enteredMileage
+    onSave({ ...form, mileage: milesValue })
   }
 
   return (
@@ -539,7 +570,7 @@ export function EntryEditor({ bike, prefill, onCancel, onSave }) {
               required
             />
           </Field>
-          <Field label="Mileage at service">
+          <Field label={`Mileage at service (${unitLabel})`}>
             <input
               type="number"
               value={form.mileage}
@@ -834,6 +865,15 @@ function ModStatusPill({ status }) {
 
 function ModEditor({ bike, mod, onCancel, onSave }) {
   const today = new Date().toISOString().slice(0, 10)
+  // Display install mileage in the user's unit; convert to miles at submit.
+  const userMetric = isMetric()
+  const unitLabel = distanceUnitLabel()
+  const milesToDisplay = (m) =>
+    m == null ? '' : userMetric ? Math.round(m * 1.609344) : m
+  const initialInstallMileage =
+    mod?.installMileage == null
+      ? milesToDisplay(bike?.mileage)
+      : milesToDisplay(Number(mod.installMileage))
   const [form, setForm] = useState(() => ({
     title: mod?.title || '',
     category: mod?.category || '',
@@ -845,9 +885,7 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
     cost: mod?.cost == null ? '' : String(mod.cost),
     installDate: mod?.installDate || (mod?.status === 'installed' ? today : ''),
     installMileage:
-      mod?.installMileage == null
-        ? bike?.mileage ?? ''
-        : String(mod.installMileage),
+      initialInstallMileage === '' ? '' : String(initialInstallMileage),
     removeDate: mod?.removeDate || '',
     notes: mod?.notes || '',
     // Default new mods to public so they show up on the public bike page;
@@ -860,7 +898,15 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
   function submit(e) {
     e.preventDefault()
     if (!form.title.trim() && !form.category) return
-    onSave({ data: form, alsoLogService })
+    // Convert install mileage from user's unit back to miles for storage.
+    const milesData = { ...form }
+    if (form.installMileage !== '' && form.installMileage != null) {
+      const entered = Number(form.installMileage) || 0
+      milesData.installMileage = userMetric
+        ? Math.round(entered / 1.609344)
+        : entered
+    }
+    onSave({ data: milesData, alsoLogService })
   }
 
   const isNew = !mod
@@ -982,7 +1028,7 @@ function ModEditor({ bike, mod, onCancel, onSave }) {
               className="input"
             />
           </Field>
-          <Field label="Install mileage">
+          <Field label={`Install mileage (${unitLabel})`}>
             <input
               type="number"
               value={form.installMileage}
