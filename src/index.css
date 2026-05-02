@@ -9,6 +9,22 @@
   body {
     background-color: #0E0E10;
     color: #E8E2D5;
+    /* Belt-and-suspenders against horizontal overflow on iOS. Safari
+       can pan the page when content (or an autozoomed input) exceeds
+       the viewport, causing the "slide left/right" issue users see
+       on native. We never want horizontal scroll at the body level. */
+    overflow-x: hidden;
+  }
+
+  /* iOS Safari auto-zooms whenever a focused input has font-size < 16px,
+     and after the zoom the page becomes wider than the device — that's
+     the root cause of "modals are bigger than the screen, I have to
+     slide left/right" on the native shell. Force ≥16px on every form
+     control to suppress the autozoom entirely. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 }
 
@@ -26,6 +42,10 @@
     @apply rounded-lg border border-hd-border bg-hd-card p-4;
   }
   .input {
-    @apply w-full rounded-md border border-hd-border bg-hd-black px-3 py-2 text-sm text-hd-text placeholder:text-hd-muted focus:border-hd-orange focus:outline-none focus:ring-1 focus:ring-hd-orange;
+    /* text-base (16px) is required on mobile to prevent iOS Safari
+       from autozooming the page on focus. Don't downgrade to text-sm
+       even if the visual rhythm calls for smaller — use a custom
+       compact variant instead. */
+    @apply w-full rounded-md border border-hd-border bg-hd-black px-3 py-2 text-base text-hd-text placeholder:text-hd-muted focus:border-hd-orange focus:outline-none focus:ring-1 focus:ring-hd-orange;
   }
 }

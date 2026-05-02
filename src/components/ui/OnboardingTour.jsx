@@ -1,4 +1,8 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
+import {
+  isOnboardingComplete,
+  subscribe as subscribePrefs
+} from '../../data/userPrefs.js'
 
 // First-launch onboarding tour — spotlight edition.
 //
@@ -58,14 +62,35 @@ export default function OnboardingTour() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    try {
-      const seen = window.localStorage.getItem(STORAGE_KEY)
-      if (!seen) {
-        // Wait briefly so the rest of the UI paints first.
-        const t = setTimeout(() => setVisible(true), 800)
-        return () => clearTimeout(t)
+    let timer = null
+
+    function maybeShow() {
+      try {
+        const seen = window.localStorage.getItem(STORAGE_KEY)
+        if (seen) return
+      } catch (_) {
+        return
       }
-    } catch (_) {}
+      // Defer until the FirstTimeSetup wizard has completed (or been
+      // skipped). Without this guard the spotlight tries to highlight
+      // anchors that are hidden behind the wizard overlay — the
+      // mechanic FAB and bottom-tabs aren't visible while the wizard
+      // is up, so the spotlight cutout falls on top of the wizard's
+      // welcome text instead of the actual target.
+      if (!isOnboardingComplete()) return
+      // Wait briefly so the rest of the UI paints first.
+      timer = setTimeout(() => setVisible(true), 600)
+    }
+
+    maybeShow()
+    // If the wizard is still open on first paint, watch for its
+    // completion via the userPrefs subscribe channel and show the
+    // tour the moment it lands.
+    const unsub = subscribePrefs(() => maybeShow())
+    return () => {
+      if (timer) clearTimeout(timer)
+      unsub()
+    }
   }, [])
 
   // Measure the current step's target element — and re-measure on

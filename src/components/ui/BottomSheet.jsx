@@ -81,11 +81,14 @@ export default function BottomSheet({
       <div
         ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
-        className={`w-full rounded-t-3xl bg-hd-dark sm:max-w-lg sm:rounded-3xl ${sizeMaxH} ${className}`}
+        className={`w-full overflow-x-hidden rounded-t-3xl bg-hd-dark sm:max-w-lg sm:rounded-3xl ${sizeMaxH} ${className}`}
         style={{
           transform: dragOffset ? `translateY(${dragOffset}px)` : undefined,
           transition: dragOffset === 0 ? 'transform 0.2s ease' : undefined,
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+          // Hard cap at the viewport width so any too-wide child (a long
+          // VIN, a wide button row) can't push the panel sideways.
+          maxWidth: '100vw'
         }}
       >
         {/* Drag handle (touch swipe-down → close). Tap to also close. */}
