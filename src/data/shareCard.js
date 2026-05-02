@@ -6,10 +6,12 @@
 // across iOS WebView quirks; fast (~150ms) for typical ride lengths.
 //
 // Layout (top → bottom):
-//   0–960   Bike cover photo full-bleed, dark gradient at the bottom
-//           with overlays: SIDESTAND wordmark, ride date, bike name
-//   960–1280 Route polyline silhouette in signal red on dark canvas
-//   1280–1840 Stats grid: distance, duration, max speed, avg speed
+//   0–80    Header: SIDESTAND wordmark left, date right
+//   80–1100 Route polyline hero — the actual map of where you rode,
+//           glowing red stroke on dark canvas (Strava-style silhouette).
+//           No tiles, just the route — looks iconic at any size.
+//   1100–1280 Title: BIG distance value, bike name kicker
+//   1280–1840 Stats grid: Duration, Max speed, Avg speed, Weather
 //   1840–1920 sidestand.app watermark strip
 //
 // Stats are rendered respecting the user's units pref so a metric
@@ -46,31 +48,11 @@ export async function generateRideCard({
   canvas.height = H
   const ctx = canvas.getContext('2d')
 
-  // Solid background first
+  // Solid black background — Strava-style canvas.
   ctx.fillStyle = BG_BLACK
   ctx.fillRect(0, 0, W, H)
 
-  // ---------- 1. Hero photo block (or fallback header) ----------
-  const HERO_H = 960
-  if (bike?.coverPhotoUrl) {
-    try {
-      const img = await loadImage(bike.coverPhotoUrl)
-      drawCovered(ctx, img, 0, 0, W, HERO_H)
-    } catch (_) {
-      drawHeroFallback(ctx, 0, 0, W, HERO_H)
-    }
-  } else {
-    drawHeroFallback(ctx, 0, 0, W, HERO_H)
-  }
-
-  // Dark bottom gradient over the hero so the title text is readable
-  const grad = ctx.createLinearGradient(0, HERO_H * 0.55, 0, HERO_H)
-  grad.addColorStop(0, 'rgba(0,0,0,0)')
-  grad.addColorStop(1, 'rgba(0,0,0,0.85)')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, W, HERO_H)
-
-  // Top header bar — wordmark left, date right
+  // ---------- 1. Header strip ----------
   ctx.fillStyle = ORANGE
   ctx.font = 'bold 28px Inter, system-ui, sans-serif'
   ctx.textBaseline = 'top'
@@ -86,86 +68,78 @@ export async function generateRideCard({
   )
   ctx.textAlign = 'left'
 
-  // Bike name + year, lower-left of hero
-  const titleY = HERO_H - 180
+  // ---------- 2. Route polyline hero ----------
+  // The whole point of the share card. Render the route HUGE, glowing
+  // red, on the dark canvas. We give it the most pixel real-estate
+  // because the route IS the story.
+  const ROUTE_TOP = 130
+  const ROUTE_H = 970
+  drawRouteHero(
+    ctx,
+    ride.route || [],
+    60,
+    ROUTE_TOP,
+    W - 120,
+    ROUTE_H
+  )
+
+  // ---------- 3. Title — big distance + bike name kicker ----------
+  const TITLE_TOP = ROUTE_TOP + ROUTE_H + 30
+
   ctx.fillStyle = ORANGE
   ctx.font = '600 28px Inter, system-ui, sans-serif'
-  ctx.fillText(
-    `RIDDEN · ${bike?.year || ''}`.trim().toUpperCase(),
-    60,
-    titleY
-  )
-  ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 88px Inter, system-ui, sans-serif'
-  const bikeName = (
-    bike?.nickname ||
-    bike?.model ||
-    'My Bike'
+  ctx.textBaseline = 'top'
+  const kicker = (
+    bike?.nickname || bike?.model || 'My ride'
   ).toUpperCase()
-  drawTextClamped(ctx, bikeName, 60, titleY + 50, W - 120, 88)
-  if (bike?.model && bike?.nickname) {
-    ctx.fillStyle = '#ffffff'
-    ctx.font = '500 32px Inter, system-ui, sans-serif'
-    ctx.fillText(bike.model, 60, titleY + 145)
-  }
+  drawTextClamped(ctx, kicker, 60, TITLE_TOP, W - 120, 28)
 
-  // ---------- 2. Route polyline band ----------
-  const ROUTE_TOP = HERO_H + 30
-  const ROUTE_H = 290
-  ctx.fillStyle = BG_DARK
-  roundRect(ctx, 60, ROUTE_TOP, W - 120, ROUTE_H, 36, true, false)
-  drawRoute(ctx, ride.route || [], 60 + 30, ROUTE_TOP + 30, W - 120 - 60, ROUTE_H - 60)
-
-  // ---------- 3. Stats grid ----------
-  const STATS_TOP = ROUTE_TOP + ROUTE_H + 30
-  const STATS_H = 540
-
-  ctx.fillStyle = BG_DARK
-  roundRect(ctx, 60, STATS_TOP, W - 120, STATS_H, 36, true, false)
-
-  const cellW = (W - 120) / 2
-  const cellH = STATS_H / 2
-
-  drawStat(
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 140px Inter, system-ui, sans-serif'
+  drawTextClamped(
     ctx,
+    formatDistance(ride.distance_m || 0).toUpperCase(),
     60,
-    STATS_TOP,
-    cellW,
-    cellH,
-    'DISTANCE',
-    formatDistance(ride.distance_m || 0)
+    TITLE_TOP + 44,
+    W - 120,
+    140
   )
-  drawStat(
+
+  // ---------- 4. Stats grid (3-up at bottom) ----------
+  // Three core stats below the title, no boxes — clean Strava-y feel.
+  const STATS_TOP = TITLE_TOP + 230
+  const colW = (W - 120) / 3
+
+  drawCompactStat(
     ctx,
-    60 + cellW,
+    60 + colW * 0,
     STATS_TOP,
-    cellW,
-    cellH,
+    colW,
     'DURATION',
     formatDuration(ride.duration_seconds || 0)
   )
-  drawStat(
+  drawCompactStat(
     ctx,
-    60,
-    STATS_TOP + cellH,
-    cellW,
-    cellH,
+    60 + colW * 1,
+    STATS_TOP,
+    colW,
     'MAX SPEED',
     formatSpeed(ride.max_speed_mps || 0)
   )
-  drawStat(
+  drawCompactStat(
     ctx,
-    60 + cellW,
-    STATS_TOP + cellH,
-    cellW,
-    cellH,
-    weather ? `${weather.emoji || ''} WEATHER`.trim() : 'AVG SPEED',
+    60 + colW * 2,
+    STATS_TOP,
+    colW,
+    weather ? 'WEATHER' : 'AVG SPEED',
     weather
-      ? `${Math.round(weather.tempC ?? 0)}°${isMetric() ? 'C' : 'F'}`
+      ? `${weather.emoji || ''} ${Math.round(weather.tempC ?? 0)}°${
+          isMetric() ? 'C' : 'F'
+        }`.trim()
       : formatSpeed(ride.avg_speed_mps || 0)
   )
 
-  // ---------- 4. Watermark strip ----------
+  // ---------- 5. Watermark strip ----------
   ctx.fillStyle = MUTED
   ctx.font = '500 28px Inter, system-ui, sans-serif'
   ctx.textAlign = 'center'
@@ -306,6 +280,132 @@ function drawRoute(ctx, route, x, y, w, h) {
   ctx.beginPath()
   ctx.arc(ex, ey, 14, 0, Math.PI * 2)
   ctx.fill()
+}
+
+// Hero-scale route render: big bold polyline with a soft red glow,
+// centred and aspect-fit inside the rect, with start/end markers.
+//
+// The "glow" is faked with two extra polyline strokes underneath the
+// main one — wider, lower opacity. Cheap visually-rich effect that
+// renders identically across browsers.
+function drawRouteHero(ctx, route, x, y, w, h) {
+  const pts = (route || [])
+    .map((p) => (Array.isArray(p) ? [p[0], p[1]] : null))
+    .filter(Boolean)
+  if (pts.length === 0) {
+    ctx.fillStyle = MUTED
+    ctx.font = '500 32px Inter, system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('No route recorded', x + w / 2, y + h / 2)
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    return
+  }
+
+  let minLat = Infinity
+  let maxLat = -Infinity
+  let minLng = Infinity
+  let maxLng = -Infinity
+  for (const [lat, lng] of pts) {
+    if (lat < minLat) minLat = lat
+    if (lat > maxLat) maxLat = lat
+    if (lng < minLng) minLng = lng
+    if (lng > maxLng) maxLng = lng
+  }
+  const spanLat = Math.max(maxLat - minLat, 1e-6)
+  const spanLng = Math.max(maxLng - minLng, 1e-6)
+
+  // Add 8% padding so the route doesn't kiss the edges.
+  const padding = 0.08
+  const padW = w * (1 - padding * 2)
+  const padH = h * (1 - padding * 2)
+
+  const geoAspect = spanLng / spanLat
+  const rectAspect = padW / padH
+  let drawW = padW
+  let drawH = padH
+  if (geoAspect > rectAspect) {
+    drawH = padW / geoAspect
+  } else {
+    drawW = padH * geoAspect
+  }
+  const offX = x + (w - drawW) / 2
+  const offY = y + (h - drawH) / 2
+
+  const xy = pts.map(([lat, lng]) => [
+    offX + ((lng - minLng) / spanLng) * drawW,
+    offY + (1 - (lat - minLat) / spanLat) * drawH
+  ])
+
+  // Outer glow — wide, very transparent
+  ctx.strokeStyle = 'rgba(224, 58, 54, 0.18)'
+  ctx.lineWidth = 36
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  for (let i = 0; i < xy.length; i++) {
+    const [px, py] = xy[i]
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.stroke()
+
+  // Mid glow — narrower, more opaque
+  ctx.strokeStyle = 'rgba(224, 58, 54, 0.35)'
+  ctx.lineWidth = 22
+  ctx.beginPath()
+  for (let i = 0; i < xy.length; i++) {
+    const [px, py] = xy[i]
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.stroke()
+
+  // Core stroke — solid signal red
+  ctx.strokeStyle = ORANGE
+  ctx.lineWidth = 12
+  ctx.beginPath()
+  for (let i = 0; i < xy.length; i++) {
+    const [px, py] = xy[i]
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.stroke()
+
+  // Start marker — gray with white center
+  const [sx, sy] = xy[0]
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(sx, sy, 22, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#9CA3AF'
+  ctx.beginPath()
+  ctx.arc(sx, sy, 14, 0, Math.PI * 2)
+  ctx.fill()
+
+  // End marker — red with white center (the "you ended here" pin)
+  const [ex, ey] = xy[xy.length - 1]
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(ex, ey, 22, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = ORANGE
+  ctx.beginPath()
+  ctx.arc(ex, ey, 14, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// Compact stat for the 3-up grid below the title. Just label + value
+// stacked vertically, no card background — keeps the design clean.
+function drawCompactStat(ctx, x, y, w, label, value) {
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = MUTED
+  ctx.font = '600 22px Inter, system-ui, sans-serif'
+  ctx.fillText(label, x + 10, y)
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 56px Inter, system-ui, sans-serif'
+  drawTextClamped(ctx, String(value), x + 10, y + 36, w - 20, 56)
 }
 
 function drawStat(ctx, x, y, w, h, label, value) {
