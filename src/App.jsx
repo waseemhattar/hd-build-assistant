@@ -18,6 +18,7 @@ import Settings from './components/Settings.jsx'
 import TopNav from './components/TopNav.jsx'
 import BottomTabBar from './components/BottomTabBar.jsx'
 import MechanicChat from './components/MechanicChat.jsx'
+import OnboardingTour from './components/ui/OnboardingTour.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser, getUserLogoUrl, subscribe, getBike } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
@@ -386,6 +387,10 @@ function AuthedApp() {
         activeSection={activeSection()}
         onNavigate={navigate}
       />
+
+      {/* First-launch onboarding tour. Self-gates via localStorage so
+          it only ever shows once per device. */}
+      <OnboardingTour />
     </div>
   )
 }

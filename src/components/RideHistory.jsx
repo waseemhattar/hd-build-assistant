@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   listRides,
   getRideDetail,
@@ -8,6 +8,8 @@ import {
   formatSpeed
 } from '../data/rides.js'
 import RideMap from './RideMap.jsx'
+import EmptyState from './ui/EmptyState.jsx'
+import usePullToRefresh from '../hooks/usePullToRefresh.js'
 
 // Ride history list. Two flavors:
 //   - bikeId provided → list rides for that bike only
@@ -62,38 +64,61 @@ export default function RideHistory({ bikeId = null, onStartRide, garage = [] })
 
   if (rides.length === 0) {
     return (
-      <div className="rounded-md border border-hd-border bg-hd-dark p-6 text-center">
-        <div className="font-display text-xl tracking-wider">
-          NO RIDES YET
-        </div>
-        <p className="mt-2 text-sm text-hd-muted">
-          Tap "Start a ride" to record your first GPS-tracked trip.
-        </p>
-        {onStartRide && (
-          <button
-            onClick={onStartRide}
-            className="mt-4 rounded bg-hd-orange px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110"
-          >
-            Start a ride
-          </button>
-        )}
-      </div>
+      <EmptyState
+        icon={
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="17" r="3" />
+            <circle cx="18" cy="17" r="3" />
+            <path d="M6 17l3-7h6l3 7" />
+            <path d="M9 10V6h2" />
+          </svg>
+        }
+        title="No rides yet"
+        description="Tap Start a ride to record your first GPS-tracked trip. We'll capture distance, route, max speed, and the weather."
+        ctaLabel={onStartRide ? 'Start a ride' : undefined}
+        onCtaClick={onStartRide}
+      />
     )
   }
 
   return (
-    <ul className="space-y-2">
-      {rides.map((r) => (
-        <RideRow
-          key={r.id}
-          ride={r}
-          isOpen={openRideId === r.id}
-          onToggle={() => setOpenRideId(openRideId === r.id ? null : r.id)}
-          garage={garage}
-          onDeleted={reload}
-        />
-      ))}
-    </ul>
+    <RideList
+      rides={rides}
+      garage={garage}
+      openRideId={openRideId}
+      setOpenRideId={setOpenRideId}
+      onReload={reload}
+    />
+  )
+}
+
+// Wrapped list so we can attach pull-to-refresh without entangling it
+// with the early-return branches (loading / error / empty state). The
+// hook scrolls the inner div, so we wrap the <ul> in a refreshable
+// container with the indicator pinned at the top.
+function RideList({ rides, garage, openRideId, setOpenRideId, onReload }) {
+  const handleRefresh = useCallback(async () => {
+    await onReload()
+  }, [onReload])
+  const { containerRef, indicator } = usePullToRefresh(handleRefresh)
+  return (
+    <div ref={containerRef} className="space-y-2">
+      {indicator}
+      <ul className="space-y-2">
+        {rides.map((r) => (
+          <RideRow
+            key={r.id}
+            ride={r}
+            isOpen={openRideId === r.id}
+            onToggle={() =>
+              setOpenRideId(openRideId === r.id ? null : r.id)
+            }
+            garage={garage}
+            onDeleted={onReload}
+          />
+        ))}
+      </ul>
+    </div>
   )
 }
 

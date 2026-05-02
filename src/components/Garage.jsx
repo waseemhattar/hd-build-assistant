@@ -26,6 +26,9 @@ import {
   matchToBikeCatalog,
   normalizeVin
 } from '../data/vinDecoder.js'
+import StickyActionBar from './ui/StickyActionBar.jsx'
+import EmptyState from './ui/EmptyState.jsx'
+import BottomSheet from './ui/BottomSheet.jsx'
 
 // The Garage is where members list the bikes they own. Each bike has a
 // current mileage, which drives the maintenance-due dashboard in the
@@ -50,7 +53,7 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
   }, [])
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-8">
+    <div className="mx-auto max-w-3xl px-4 pb-32 pt-4 sm:px-6 sm:pb-24 sm:pt-8">
       <header className="mb-5 flex items-end justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
@@ -83,22 +86,19 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
       </header>
 
       {garage.length === 0 && !editing && (
-        <div className="rounded-3xl bg-hd-dark p-7 text-center">
-          <div className="text-2xl font-bold text-hd-text">
-            Your garage is empty
-          </div>
-          <p className="mx-auto mt-2 max-w-md text-[14px] text-hd-muted">
-            Add your first bike and Sidestand will track service
-            intervals, log mods, and give you a public build sheet you
-            can share.
-          </p>
-          <button
-            onClick={() => setEditing({ new: true })}
-            className="mt-5 rounded-full bg-hd-orange px-6 py-3 text-[15px] font-semibold text-white"
-          >
-            Add a bike
-          </button>
-        </div>
+        <EmptyState
+          icon={
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21V9l9-6 9 6v12" />
+              <path d="M7 21V11h10v10" />
+              <path d="M9 14h6M9 17h6" />
+            </svg>
+          }
+          title="Your garage is empty"
+          description="Add your first bike and Sidestand will track service intervals, log mods, and give you a public build sheet you can share."
+          ctaLabel="Add a bike"
+          onCtaClick={() => setEditing({ new: true })}
+        />
       )}
 
       {garage.length > 0 && (
@@ -159,6 +159,20 @@ export default function Garage({ onBack, onOpenBike, onOpenServiceBook }) {
       {brandOpen && (
         <BrandSettings onClose={() => setBrandOpen(false)} />
       )}
+
+      {/* Sticky bottom action bar — pinned primary CTA so it's always
+          visible while the user scrolls through their bikes. Only
+          shown when there are bikes; the empty state has its own CTA. */}
+      {garage.length > 0 && (
+        <StickyActionBar>
+          <button
+            onClick={() => setEditing({ new: true })}
+            className="w-full rounded-full bg-hd-orange px-6 py-3 text-[15px] font-semibold text-white transition active:scale-95"
+          >
+            + Add a bike
+          </button>
+        </StickyActionBar>
+      )}
     </div>
   )
 }
@@ -193,85 +207,64 @@ function BrandSettings({ onClose }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-md border border-hd-border bg-hd-dark p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-2xl tracking-wider text-hd-orange">
-            BRAND
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-2xl leading-none text-hd-muted hover:text-hd-orange"
-          >
-            ×
-          </button>
+    <BottomSheet open={true} onClose={onClose} size="md">
+      <BottomSheet.Header
+        title="Brand"
+        subtitle="Upload your own logo to replace the default Sidestand wordmark."
+        onClose={onClose}
+      />
+
+      <div className="mb-4 rounded-2xl bg-hd-black p-4">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+          Current
         </div>
-
-        <p className="mb-4 text-sm text-hd-muted">
-          Upload your own logo to replace the default Sidestand wordmark
-          across the app. PNG with transparent background works best.
-          Square or wide horizontal both work.
-        </p>
-
-        <div className="mb-4 rounded border border-hd-border bg-hd-black p-4">
-          <div className="mb-2 text-xs uppercase tracking-widest text-hd-muted">
-            Current
-          </div>
-          <div className="flex items-center justify-center rounded bg-hd-dark py-4">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Your logo"
-                style={{ height: 40, width: 'auto' }}
-              />
-            ) : (
-              <span className="font-display tracking-wider text-3xl text-hd-text">
-                SIDESTAND
-              </span>
-            )}
-          </div>
-        </div>
-
-        {err && (
-          <div className="mb-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-            {err}
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/png,image/jpeg,image/svg+xml,image/webp"
-            className="hidden"
-            onChange={(e) => pick(e.target.files?.[0])}
-          />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="rounded bg-hd-orange px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50"
-          >
-            {uploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
-          </button>
-          {logoUrl && (
-            <button
-              onClick={reset}
-              disabled={uploading}
-              className="rounded border border-hd-border bg-hd-dark px-4 py-2 text-sm text-hd-muted hover:border-hd-orange hover:text-hd-text disabled:opacity-50"
-            >
-              Reset to default
-            </button>
+        <div className="flex items-center justify-center rounded-xl bg-hd-dark py-4">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Your logo"
+              style={{ height: 40, width: 'auto' }}
+            />
+          ) : (
+            <span className="font-display tracking-wider text-3xl text-hd-text">
+              SIDESTAND
+            </span>
           )}
         </div>
       </div>
-    </div>
+
+      {err && (
+        <div className="mb-3 rounded-2xl bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {err}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+          className="hidden"
+          onChange={(e) => pick(e.target.files?.[0])}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="rounded-full bg-hd-orange px-5 py-2.5 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
+        >
+          {uploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+        </button>
+        {logoUrl && (
+          <button
+            onClick={reset}
+            disabled={uploading}
+            className="rounded-full bg-hd-card px-5 py-2.5 text-sm text-hd-muted transition active:scale-95 disabled:opacity-50"
+          >
+            Reset to default
+          </button>
+        )}
+      </div>
+    </BottomSheet>
   )
 }
 

@@ -21,45 +21,58 @@
 
 import { isNativeApp } from './platform.js'
 
-let bgPlugin = null
+// IMPORTANT — Capacitor plugin proxies intercept EVERY property access,
+// including `.then`. If we return a plugin object from an async function,
+// JavaScript's `await` machinery reads `.then` to check for thenability,
+// the proxy forwards that to the native bridge, native errors with
+// "<Plugin>.then() is not implemented on ios", and we get an unhandled
+// promise rejection. So:
+//   - Plugin objects live ONLY in module-level vars.
+//   - Loader functions return a boolean ("did we load it?"), never the
+//     plugin itself.
+//   - Callers reference `bgPlugin` / `fgPlugin` directly after a
+//     successful load.
+
+let bgPlugin = null      // Capacitor plugin proxy or null
 let fgPlugin = null
+let bgLoadAttempted = false
+let fgLoadAttempted = false
 let watcherId = null
 let webWatchId = null
 let currentStopFn = null
 
-async function loadBackgroundPlugin() {
-  if (!isNativeApp()) return null
-  if (bgPlugin === false) return null // tried before, not available
-  if (bgPlugin) return bgPlugin
+async function ensureBackgroundPlugin() {
+  if (!isNativeApp()) return false
+  if (bgPlugin) return true
+  if (bgLoadAttempted) return false
+  bgLoadAttempted = true
   try {
     // The @capacitor-community/background-geolocation package ships
     // ONLY native code + TypeScript types — no JS module entry. So we
     // can't `import` it; we register it through Capacitor's runtime
     // bridge instead, which talks to the iOS plugin directly.
     const { Capacitor, registerPlugin } = await import('@capacitor/core')
-    if (!Capacitor?.isNativePlatform?.()) {
-      bgPlugin = false
-      return null
-    }
+    if (!Capacitor?.isNativePlatform?.()) return false
     bgPlugin = registerPlugin('BackgroundGeolocation')
-    return bgPlugin
+    return Boolean(bgPlugin)
   } catch (e) {
     console.warn('background-geolocation not available, falling back', e)
-    bgPlugin = false
-    return null
+    return false
   }
 }
 
-async function loadForegroundPlugin() {
-  if (!isNativeApp()) return null
-  if (fgPlugin) return fgPlugin
+async function ensureForegroundPlugin() {
+  if (!isNativeApp()) return false
+  if (fgPlugin) return true
+  if (fgLoadAttempted) return false
+  fgLoadAttempted = true
   try {
     const mod = await import('@capacitor/geolocation')
     fgPlugin = mod.Geolocation
-    return fgPlugin
+    return Boolean(fgPlugin)
   } catch (e) {
     console.warn('@capacitor/geolocation not available', e)
-    return null
+    return false
   }
 }
 
@@ -80,26 +93,35 @@ export async function requestPermission() {
     return 'prompt'
   }
 
-  // Native: the community background plugin doesn't expose
-  // checkPermissions/requestPermissions — it requests them on the
-  // first addWatcher call when requestPermissions: true is passed.
-  // So for the BG plugin, we just confirm the JS bridge is wired and
-  // let startTracking handle the prompt. For the foreground plugin
-  // (which DOES expose proper perm methods) we still ask explicitly
-  // so the user sees a prompt before the recording UI animates in.
-  const bg = await loadBackgroundPlugin()
-  if (bg) {
-    // Defer real permission prompt to addWatcher. From here we just
-    // report 'prompt' so the UI knows iOS will ask on Start.
-    return 'prompt'
+  // Native: we use @capacitor/geolocation (the foreground plugin)
+  // for the ACTUAL permission state — its checkPermissions /
+  // requestPermissions APIs are reliable across iOS versions.
+  //
+  // We never RETURN the plugin from an async function — we just
+  // ensure it's loaded and reference the module-level `fgPlugin`
+  // directly (see thenable-trap note at the top of this file).
+  const fgReady = await ensureForegroundPlugin()
+  if (fgReady && fgPlugin) {
+    try {
+      const status = await fgPlugin.checkPermissions()
+      const cur = status?.location || status?.coarseLocation || 'prompt'
+      if (cur === 'granted') return 'granted'
+      if (cur === 'denied') return 'denied'
+      // Need to ask. iOS shows the system dialog (or returns the
+      // existing decision immediately if already answered).
+      const req = await fgPlugin.requestPermissions()
+      const after = req?.location || req?.coarseLocation || 'denied'
+      return after === 'granted' ? 'granted' : 'denied'
+    } catch (e) {
+      console.warn('[geolocation] permission check failed', e?.message || e)
+      return 'denied'
+    }
   }
-  const fg = await loadForegroundPlugin()
-  if (fg) {
-    const status = await fg.checkPermissions()
-    if (status?.location === 'granted') return 'granted'
-    const req = await fg.requestPermissions()
-    return req?.location === 'granted' ? 'granted' : 'denied'
-  }
+
+  // No fg plugin available. Fall through to the bg plugin's internal
+  // prompt — best effort.
+  const bgReady = await ensureBackgroundPlugin()
+  if (bgReady) return 'prompt'
   return 'denied'
 }
 
@@ -115,16 +137,20 @@ export async function startTracking(callback, options = {}) {
   await stopTracking()
 
   const distanceFilter = options.distanceFilter ?? 5
+  console.log('[geolocation] startTracking; isNative=', isNativeApp(), 'distanceFilter=', distanceFilter)
 
   if (!isNativeApp()) {
+    console.log('[geolocation] using web navigator.geolocation')
     return startWebWatch(callback)
   }
 
   // Native — try background plugin first
-  const bg = await loadBackgroundPlugin()
-  if (bg) {
+  const bgReady = await ensureBackgroundPlugin()
+  console.log('[geolocation] background plugin ready:', bgReady)
+  if (bgReady && bgPlugin) {
     try {
-      watcherId = await bg.addWatcher(
+      console.log('[geolocation] calling bg.addWatcher')
+      watcherId = await bgPlugin.addWatcher(
         {
           backgroundMessage: 'Sidestand is recording your ride.',
           backgroundTitle: 'Sidestand',
@@ -134,10 +160,23 @@ export async function startTracking(callback, options = {}) {
         },
         (location, error) => {
           if (error) {
-            console.warn('bg location error', error)
+            console.warn('[geolocation] bg location error:', JSON.stringify(error))
             return
           }
-          if (!location) return
+          if (!location) {
+            console.log('[geolocation] bg callback fired with no location')
+            return
+          }
+          console.log(
+            '[geolocation] bg sample lat=',
+            location.latitude,
+            'lng=',
+            location.longitude,
+            'speed=',
+            location.speed,
+            'acc=',
+            location.accuracy
+          )
           callback({
             lat: location.latitude,
             lng: location.longitude,
@@ -147,28 +186,67 @@ export async function startTracking(callback, options = {}) {
           })
         }
       )
+      console.log('[geolocation] bg.addWatcher returned watcherId:', watcherId)
       currentStopFn = async () => {
         if (watcherId) {
           try {
-            await bg.removeWatcher({ id: watcherId })
+            await bgPlugin.removeWatcher({ id: watcherId })
           } catch (_) {}
           watcherId = null
         }
       }
       return currentStopFn
     } catch (e) {
-      console.warn('bg.addWatcher failed, falling back to fg', e)
+      console.warn('[geolocation] bg.addWatcher FAILED, falling back to fg:', e?.message || e)
     }
   }
 
   // Fallback — foreground plugin
-  const fg = await loadForegroundPlugin()
-  if (fg) {
-    return startCapacitorFgWatch(fg, callback)
+  const fgReady = await ensureForegroundPlugin()
+  console.log('[geolocation] foreground plugin ready:', fgReady)
+  if (fgReady && fgPlugin) {
+    console.log('[geolocation] using @capacitor/geolocation watchPosition')
+    return startCapacitorFgWatch(fgPlugin, callback)
   }
 
   // Last resort — web API
+  console.log('[geolocation] no native plugins available; using web')
   return startWebWatch(callback)
+}
+
+// Open iOS Settings to the Sidestand entry so the user can grant
+// location permission. Uses the bg-geo plugin's native openSettings()
+// when available; falls back to @capacitor/app's openUrl with the
+// `app-settings:` scheme.
+//
+// Returns true if we successfully kicked off Settings, false otherwise.
+export async function openLocationSettings() {
+  // Web fallback — alert the user; we can't open native settings.
+  if (!isNativeApp()) {
+    return false
+  }
+  const bgReady = await ensureBackgroundPlugin()
+  if (bgReady && bgPlugin && typeof bgPlugin.openSettings === 'function') {
+    try {
+      await bgPlugin.openSettings()
+      return true
+    } catch (e) {
+      console.warn('[geolocation] bg.openSettings failed', e?.message || e)
+    }
+  }
+  // Fall back to Capacitor App plugin's openUrl. The App plugin is a
+  // proxy too, so we hold it in a local var only long enough to call
+  // the method and never return it from this function.
+  try {
+    const { App } = await import('@capacitor/app')
+    if (App && typeof App.openUrl === 'function') {
+      await App.openUrl({ url: 'app-settings:' })
+      return true
+    }
+  } catch (e) {
+    console.warn('[geolocation] App.openUrl failed', e?.message || e)
+  }
+  return false
 }
 
 export async function stopTracking() {

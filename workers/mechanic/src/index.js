@@ -40,6 +40,23 @@ const ALLOWED_ORIGINS = [
 // (unlike Llama 3.2 Vision on Workers AI).
 const MODEL = 'claude-sonnet-4-6'
 
+// Embedding model — Cloudflare Workers AI's BGE Large. 1024 dims,
+// matched to the procedures.embedding column. Used for both the
+// one-shot ingest backfill AND the per-query retrieval.
+const EMBEDDING_MODEL = '@cf/baai/bge-large-en-v1.5'
+
+// How many manual procedures to pull in as context per chat turn.
+// 5 is the standard RAG default — enough to cover related procedures
+// (e.g. "primary chaincase service" surfaces both the procedure AND
+// the fluid-change procedure) without bloating the prompt.
+const RAG_TOP_K = 5
+
+// Minimum cosine similarity for a retrieval to be considered relevant.
+// Empirically, cosine < 0.55 means the question and the procedure
+// don't really overlap. Below this we skip the procedure rather than
+// pad the prompt with noise.
+const RAG_MIN_SIMILARITY = 0.55
+
 // Soft cap on tokens to keep responses bounded and costs predictable.
 // Sonnet 4.6 follows the cap reliably; we don't have to set anything else.
 const MAX_TOKENS = 1024
@@ -57,6 +74,13 @@ export default {
 
     if (url.pathname === '/health') {
       return json({ ok: true, model: MODEL }, 200, corsHeaders)
+    }
+
+    // Admin one-shot to backfill procedure embeddings. Idempotent —
+    // it only embeds rows from the procedures_needing_embedding view,
+    // so re-running it is cheap and safe.
+    if (url.pathname === '/admin/embed-procedures') {
+      return await handleAdminEmbedProcedures(request, env, corsHeaders)
     }
 
     if (url.pathname !== '/chat') {
@@ -127,8 +151,40 @@ export default {
     // Trim to last 12 turns. Older history is the first to drop.
     const trimmedHistory = trimHistory(userMessages, 12)
 
+    // ---------- RAG: retrieve relevant manual procedures ----------
+    // Only run for text turns where we have a bike scope AND the user
+    // typed something substantive. Image-only turns skip retrieval —
+    // identifying parts from a photo doesn't benefit from procedure
+    // chunks the way a "how do I bleed my brakes" question does.
+    const lastUserText =
+      trimmedHistory[trimmedHistory.length - 1]?.role === 'user'
+        ? String(trimmedHistory[trimmedHistory.length - 1].content || '').trim()
+        : ''
+    let retrieved = []
+    if (
+      lastUserText &&
+      lastUserText.length >= 4 &&
+      context?.bike &&
+      env.AI
+    ) {
+      try {
+        retrieved = await retrieveProcedures(
+          env,
+          token,
+          lastUserText,
+          context.bike
+        )
+      } catch (e) {
+        console.warn('RAG retrieval failed (chat continues without it)', e)
+      }
+    }
+
     // ---------- system prompt ----------
-    const systemPrompt = buildSystemPrompt(context, Boolean(imageBase64))
+    const systemPrompt = buildSystemPrompt(
+      context,
+      Boolean(imageBase64),
+      retrieved
+    )
 
     // Convert our internal messages to Anthropic's format. The LAST
     // user message gets the image attached as a content block if the
@@ -416,7 +472,342 @@ function trimHistory(messages, maxTurns) {
 //   - For images: acknowledges the model's uncertainty and asks for
 //     more angles when the photo is ambiguous
 
-function buildSystemPrompt(context, hasImage) {
+// ============================================================
+// RAG: retrieval over manual procedures
+// ============================================================
+//
+// Pipeline:
+//   1. Embed the user's question via Cloudflare Workers AI BGE.
+//   2. Call Supabase RPC `match_procedures(embedding, year, code, ...)`.
+//   3. For each top-k match, fetch its full body (steps + tools +
+//      parts + torque + warnings) using a SECURITY INVOKER select.
+//   4. Return [{ id, title, summary, similarity, body }, ...]
+//
+// All Supabase calls go through the user's JWT so RLS still applies —
+// the user only ever sees procedures they're allowed to see, even
+// though the Worker is technically a "server".
+
+async function retrieveProcedures(env, userToken, question, bike) {
+  // 1. Embed the question
+  const embedRes = await env.AI.run(EMBEDDING_MODEL, {
+    text: [question]
+  })
+  const queryEmbedding = embedRes?.data?.[0]
+  if (!Array.isArray(queryEmbedding) || queryEmbedding.length === 0) {
+    return []
+  }
+
+  // 2. Year + model code from bike context
+  const year = bike.year ? Number(bike.year) : null
+  const modelCode = extractModelCode(bike)
+  const catalogId = bike.bikeTypeId || null
+
+  // 3. Call match_procedures RPC
+  const rpcResp = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/match_procedures`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${userToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      query_embedding: queryEmbedding,
+      bike_year: Number.isFinite(year) ? year : null,
+      bike_model_code: modelCode,
+      bike_catalog_id: catalogId,
+      match_count: RAG_TOP_K,
+      match_threshold: RAG_MIN_SIMILARITY
+    })
+  })
+  if (!rpcResp.ok) {
+    const txt = await rpcResp.text().catch(() => '')
+    throw new Error(`match_procedures RPC failed (${rpcResp.status}): ${txt.slice(0, 200)}`)
+  }
+  const matches = await rpcResp.json()
+  if (!Array.isArray(matches) || matches.length === 0) return []
+
+  // 4. Fetch the full body of each matched procedure.
+  // Use the existing procedures_needing_embedding-style approach:
+  // pull steps + tools + parts + torque + warnings via REST and
+  // concatenate. Done in parallel for the top-k.
+  const ids = matches.map((m) => m.procedure_id)
+  const idList = ids.map((i) => `"${i}"`).join(',')
+  const fetchRelated = (table, fields) =>
+    fetch(
+      `${env.SUPABASE_URL}/rest/v1/${table}?procedure_id=in.(${idList})&select=${fields}&order=sort_order.asc`,
+      {
+        headers: {
+          apikey: env.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${userToken}`
+        }
+      }
+    ).then((r) => (r.ok ? r.json() : []))
+
+  const [steps, tools, parts, torque, warnings] = await Promise.all([
+    fetchRelated('procedure_steps', 'procedure_id,step_number,body,warning,note,sort_order'),
+    fetchRelated('procedure_tools', 'procedure_id,name,note,sort_order'),
+    fetchRelated('procedure_parts', 'procedure_id,part_number,description,qty,note,sort_order'),
+    fetchRelated('procedure_torque', 'procedure_id,fastener,value,note,sort_order'),
+    fetchRelated('procedure_warnings', 'procedure_id,level,text,sort_order')
+  ])
+
+  function bucket(rows) {
+    const map = new Map()
+    for (const r of rows || []) {
+      if (!map.has(r.procedure_id)) map.set(r.procedure_id, [])
+      map.get(r.procedure_id).push(r)
+    }
+    return map
+  }
+  const stepsByProc = bucket(steps)
+  const toolsByProc = bucket(tools)
+  const partsByProc = bucket(parts)
+  const torqueByProc = bucket(torque)
+  const warningsByProc = bucket(warnings)
+
+  return matches.map((m) => ({
+    id: m.procedure_id,
+    title: m.title,
+    summary: m.summary,
+    similarity: m.similarity,
+    steps: stepsByProc.get(m.procedure_id) || [],
+    tools: toolsByProc.get(m.procedure_id) || [],
+    parts: partsByProc.get(m.procedure_id) || [],
+    torque: torqueByProc.get(m.procedure_id) || [],
+    warnings: warningsByProc.get(m.procedure_id) || []
+  }))
+}
+
+function extractModelCode(bike) {
+  if (!bike) return null
+  if (bike.modelCode) return String(bike.modelCode).toUpperCase()
+  if (bike.model) {
+    const m = String(bike.model).match(/^([A-Z][A-Z0-9]+)\b/)
+    return m ? m[1] : null
+  }
+  return null
+}
+
+// ============================================================
+// Admin: backfill embeddings for procedures missing them
+// ============================================================
+//
+// Usage:
+//   curl -X POST \
+//     -H "Authorization: Bearer <ADMIN_INGEST_TOKEN>" \
+//     https://sidestand-mechanic.<account>.workers.dev/admin/embed-procedures
+//
+// Reads from the procedures_needing_embedding view (which only
+// returns is_clean + tier=free rows that lack an embedding). Embeds
+// each via BGE, writes back via PATCH. Returns counts.
+
+async function handleAdminEmbedProcedures(request, env, corsHeaders) {
+  if (request.method !== 'POST') {
+    return json({ error: 'POST only' }, 405, corsHeaders)
+  }
+  if (!env.ADMIN_INGEST_TOKEN) {
+    return json(
+      {
+        error:
+          'Worker missing ADMIN_INGEST_TOKEN. Run `wrangler secret put ADMIN_INGEST_TOKEN` and pick any random string.'
+      },
+      500,
+      corsHeaders
+    )
+  }
+  if (
+    !env.SUPABASE_SERVICE_ROLE_KEY ||
+    !env.SUPABASE_URL
+  ) {
+    return json(
+      {
+        error:
+          'Worker missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL. The admin ingest needs the service role to write back embeddings (procedures table is admin-write-only via RLS).'
+      },
+      500,
+      corsHeaders
+    )
+  }
+  const auth = request.headers.get('Authorization') || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  if (!token || token !== env.ADMIN_INGEST_TOKEN) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
+  // Cloudflare Workers free tier: 50 subrequests per invocation.
+  // Each procedure embed = 1 BGE call + 1 PATCH = 2 subrequests, so
+  // a naive loop tops out at ~24 procedures. We batch instead:
+  //
+  //   - 1 SELECT (the view)         = 1 subrequest
+  //   - 1 BGE.run() with N texts    = 1 subrequest (BGE accepts arrays)
+  //   - N PATCHes in parallel       = N subrequests
+  //   total = 2 + N
+  //
+  // With BATCH_SIZE = 40 we use 42 subrequests per invocation, well
+  // under the 50 cap with headroom for retries. Caller re-runs the
+  // endpoint until `remaining_after === 0`.
+  const BATCH_SIZE = 40
+
+  // 1. Read up to BATCH_SIZE procedures that need embedding.
+  const fetchUrl = `${env.SUPABASE_URL}/rest/v1/procedures_needing_embedding?select=*&limit=${BATCH_SIZE}`
+  const fetchResp = await fetch(fetchUrl, {
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+    }
+  })
+  if (!fetchResp.ok) {
+    const txt = await fetchResp.text().catch(() => '')
+    return json(
+      {
+        error: `Could not read procedures_needing_embedding: ${fetchResp.status} ${txt.slice(0, 200)}`
+      },
+      500,
+      corsHeaders
+    )
+  }
+  const rows = await fetchResp.json()
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return json(
+      { ok: true, embedded: 0, remaining: 0, message: 'Nothing to embed.' },
+      200,
+      corsHeaders
+    )
+  }
+
+  // 2. Build the embedding text for each row and call BGE ONCE with
+  // the batch. BGE returns a parallel array of embedding vectors.
+  const texts = rows.map((r) => buildEmbeddingText(r))
+  let embedRes
+  try {
+    embedRes = await env.AI.run(EMBEDDING_MODEL, { text: texts })
+  } catch (e) {
+    return json(
+      { error: `BGE embedding failed: ${e.message || String(e)}` },
+      500,
+      corsHeaders
+    )
+  }
+  const vectors = embedRes?.data
+  if (!Array.isArray(vectors) || vectors.length !== rows.length) {
+    return json(
+      {
+        error: `BGE returned ${vectors?.length || 0} vectors for ${rows.length} texts — model output shape mismatch`
+      },
+      500,
+      corsHeaders
+    )
+  }
+
+  // 3. Update each procedure with its embedding, in parallel, via the
+  // SECURITY DEFINER RPC `set_procedure_embedding`. Why RPC instead
+  // of PATCH: PostgREST + pgvector has a known issue where PATCHing
+  // a vector column with the service-role key returns 200 but writes
+  // null. The RPC sidesteps it by doing the UPDATE inside a function
+  // that takes the vector's text format and casts to vector once,
+  // server-side.
+  const patches = rows.map(async (row, i) => {
+    const vec = vectors[i]
+    if (!Array.isArray(vec) || vec.length === 0) {
+      return { id: row.procedure_id, error: 'no embedding returned' }
+    }
+    // pgvector text format: "[1.0, 2.0, ...]"
+    const vectorLiteral = `[${vec.map((v) => Number(v).toFixed(6)).join(',')}]`
+    const resp = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/rpc/set_procedure_embedding`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          p_id: row.procedure_id,
+          p_embedding: vectorLiteral
+        })
+      }
+    )
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => '')
+      return {
+        id: row.procedure_id,
+        error: `RPC failed (${resp.status}): ${txt.slice(0, 200)}`
+      }
+    }
+    let updated
+    try {
+      updated = await resp.json()
+    } catch (_) {
+      return { id: row.procedure_id, error: 'RPC 200 but no JSON body' }
+    }
+    if (updated !== true) {
+      return {
+        id: row.procedure_id,
+        error: `RPC returned ${JSON.stringify(updated)} (expected true). Row may not exist.`
+      }
+    }
+    return null
+  })
+
+  const patchResults = await Promise.all(patches)
+  const errors = patchResults.filter(Boolean)
+  const embeddedCount = patchResults.length - errors.length
+
+  // 4. Tell the caller how much is left so they know whether to re-run.
+  let remainingAfter = null
+  try {
+    const headResp = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/procedures_needing_embedding?select=procedure_id&limit=1`,
+      {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          Prefer: 'count=exact',
+          Range: '0-0'
+        }
+      }
+    )
+    // PostgREST returns Content-Range: 0-0/<total> when count=exact
+    const contentRange = headResp.headers.get('content-range') || ''
+    const m = contentRange.match(/\/(\d+|\*)$/)
+    if (m && m[1] !== '*') remainingAfter = Number(m[1])
+  } catch (_) {
+    /* non-fatal */
+  }
+
+  return json(
+    {
+      ok: true,
+      embedded: embeddedCount,
+      errors: errors.slice(0, 10),
+      remaining: remainingAfter,
+      tip:
+        remainingAfter && remainingAfter > 0
+          ? `Re-run this endpoint to continue (${remainingAfter} procedures still need embedding).`
+          : 'All procedures embedded.'
+    },
+    200,
+    corsHeaders
+  )
+}
+
+// Concatenate the procedure's content into a single embedding string.
+// Order matters a bit: title + summary up top weighs the embedding
+// toward the procedure's identity, then the body content.
+function buildEmbeddingText(row) {
+  const lines = []
+  if (row.title) lines.push(`Title: ${row.title}`)
+  if (row.summary) lines.push(`Summary: ${row.summary}`)
+  if (row.tools_text) lines.push(`Tools: ${row.tools_text}`)
+  if (row.parts_text) lines.push(`Parts: ${row.parts_text}`)
+  if (row.torque_text) lines.push(`Torque: ${row.torque_text}`)
+  if (row.warnings_text) lines.push(`Warnings:\n${row.warnings_text}`)
+  if (row.steps_text) lines.push(`Steps:\n${row.steps_text}`)
+  return lines.join('\n\n').slice(0, 8000) // BGE handles ~8k chars comfortably
+}
+
+function buildSystemPrompt(context, hasImage, retrieved) {
   const lines = [
     'You are Sidestand, an AI mechanic assistant for motorcycle riders.',
     '',
@@ -532,7 +923,9 @@ function buildSystemPrompt(context, hasImage) {
     )
   }
 
-  // Manual procedures available for this bike
+  // Manual procedures available for this bike (titles only — for
+  // tap-to-open linking. Full bodies of the most relevant ones come
+  // through retrieved-chunks below.)
   if (
     Array.isArray(context.availableProcedures) &&
     context.availableProcedures.length > 0
@@ -550,6 +943,68 @@ function buildSystemPrompt(context, hasImage) {
       '- Only use [PROC:<id>] for procedures from the list. NEVER invent procedure IDs.',
       "- Don't wrap [PROC:...] in code formatting or quotes — emit it literally.",
       "- If no listed procedure matches the question, just answer in prose; don't fabricate a link."
+    )
+  }
+
+  // RAG: retrieved procedure bodies for the most-relevant procedures.
+  // This is the part that makes the assistant actually grounded.
+  if (Array.isArray(retrieved) && retrieved.length > 0) {
+    lines.push(
+      '',
+      '======================================================================',
+      'RELEVANT MANUAL EXCERPTS (retrieved from the user\'s service manual):',
+      '======================================================================',
+      ''
+    )
+    for (const r of retrieved) {
+      lines.push(`### Procedure: ${r.title}  (id: ${r.id})`)
+      if (r.summary) lines.push(`Summary: ${r.summary}`)
+      if (r.tools && r.tools.length > 0) {
+        lines.push(
+          `Tools: ${r.tools.map((t) => t.name).filter(Boolean).join(', ')}`
+        )
+      }
+      if (r.parts && r.parts.length > 0) {
+        lines.push(
+          'Parts:',
+          ...r.parts.map(
+            (p) =>
+              `  - ${[p.description, p.part_number ? `PN ${p.part_number}` : '']
+                .filter(Boolean)
+                .join(' — ')}${p.qty ? ` × ${p.qty}` : ''}`
+          )
+        )
+      }
+      if (r.torque && r.torque.length > 0) {
+        lines.push(
+          'Torque specs:',
+          ...r.torque.map((t) => `  - ${t.fastener}: ${t.value}${t.note ? ` (${t.note})` : ''}`)
+        )
+      }
+      if (r.warnings && r.warnings.length > 0) {
+        lines.push('Warnings:')
+        for (const w of r.warnings) {
+          lines.push(`  - ${(w.level || 'warning').toUpperCase()}: ${w.text}`)
+        }
+      }
+      if (r.steps && r.steps.length > 0) {
+        lines.push('Steps:')
+        for (const s of r.steps) {
+          lines.push(`  ${s.step_number}. ${s.body}`)
+          if (s.warning) lines.push(`     [Warning] ${s.warning}`)
+          if (s.note) lines.push(`     [Note] ${s.note}`)
+        }
+      }
+      lines.push('')
+    }
+    lines.push(
+      '======================================================================',
+      'CRITICAL: Answer the user\'s question PRIMARILY from the manual excerpts above.',
+      '- Quote torque specs and part numbers EXACTLY as written.',
+      '- Cite the procedure with its [PROC:<id>] tap-link the FIRST time you reference it.',
+      "- If the manual excerpts don't cover what the user asked, SAY SO — don't fall back to general knowledge and dress it up. A clear \"that's not in your manual\" is more useful than a guess.",
+      '- If multiple procedures are relevant, link them all — the user can pick.',
+      ''
     )
   }
 

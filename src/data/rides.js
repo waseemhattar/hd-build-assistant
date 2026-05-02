@@ -92,6 +92,18 @@ export async function saveRide(payload, authUserId) {
     payload.route?.[payload.route.length - 1]?.[2] || Date.now()
   ).toISOString()
 
+  // Weather can arrive either as a JSON string (from RideTracker, which
+  // stringifies the Open-Meteo snapshot before passing) or as an object.
+  // Normalise to whatever Postgres' jsonb column expects — pass-through.
+  let weather = payload.weather || null
+  if (typeof weather === 'string') {
+    try {
+      weather = JSON.parse(weather)
+    } catch (_) {
+      weather = null
+    }
+  }
+
   const row = {
     auth_user_id: authUserId,
     bike_id: payload.bikeId || null,
@@ -104,7 +116,7 @@ export async function saveRide(payload, authUserId) {
     route: payload.route,
     title: payload.title || null,
     notes: payload.notes || null,
-    weather: payload.weather || null,
+    weather,
     start_mileage: payload.startMileage || null,
     end_mileage: payload.endMileage || null
   }

@@ -3,15 +3,27 @@
 # Deploy:
 #   cd workers/mechanic
 #   npm install
-#   npx wrangler login            # one-time
-#   npx wrangler secret put SUPABASE_URL          # https://<ref>.supabase.co
-#   npx wrangler secret put SUPABASE_ANON_KEY     # eyJ... anon JWT
-#   npx wrangler secret put ANTHROPIC_API_KEY     # sk-ant-...  from console.anthropic.com
+#   npx wrangler login                                  # one-time
+#   npx wrangler secret put SUPABASE_URL                # https://<ref>.supabase.co
+#   npx wrangler secret put SUPABASE_ANON_KEY           # eyJ... anon JWT
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # eyJ... service_role JWT (admin embed only)
+#   npx wrangler secret put ANTHROPIC_API_KEY           # sk-ant-... from console.anthropic.com
+#   npx wrangler secret put ADMIN_INGEST_TOKEN          # any random string YOU pick (admin auth)
 #   npx wrangler deploy
 #
 # The Worker calls Anthropic's API directly (Claude Sonnet 4.6) for
-# both text + vision turns. The AI binding for Workers AI is no longer
-# strictly required, but kept around in case we need a fallback.
+# both text + vision turns. It also uses Cloudflare Workers AI's BGE
+# embedding model for RAG over the user's manual procedures.
+#
+# After deploying, run the SQL migration 012 in Supabase SQL Editor,
+# then call the admin endpoint ONCE to backfill embeddings:
+#
+#   curl -X POST \
+#     -H "Authorization: Bearer <ADMIN_INGEST_TOKEN>" \
+#     https://sidestand-mechanic.<account>.workers.dev/admin/embed-procedures
+#
+# View returns 200 rows at a time. If you have more than 200
+# unbembedded procedures, re-run the curl until it reports 0.
 #
 # After deploy you'll get a URL like:
 #   https://sidestand-mechanic.<account>.workers.dev

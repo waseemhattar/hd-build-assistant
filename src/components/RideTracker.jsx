@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useUser } from '../auth/AuthProvider.jsx'
-import { startTracking, stopTracking, requestPermission } from '../data/geolocation.js'
+import {
+  startTracking,
+  stopTracking,
+  requestPermission,
+  openLocationSettings
+} from '../data/geolocation.js'
 import {
   saveRide,
   haversineMeters,
@@ -9,7 +14,9 @@ import {
   formatSpeed
 } from '../data/rides.js'
 import { getGarage, updateBikeMileage } from '../data/storage.js'
-import { formatMileage } from '../data/userPrefs.js'
+import { formatMileage, formatTemperature } from '../data/userPrefs.js'
+import { fetchCurrentWeather, formatWeatherShort } from '../data/weather.js'
+import RideMap from './RideMap.jsx'
 
 // Live ride tracker.
 //
@@ -35,12 +42,19 @@ export default function RideTracker({ onBack, onSaved }) {
   const [bikeId, setBikeId] = useState(garage[0]?.id || null)
   const [phase, setPhase] = useState('idle') // 'idle' | 'recording' | 'saving' | 'done' | 'error'
   const [err, setErr] = useState(null)
+  // When iOS denies (or has previously denied) location permission,
+  // we surface a friendly modal with an "Open Settings" button rather
+  // than failing silently with values stuck at 0.
+  const [permissionBlocked, setPermissionBlocked] = useState(false)
 
   // Refs hold the live state we don't want to re-render on every sample.
   // We re-derive UI metrics from these via the tick effect below.
   const routeRef = useRef([]) // [[lat, lng, ts, speed], ...]
   const startedAtRef = useRef(null)
   const stopFnRef = useRef(null)
+  // Weather snapshot captured at ride start. Saved with the ride
+  // record so future-me can browse "hot rides" / "rainy rides".
+  const weatherRef = useRef(null)
 
   // UI state derived from refs — updated once a second by an interval
   const [tick, setTick] = useState(0)
@@ -81,19 +95,36 @@ export default function RideTracker({ onBack, onSaved }) {
 
   async function start() {
     setErr(null)
+    setPermissionBlocked(false)
     setPhase('saving') // brief loading state during permission prompt
     try {
       const perm = await requestPermission()
-      if (perm !== 'granted') {
-        setErr(
-          'Location permission required to track rides. Enable it in Settings → Sidestand → Location.'
-        )
+      console.log('[RideTracker] requestPermission returned:', perm)
+      // Block on 'denied'. 'prompt' is fine on native iOS — the
+      // background-geolocation plugin runs its own permission dialog
+      // inside addWatcher when requestPermissions:true.
+      if (perm === 'denied') {
+        setPermissionBlocked(true)
         setPhase('idle')
         return
       }
       routeRef.current = []
       startedAtRef.current = Date.now()
+      weatherRef.current = null
+      console.log('[RideTracker] calling startTracking, started at', startedAtRef.current)
       const stop = await startTracking((sample) => {
+        // First-sample side effect: fire off a weather lookup. We
+        // intentionally do this off the first GPS fix (rather than at
+        // tap-Start) so we have an actual lat/lng to ask the API
+        // about. Fire-and-forget so a slow Wi-Fi handoff never blocks
+        // the ride — by the time the ride ends the result is back.
+        if (routeRef.current.length === 0 && weatherRef.current == null) {
+          fetchCurrentWeather(sample.lat, sample.lng)
+            .then((w) => {
+              if (w) weatherRef.current = w
+            })
+            .catch(() => {})
+        }
         routeRef.current.push([
           sample.lat,
           sample.lng,
@@ -101,9 +132,11 @@ export default function RideTracker({ onBack, onSaved }) {
           sample.speed
         ])
       })
+      console.log('[RideTracker] startTracking returned, stopFn type:', typeof stop)
       stopFnRef.current = stop
       setPhase('recording')
     } catch (e) {
+      console.error('[RideTracker] start failed', e)
       setErr(e?.message || 'Could not start tracking.')
       setPhase('idle')
     }
@@ -140,7 +173,14 @@ export default function RideTracker({ onBack, onSaved }) {
           startedAtMs: startedAtRef.current,
           route,
           startMileage,
-          endMileage
+          endMileage,
+          // The rides table has a JSONB `weather` column. We stuff
+          // the snapshot in as JSON so the saver doesn't need to
+          // know its shape; consumers (RideHistory, summary card)
+          // pull what they want from it.
+          weather: weatherRef.current
+            ? JSON.stringify(weatherRef.current)
+            : null
         },
         user.id
       )
@@ -242,9 +282,18 @@ export default function RideTracker({ onBack, onSaved }) {
         </div>
       )}
 
+      {/* Live map — drawing the polyline as samples arrive */}
+      {(phase === 'recording' || phase === 'saving') && (
+        <LiveRouteMap
+          routeRef={routeRef}
+          tick={tick}
+          height={240}
+        />
+      )}
+
       {/* Live stats */}
       {(phase === 'recording' || phase === 'saving') && (
-        <div className="mb-6 rounded-md border border-hd-border bg-hd-dark p-5">
+        <div className="mb-6 rounded-3xl bg-hd-dark p-5">
           <div className="grid grid-cols-2 gap-4">
             <Stat
               label="Distance"
@@ -262,13 +311,28 @@ export default function RideTracker({ onBack, onSaved }) {
               value={formatSpeed(stats.maxSpeedMps)}
             />
           </div>
-          <div className="mt-4 text-xs text-hd-muted">
-            {routeRef.current.length} GPS point
-            {routeRef.current.length === 1 ? '' : 's'} recorded
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-hd-muted">
+            <span>
+              {routeRef.current.length} GPS point
+              {routeRef.current.length === 1 ? '' : 's'} recorded
+            </span>
             {phase === 'recording' && (
-              <span className="ml-2 inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1">
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
                 live
+              </span>
+            )}
+            {/* Weather chip — empty until the API call returns. The
+                useMemo on `tick` re-runs once per second so this
+                appears within ~1s of the first GPS sample. */}
+            {weatherRef.current && (
+              <span
+                className="rounded-full bg-hd-black/40 px-2.5 py-1 text-[12px] text-hd-text"
+                title={`Captured at ride start: ${weatherRef.current.label}`}
+              >
+                {weatherRef.current.emoji}{' '}
+                {formatTemperature(weatherRef.current.tempC)}{' '}
+                · {Math.round(weatherRef.current.windKph)} km/h wind
               </span>
             )}
           </div>
@@ -347,6 +411,158 @@ export default function RideTracker({ onBack, onSaved }) {
           USB-C charger or a tank-top charger.
         </p>
       )}
+
+      {permissionBlocked && (
+        <PermissionDeniedModal
+          onClose={() => setPermissionBlocked(false)}
+          onRetry={async () => {
+            setPermissionBlocked(false)
+            // After the user toggles in Settings and comes back, the
+            // OS may not re-prompt. Re-running start() picks up the
+            // new state via fg.checkPermissions().
+            await start()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// Live route map
+// ============================================================
+//
+// Draws the in-progress route polyline as new GPS samples come in.
+// We deliberately avoid storing the route as React state (each push
+// would force a re-render of the entire RideTracker tree) — instead
+// the route lives in routeRef, and this component subscribes via a
+// `tick` that increments once per second from the parent. On every
+// tick we shallow-copy routeRef.current (a new array reference) and
+// pass it as the route prop. RideMap detects the new reference and
+// redraws.
+
+function LiveRouteMap({ routeRef, tick, height = 240 }) {
+  // Spread on every tick so route is a fresh array reference — that's
+  // what causes RideMap to re-draw. routeRef.current itself never
+  // changes identity even as we push new samples.
+  const route = useMemo(() => [...routeRef.current], [tick, routeRef])
+  if (route.length === 0) {
+    return (
+      <div
+        className="mb-4 flex items-center justify-center rounded-3xl bg-hd-dark text-[13px] text-hd-muted"
+        style={{ height }}
+      >
+        Waiting for GPS lock…
+      </div>
+    )
+  }
+  return (
+    <div className="mb-4 overflow-hidden rounded-3xl">
+      <RideMap
+        route={route}
+        height={height}
+        className="rounded-3xl border-0"
+        live={true}
+      />
+    </div>
+  )
+}
+
+// ============================================================
+// Permission denied modal
+// ============================================================
+//
+// Shown when iOS reports location permission as 'denied' (either the
+// user previously tapped Don't Allow, or device-wide Location Services
+// is off). Offers two paths: Open Settings (uses the bg-geo plugin's
+// openSettings(), which deep-links straight to the app's Location
+// settings on iOS), or Retry (in case they granted permission and
+// came back without us realising).
+
+function PermissionDeniedModal({ onClose, onRetry }) {
+  const [opening, setOpening] = useState(false)
+  async function handleOpenSettings() {
+    setOpening(true)
+    try {
+      const ok = await openLocationSettings()
+      if (!ok) {
+        alert(
+          'Could not open Settings automatically. Open iPhone Settings → Sidestand → Location and choose Always or While Using.'
+        )
+      }
+    } finally {
+      setOpening(false)
+    }
+  }
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md overflow-hidden rounded-t-3xl bg-hd-dark p-6 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-hd-orange/15 text-hd-orange">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6"
+            aria-hidden="true"
+          >
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-hd-text">
+          Location access needed
+        </h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-hd-muted">
+          Sidestand uses your iPhone's GPS to track distance, speed, and
+          route while you ride. iOS is currently blocking that — it only
+          takes a tap to fix.
+        </p>
+        <div className="mt-4 rounded-2xl bg-hd-black/40 px-4 py-3 text-[13px] text-hd-muted">
+          <div className="font-semibold text-hd-text">In Settings:</div>
+          <div className="mt-1">
+            1. Tap <strong className="text-hd-text">Location</strong>
+          </div>
+          <div>
+            2. Choose <strong className="text-hd-text">Always</strong> or{' '}
+            <strong className="text-hd-text">While Using the App</strong>
+          </div>
+          <div>
+            3. Make sure{' '}
+            <strong className="text-hd-text">Precise Location</strong> is on
+          </div>
+        </div>
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            onClick={handleOpenSettings}
+            disabled={opening}
+            className="rounded-full bg-hd-orange px-5 py-3.5 text-[15px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
+          >
+            {opening ? 'Opening…' : 'Open iPhone Settings'}
+          </button>
+          <button
+            onClick={onRetry}
+            className="rounded-full bg-hd-card px-5 py-3 text-[14px] font-medium text-hd-text"
+          >
+            I've granted access — try again
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 py-2 text-[13px] text-hd-muted"
+          >
+            Not now
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
