@@ -1,0 +1,41 @@
+# Cloudflare Worker — Sidestand Mechanic AI
+#
+# Deploy:
+#   cd workers/mechanic
+#   npm install
+#   npx wrangler login            # one-time
+#   npx wrangler secret put SUPABASE_JWT_SECRET
+#   npx wrangler deploy
+#
+# After deploy you'll get a URL like:
+#   https://sidestand-mechanic.<account>.workers.dev
+# Put that URL into the React app's VITE_MECHANIC_WORKER_URL env var.
+#
+# To put it behind a custom domain (recommended for prod):
+#   - Cloudflare Dashboard → Workers → sidestand-mechanic → Triggers
+#   - Add Custom Domain: e.g. mechanic.sidestand.app
+#   - Update VITE_MECHANIC_WORKER_URL to https://mechanic.sidestand.app
+
+name = "sidestand-mechanic"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers AI binding — gives the worker `env.AI.run(model, ...)`.
+# No model is pinned here; the Worker code picks the model. Cloudflare
+# bills per-neuron of usage based on whichever model we call.
+[ai]
+binding = "AI"
+
+# Observability — sends logs to Cloudflare's dashboard so we can see
+# errors and latencies without ssh-ing into anything.
+[observability]
+enabled = true
+
+# Default vars (non-secret). The SUPABASE_JWT_SECRET is set via
+# `wrangler secret put` and lives outside this file.
+[vars]
+SUPABASE_PROJECT_URL = ""    # set via `wrangler secret put` if you'd rather
+# Set this to the project's anon key if you want the worker to also
+# verify the user is signed-in by checking the access token via Supabase.
+# For MVP we just verify the JWT signature locally, which is enough.

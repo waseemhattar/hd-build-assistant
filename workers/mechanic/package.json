@@ -1,0 +1,14 @@
+{
+  "name": "sidestand-mechanic-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker that proxies chat between the Sidestand app and Cloudflare Workers AI (Llama 3.3 70B). Handles user-context injection, JWT validation, streaming responses, and CORS.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.0"
+  }
+}

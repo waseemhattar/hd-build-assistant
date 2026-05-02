@@ -17,6 +17,7 @@ import PublicBike from './components/PublicBike.jsx'
 import Settings from './components/Settings.jsx'
 import TopNav from './components/TopNav.jsx'
 import BottomTabBar from './components/BottomTabBar.jsx'
+import MechanicChat from './components/MechanicChat.jsx'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import { setStorageUser, getUserLogoUrl, subscribe } from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
@@ -360,6 +361,11 @@ function AuthedApp() {
       {view === 'settings' && (
         <Settings onBack={() => navigate('home')} />
       )}
+
+      {/* Floating mechanic chat — available on every signed-in screen.
+          Position is absolute fixed; it uses safe-area-inset and avoids
+          overlapping the bottom tab bar via tailwind bottom-24 / sm:bottom-6. */}
+      <MechanicChat />
 
       {/* Bottom tab bar — visible on mobile / native, hidden on wide web */}
       <BottomTabBar
