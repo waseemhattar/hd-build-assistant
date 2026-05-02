@@ -25,10 +25,10 @@ import { getSupabaseClient } from './supabaseClient.js'
 import { getBike, getGarage, getServiceLog, getMods } from './storage.js'
 
 const STORAGE_KEY = 'sidestand:mechanic/v1'
-const WORKER_URL =
-  (typeof import.meta !== 'undefined' &&
-    import.meta?.env?.VITE_MECHANIC_WORKER_URL) ||
-  ''
+// Note: Vite's env-var replacement is a static text scan for the literal
+// `import.meta.env.VITE_*`. Optional-chaining (?.) BREAKS that scan and
+// the value silently becomes undefined. Always use the bare form.
+const WORKER_URL = import.meta.env.VITE_MECHANIC_WORKER_URL || ''
 
 // In-memory store. Hydrated from localStorage on module load. Mirrored
 // back to localStorage whenever it changes.

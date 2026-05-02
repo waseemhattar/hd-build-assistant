@@ -4,8 +4,13 @@
 #   cd workers/mechanic
 #   npm install
 #   npx wrangler login            # one-time
-#   npx wrangler secret put SUPABASE_JWT_SECRET
+#   npx wrangler secret put SUPABASE_URL
+#   npx wrangler secret put SUPABASE_ANON_KEY
 #   npx wrangler deploy
+#
+# (The Worker no longer needs SUPABASE_JWT_SECRET — it verifies tokens
+# by calling Supabase's /auth/v1/user endpoint, which works with both
+# legacy HS256 and the newer ES256 asymmetric signing keys.)
 #
 # After deploy you'll get a URL like:
 #   https://sidestand-mechanic.<account>.workers.dev

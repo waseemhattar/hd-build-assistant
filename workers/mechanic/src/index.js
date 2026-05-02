@@ -67,14 +67,34 @@ export default {
     }
 
     // ---------- auth ----------
+    // We let Supabase verify the access token for us. Supabase's
+    // /auth/v1/user endpoint accepts the access token in Authorization
+    // and returns the matching user when the token is valid (regardless
+    // of HS256/ES256 / which signing key version the project uses).
+    // Slightly slower than local crypto (one HTTP round-trip ~50ms)
+    // but completely future-proof against Supabase signing-key rotations.
     const auth = request.headers.get('Authorization') || ''
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
     if (!token) {
       return json({ error: 'Missing Authorization' }, 401, corsHeaders)
     }
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+      return json(
+        {
+          error:
+            'Worker missing SUPABASE_URL or SUPABASE_ANON_KEY. Set them via wrangler secrets.'
+        },
+        500,
+        corsHeaders
+      )
+    }
     let user
     try {
-      user = await verifySupabaseJwt(token, env.SUPABASE_JWT_SECRET)
+      user = await verifySupabaseTokenViaApi(
+        token,
+        env.SUPABASE_URL,
+        env.SUPABASE_ANON_KEY
+      )
     } catch (e) {
       return json(
         { error: `Invalid token: ${e.message || String(e)}` },
@@ -175,50 +195,45 @@ function json(obj, status = 200, extraHeaders = {}) {
 }
 
 // ============================================================
-// Supabase JWT verification (HS256)
+// Supabase token verification (via the Auth API)
 // ============================================================
 //
-// Supabase Auth signs access tokens with HS256 using the project's
-// JWT secret. We do a full signature check — not just decode — so a
-// malicious user can't forge claims.
+// Why we don't verify the JWT signature locally: Supabase projects can
+// use HS256 (legacy shared-secret) OR ES256 (asymmetric ECC P-256 key
+// signing) depending on which version of Supabase Auth they're on.
+// Verifying both locally adds significant code (JWKS fetching, key
+// caching, signature verification per-alg). It's much simpler to ask
+// Supabase itself: "is this token valid?" by calling /auth/v1/user.
 //
-// We avoid pulling in a heavy JWT library; the WebCrypto API on
-// Cloudflare Workers handles HS256 verification in ~20 lines.
+// The endpoint:
+//   GET ${SUPABASE_URL}/auth/v1/user
+//   Authorization: Bearer <access_token>
+//   apikey: <anon_key>
+//
+// Returns 200 + user JSON on success, 401 on bad/expired token.
 
-async function verifySupabaseJwt(token, secret) {
-  if (!secret) throw new Error('Worker missing SUPABASE_JWT_SECRET')
-  const parts = token.split('.')
-  if (parts.length !== 3) throw new Error('Malformed JWT')
-  const [headerB64, payloadB64, signatureB64] = parts
-
-  // Verify signature
-  const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`)
-  const sig = base64UrlDecodeToBytes(signatureB64)
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  )
-  const valid = await crypto.subtle.verify('HMAC', key, sig, data)
-  if (!valid) throw new Error('Bad signature')
-
-  // Decode + sanity-check claims
-  const payload = JSON.parse(new TextDecoder().decode(base64UrlDecodeToBytes(payloadB64)))
-  const now = Math.floor(Date.now() / 1000)
-  if (payload.exp && payload.exp < now) throw new Error('Token expired')
-  if (payload.nbf && payload.nbf > now) throw new Error('Token not yet valid')
-  return payload
-}
-
-function base64UrlDecodeToBytes(s) {
-  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4))
-  const b64 = (s + pad).replace(/-/g, '+').replace(/_/g, '/')
-  const bin = atob(b64)
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return bytes
+async function verifySupabaseTokenViaApi(token, supabaseUrl, anonKey) {
+  const resp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: anonKey
+    }
+  })
+  if (resp.status === 401) {
+    throw new Error('Token rejected by Supabase')
+  }
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '')
+    throw new Error(`Supabase auth check failed: ${resp.status} ${text}`)
+  }
+  const user = await resp.json()
+  if (!user?.id) {
+    throw new Error('Supabase returned no user id')
+  }
+  // Match the shape of the previous local-verified payload so the rest
+  // of the worker can keep using `user.sub` as the user identifier.
+  return { sub: user.id, email: user.email, raw: user }
 }
 
 // ============================================================
