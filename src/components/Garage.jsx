@@ -30,6 +30,7 @@ import {
   canonicalModelFor,
   normalizeVin
 } from '../data/vinDecoder.js'
+import { scanVin, isVinScanSupported } from '../data/vinScanner.js'
 import StickyActionBar from './ui/StickyActionBar.jsx'
 import EmptyState from './ui/EmptyState.jsx'
 import BottomSheet from './ui/BottomSheet.jsx'
@@ -789,6 +790,27 @@ function BikeEditor({ bike, onCancel, onSave }) {
   // Clean up any pending request on unmount.
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  // VIN scan state — only used when running on native (iOS/Android).
+  const scanSupported = isVinScanSupported()
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState('')
+  async function handleScan() {
+    setScanError('')
+    setScanning(true)
+    try {
+      const r = await scanVin()
+      if (r.ok) {
+        setForm((f) => ({ ...f, vin: r.vin }))
+      } else if (r.reason !== 'cancelled') {
+        setScanError(r.reason)
+      }
+    } catch (e) {
+      setScanError(e?.message || 'Scan failed.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
   // Has the rider supplied enough info to save? We require:
   //   - a 17-char VIN (the new primary identifier), OR a pre-existing
   //     bike record (so editing a legacy bike without VIN still works)
@@ -825,19 +847,47 @@ function BikeEditor({ bike, onCancel, onSave }) {
       <form onSubmit={submit}>
         {/* ---------- VIN — primary input ---------- */}
         <Field label="VIN" wide>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               type="text"
               value={form.vin}
               onChange={(e) =>
                 setForm({ ...form, vin: normalizeVin(e.target.value) })
               }
-              className="input flex-1 font-mono uppercase"
+              className="input flex-1 min-w-[14rem] font-mono uppercase"
               maxLength={17}
               placeholder="e.g. 1HD1KHM18LB610234"
               required={!bike}
               autoFocus={!bike}
             />
+            {scanSupported && (
+              <button
+                type="button"
+                onClick={handleScan}
+                disabled={scanning}
+                className="inline-flex items-center gap-1.5 rounded border border-hd-border bg-hd-dark px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-hd-text hover:border-hd-orange hover:text-hd-orange disabled:opacity-40 disabled:hover:border-hd-border disabled:hover:text-hd-text"
+                title="Scan the VIN barcode on the steering-head plate"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                  <path d="M21 7V5a2 2 0 0 0-2-2h-2" />
+                  <path d="M3 17v2a2 2 0 0 0 2 2h2" />
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                  <path d="M7 8v8M11 8v8M15 8v8M19 8v8" />
+                </svg>
+                {scanning ? 'Scanning…' : 'Scan'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => runRemoteDecode({ autofill: true })}
@@ -848,6 +898,11 @@ function BikeEditor({ bike, onCancel, onSave }) {
               {decoding ? 'Decoding…' : 'Decode'}
             </button>
           </div>
+          {scanError && (
+            <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              {scanError}
+            </div>
+          )}
           <VinChip
             vin={form.vin}
             local={local}

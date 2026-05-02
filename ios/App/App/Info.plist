@@ -61,7 +61,7 @@
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Sidestand records your ride in the background so you can put your phone away and ride.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Sidestand uses your camera so you can show the AI mechanic a part for identification.</string>
+	<string>Sidestand uses your camera to scan VIN barcodes when adding a bike, capture cover photos, and let you show the AI mechanic a part for identification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Sidestand reads photos from your library so you can attach part images and bike cover photos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
