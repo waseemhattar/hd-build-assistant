@@ -754,6 +754,30 @@ async function handleAdminEmbedProcedures(request, env, corsHeaders) {
   const errors = patchResults.filter(Boolean)
   const embeddedCount = patchResults.length - errors.length
 
+  // Early abort: if every write failed, something is structurally
+  // broken (e.g. the RPC has a SQL bug, the service-role key is wrong,
+  // RLS changed). The view will still report `remaining > 0`, so a
+  // naive caller loop would re-invoke this endpoint forever and chew
+  // through BGE neuron quota generating embeddings that never land.
+  // Return ok:false with remaining:0 so the standard while-loop pattern
+  // (which terminates on remaining === 0) breaks immediately, and use
+  // HTTP 502 so any caller that does check status sees the failure.
+  if (rows.length > 0 && embeddedCount === 0) {
+    return json(
+      {
+        ok: false,
+        embedded: 0,
+        attempted: rows.length,
+        errors: errors.slice(0, 10),
+        remaining: 0,
+        error:
+          'All RPC writes failed — aborting to avoid burning BGE quota. Inspect the errors above (most likely set_procedure_embedding RPC, service-role key, or RLS).'
+      },
+      502,
+      corsHeaders
+    )
+  }
+
   // 4. Tell the caller how much is left so they know whether to re-run.
   let remainingAfter = null
   try {
