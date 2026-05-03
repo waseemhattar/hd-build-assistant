@@ -1,18 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- v2: bigger, more substantial mark. v1 was too thin to read -->
-  <!-- at 60×60. Lever 25% longer + 25% thicker. Foot pad 40% wider. -->
-  <!-- Pivot dot 33% larger so it survives the App Library size test. -->
-  <rect width="1024" height="1024" fill="#0E0E10"/>
+  <!-- v4: refined to match reference better. Mark fills more canvas -->
+  <!-- height, foot pad narrower, lever taper more pronounced. -->
 
-  <g transform="rotate(22 512 512)">
-    <!-- Thicker, longer lever -->
-    <rect x="462" y="160" width="100" height="700" fill="#E8E2D5" rx="10"/>
-    <!-- Wider, more visible foot pad -->
-    <rect x="332" y="840" width="360" height="80" fill="#E8E2D5" rx="8"/>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="48%" r="68%">
+      <stop offset="0%" stop-color="#1A1A1F"/>
+      <stop offset="100%" stop-color="#070709"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <g fill="#D6322C">
+    <!-- Pivot head: chunky pentagonal bracket at upper-right. -->
+    <!-- Bigger than v3, with more pronounced angular cuts on the -->
+    <!-- upper-right and inner-left to suggest CNC-machined steel. -->
+    <path d="M 540 158
+             L 720 142
+             L 770 196
+             L 770 268
+             L 720 320
+             L 590 336
+             L 530 290
+             L 522 240
+             L 540 215
+             Z"/>
+
+    <!-- Lever: tapered, more dramatic taper than v3. Wide at top -->
+    <!-- (~120px) → narrower at bottom (~80px). Lean ~10° clockwise. -->
+    <path d="M 593 336
+             L 718 320
+             L 535 760
+             L 455 760
+             Z"/>
+
+    <!-- Foot pad: narrower than v3. Stays horizontal. -->
+    <rect x="320" y="752" width="370" height="84" rx="22"/>
   </g>
 
-  <!-- Pivot dot — bigger (r=80 vs 60). Position: (512,160) rotated 22° -->
-  <!-- around (512,512) → offset (132, -326) → (644, 186). -->
-  <circle cx="644" cy="186" r="80" fill="#E03A36"/>
+  <!-- Pivot bolt detail. Three-step recess: an outer dark ring, inner -->
+  <!-- light ring (catching light off the chamfer), then a dark center. -->
+  <circle cx="650" cy="240" r="30" fill="#3A0F0D"/>
+  <circle cx="650" cy="240" r="22" fill="#88201D"/>
+  <circle cx="650" cy="240" r="14" fill="#0A0A0D"/>
 </svg>
