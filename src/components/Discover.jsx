@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { listNearbyPublicRides, formatDistance, formatDuration } from '../data/rides.js'
+import { listNearbySuggested } from '../data/suggestedRides.js'
 import EmptyState from './ui/EmptyState.jsx'
 import { useUserPrefs } from '../hooks/useUserPrefs.js'
 
@@ -50,15 +51,52 @@ export default function Discover({ onBack, onOpenRide }) {
     async function load(c) {
       setState({ status: 'loading' })
       try {
-        const data = await listNearbyPublicRides({
-          lat: c.lat,
-          lng: c.lng,
-          radiusKm: DEFAULT_RADIUS_KM,
-          limit: 100
-        })
+        // Query both surfaces in parallel:
+        //   - listNearbyPublicRides → user-RECORDED public rides
+        //   - listNearbySuggested   → admin-CURATED iconic routes
+        // Merge so Discover shows one stream with distinct badges.
+        // We don't fail-hard on one source erroring; partial content
+        // is better than a blank page.
+        const [recordedSettled, curatedSettled] = await Promise.allSettled([
+          listNearbyPublicRides({
+            lat: c.lat,
+            lng: c.lng,
+            radiusKm: DEFAULT_RADIUS_KM,
+            limit: 100
+          }),
+          listNearbySuggested({
+            lat: c.lat,
+            lng: c.lng,
+            radiusKm: DEFAULT_RADIUS_KM,
+            limit: 100
+          })
+        ])
         if (cancelled) return
-        setRides(data)
+        const recorded =
+          recordedSettled.status === 'fulfilled' ? recordedSettled.value : []
+        const curated =
+          curatedSettled.status === 'fulfilled' ? curatedSettled.value : []
+        // Tag each item with kind so the renderer can branch on badge.
+        // listNearbyPublicRides doesn't tag its rows yet — do it here.
+        const taggedRecorded = recorded.map((r) => ({ ...r, kind: 'recorded' }))
+        // Curated rows are already tagged kind='suggested' by shapeRow().
+        // Sort merged by created_at-ish key (newest first). Curated uses
+        // its created_at; recorded uses started_at.
+        const merged = [...taggedRecorded, ...curated].sort((a, b) => {
+          const ka = a.started_at || a.created_at || ''
+          const kb = b.started_at || b.created_at || ''
+          return kb.localeCompare(ka)
+        })
+        setRides(merged)
         setState({ status: 'ready' })
+        // Surface partial-load failures in console for debugging without
+        // disrupting the user.
+        if (recordedSettled.status === 'rejected') {
+          console.warn('discover: public rides load failed', recordedSettled.reason)
+        }
+        if (curatedSettled.status === 'rejected') {
+          console.warn('discover: curated rides load failed', curatedSettled.reason)
+        }
       } catch (e) {
         if (cancelled) return
         setState({
@@ -165,20 +203,31 @@ function RidesMapAndList({ rides, center, onOpenRide }) {
 
       <ul className="space-y-2">
         {rides.map((r) => (
-          <li key={r.id}>
+          <li key={`${r.kind || 'recorded'}-${r.id}`}>
             <button
               onClick={() => onOpenRide && onOpenRide(r)}
               className="flex w-full items-start gap-3 rounded border border-hd-border bg-hd-dark p-3 text-left transition hover:border-hd-orange"
             >
               <div className="flex-1">
-                <div className="font-display text-base tracking-wider text-hd-text">
-                  {r.title || 'Untitled ride'}
+                <div className="flex items-center gap-2">
+                  <SourceBadge kind={r.kind} />
+                  <div className="font-display text-base tracking-wider text-hd-text">
+                    {r.title || 'Untitled ride'}
+                  </div>
                 </div>
                 <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-hd-muted">
                   <span>{formatDistance(r.distance_m || 0)}</span>
                   <span>{formatDuration(r.duration_seconds || 0)}</span>
                   {r.bike_label && <span>· {r.bike_label}</span>}
                   <span>· by {r.display_name}</span>
+                  {r.kind === 'suggested' && r.ratingCount > 0 && (
+                    <span className="text-hd-orange">
+                      · ★ {r.ratingAvg?.toFixed(1)} ({r.ratingCount})
+                    </span>
+                  )}
+                  {r.kind === 'suggested' && r.difficulty && (
+                    <span>· {r.difficulty}</span>
+                  )}
                 </div>
                 {r.tags && r.tags.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
@@ -300,16 +349,21 @@ function drawRides(L, map, rides, layersRef) {
       .filter(Boolean)
     if (pts.length < 2) continue
 
+    // Visual provenance: curated routes use a slightly cooler accent
+    // and a dashed line; recorded rides keep the solid HD orange.
+    // Both still pop on the dark tile layer.
+    const isCurated = r.kind === 'suggested'
     const polyline = L.polyline(pts, {
-      color: '#E03A36',
-      weight: 4,
+      color: isCurated ? '#F59E0B' : '#E03A36',
+      weight: isCurated ? 3.5 : 4,
       opacity: 0.85,
+      dashArray: isCurated ? '8 6' : null,
       lineCap: 'round',
       lineJoin: 'round'
     })
       .addTo(map)
       .bindTooltip(
-        `${r.title || 'Untitled'} · ${Math.round((r.distance_m || 0) / 1000)} km`,
+        `${isCurated ? '★ ' : ''}${r.title || 'Untitled'} · ${Math.round((r.distance_m || 0) / 1000)} km`,
         { permanent: false, direction: 'top' }
       )
 
@@ -321,7 +375,7 @@ function drawRides(L, map, rides, layersRef) {
     const mid = pts[Math.floor(pts.length / 2)]
     const marker = L.circleMarker(mid, {
       radius: 5,
-      color: '#E03A36',
+      color: isCurated ? '#F59E0B' : '#E03A36',
       fillColor: '#0E0E10',
       fillOpacity: 1,
       weight: 2
@@ -350,6 +404,25 @@ function getCurrentPosition() {
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
     )
   })
+}
+
+// Visual marker so riders can tell at a glance whether a route is an
+// authentic GPS recording from another rider, or an admin-curated
+// "iconic ride" seeded into the platform. Both are first-class — the
+// badge isn't a quality signal, it's a provenance signal.
+function SourceBadge({ kind }) {
+  if (kind === 'suggested') {
+    return (
+      <span className="rounded bg-hd-orange/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-hd-orange">
+        Curated
+      </span>
+    )
+  }
+  return (
+    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-hd-muted">
+      Ridden
+    </span>
+  )
 }
 
 function CompassIcon() {
