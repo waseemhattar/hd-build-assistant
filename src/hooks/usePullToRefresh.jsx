@@ -67,6 +67,14 @@ export default function usePullToRefresh(onRefresh, opts = {}) {
       }
       const dy = (e.touches?.[0]?.clientY ?? 0) - startYRef.current
       if (dy > 0) {
+        // Suppress the iOS rubber-band overscroll while the user is
+        // pulling down at the top. Without this, WKWebView "owns" the
+        // gesture, the page bounces, and our spinner never sees the
+        // full drag distance — making the feature look broken even
+        // though the listener fires. The touchmove listener below is
+        // attached with { passive: false } specifically so this call
+        // is allowed.
+        if (e.cancelable) e.preventDefault()
         setPullDistance(Math.min(dy, threshold * 1.5))
       }
     }
@@ -86,12 +94,18 @@ export default function usePullToRefresh(onRefresh, opts = {}) {
       }
     }
 
+    // touchstart / touchend stay passive — no preventDefault needed,
+    // and passive listeners are cheaper on iOS. touchmove is the only
+    // one that must be non-passive: it needs to call preventDefault()
+    // when the user is actively pulling at the top so WKWebView's
+    // rubber-band doesn't eat the gesture.
+    const moveOpts = { passive: false }
     target.addEventListener('touchstart', onTouchStart, { passive: true })
-    target.addEventListener('touchmove', onTouchMove, { passive: true })
+    target.addEventListener('touchmove', onTouchMove, moveOpts)
     target.addEventListener('touchend', onTouchEnd, { passive: true })
     return () => {
       target.removeEventListener('touchstart', onTouchStart)
-      target.removeEventListener('touchmove', onTouchMove)
+      target.removeEventListener('touchmove', onTouchMove, moveOpts)
       target.removeEventListener('touchend', onTouchEnd)
     }
   }, [onRefresh, threshold, pullDistance, refreshing, attachToWindow])
@@ -123,7 +137,7 @@ export default function usePullToRefresh(onRefresh, opts = {}) {
 
   const indicator = attachToWindow ? (
     <div
-      className="pointer-events-none fixed inset-x-0 z-30 flex items-center justify-center overflow-hidden text-hd-orange"
+      className="pointer-events-none fixed inset-x-0 z-[60] flex items-center justify-center overflow-hidden text-hd-orange"
       style={{
         top: 'env(safe-area-inset-top, 0px)',
         height: refreshing ? 36 : pullDistance,

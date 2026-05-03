@@ -90,7 +90,16 @@ export function setStorageUser(userId) {
 
   if (currentUserId && isSupabaseConfigured()) {
     Promise.resolve()
-      .then(() => pullFromServer())
+      // The first pull after sign-in is ALWAYS a full pull. An
+      // incremental pull filters by .gte('updated_at', cursor), and
+      // a cursor saved by a previous session can be ahead of any
+      // bike whose row is no longer in the local cache (e.g. cache
+      // was cleared, or a sync error wiped it). Without forceFull
+      // here, those rows stay invisible until pull-to-refresh runs.
+      // The cost is one full table read per sign-in — bikes,
+      // service_entries, builds, mods all remain small enough that
+      // this is sub-100KB across the wire.
+      .then(() => pullFromServer({ forceFull: true }))
       .catch((e) => console.warn('pullFromServer threw', e))
       .finally(() => {
         initialPullPending = false
@@ -347,6 +356,83 @@ export function deriveModelCode(model) {
   if (!model) return ''
   const m = String(model).match(/^([A-Z][A-Z0-9]+)\b/)
   return m ? m[1] : ''
+}
+
+// ---------- notifications (migration 016) ----------
+//
+// Lightweight inbox API. Notifications are persisted server-side; we
+// don't cache them locally yet (volume is low and they're useless
+// offline anyway — they reference state changes the user needs to
+// see fresh). Keep this design intentionally simple until volume
+// or latency demands more.
+
+// Fetch up to 50 most recent notifications for the signed-in user,
+// optionally filtered to unread. Returns [] on any error so callers
+// can `.length`-check without try/catch.
+export async function fetchNotifications({ unreadOnly = false } = {}) {
+  if (!isSupabaseConfigured()) return []
+  try {
+    const supabase = getSupabaseClient()
+    let q = supabase
+      .from('notifications')
+      .select('id, kind, payload, read_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (unreadOnly) q = q.is('read_at', null)
+    const { data, error } = await q
+    if (error) {
+      console.warn('fetchNotifications', error.message || error)
+      return []
+    }
+    return Array.isArray(data) ? data : []
+  } catch (e) {
+    console.warn('fetchNotifications threw', e?.message || e)
+    return []
+  }
+}
+
+// Mark a single notification as read. Idempotent. RPC writes server-side
+// timestamp so all devices observe the same read state on next pull.
+export async function markNotificationRead(id) {
+  if (!id || !isSupabaseConfigured()) return
+  try {
+    const supabase = getSupabaseClient()
+    const { error } = await supabase.rpc('mark_notification_read', { p_id: id })
+    if (error) console.warn('markNotificationRead', error.message || error)
+  } catch (e) {
+    console.warn('markNotificationRead threw', e?.message || e)
+  }
+}
+
+// Privacy-safe VIN pre-flight (migration 015). Returns one of:
+//   'available'            — go ahead, you can add this bike
+//   'available_to_reclaim' — caller previously archived this VIN; the
+//                            upsert path will revive that historic row,
+//                            keeping its mods + service entries intact
+//   'already_in_garage'    — caller already has this VIN in their garage
+//   'owned_by_other'       — another rider has actively claimed this VIN;
+//                            caller should NOT add it (no name leaked)
+//
+// Returns null on any client/network error so the UI can fall back to
+// "let the server enforce on submit" rather than blocking on a transient.
+export async function checkVinAvailability(vin) {
+  if (!vin || !String(vin).trim()) return 'available'
+  if (!isSupabaseConfigured()) return null
+  try {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.rpc(
+      'check_vin_availability_safe',
+      { p_vin: String(vin).trim() }
+    )
+    if (error) {
+      console.warn('checkVinAvailability rpc error', error.message || error)
+      return null
+    }
+    return typeof data === 'string' ? data : null
+  } catch (e) {
+    console.warn('checkVinAvailability threw', e?.message || e)
+    return null
+  }
 }
 
 export function addBike(input) {
@@ -1214,60 +1300,59 @@ async function applyOp(supabase, op) {
         created_at: b.createdAt,
         updated_at: b.updatedAt
       }
-      let { error } = await supabase
-        .from('garage_bikes')
-        .upsert(row, { onConflict: 'id' })
-      // Self-heal a VIN collision: if Postgres rejects the upsert
-      // because another active row already claims this VIN AND that
-      // row belongs to the same user, that other row is a stale
-      // duplicate from an earlier sync. Delete it (RLS allows owner
-      // delete) and retry. If the conflicting row belongs to a
-      // DIFFERENT user, we don't touch it — that's the cross-user
-      // transfer flow and surfaces as an error to the UI.
-      if (error && /23505|active_vin_unique/i.test(error.message || '') && row.vin) {
-        const { data: dupes } = await supabase
-          .from('garage_bikes')
-          .select('id, auth_user_id')
-          .eq('vin', row.vin)
-          .is('archived_at', null)
-        const ownDupes = (dupes || []).filter(
-          (d) => d.auth_user_id === currentUserId && d.id !== row.id
-        )
-        if (ownDupes.length > 0) {
-          await supabase
-            .from('garage_bikes')
-            .delete()
-            .in('id', ownDupes.map((d) => d.id))
-          const retry = await supabase
-            .from('garage_bikes')
-            .upsert(row, { onConflict: 'id' })
-          error = retry.error
+      // All bike upserts go through the SECURITY DEFINER RPC
+      // `claim_or_revive_bike` (migration 015). It atomically:
+      //   - rejects with hint='owned_by_other' if another rider has
+      //     this VIN actively claimed
+      //   - rejects with hint='already_in_garage' if the caller already
+      //     has this VIN under a different id (local cache out of sync)
+      //   - revives the caller's previously-archived row for this VIN
+      //     (preserving its mods + service history — the per-VIN ledger)
+      //   - otherwise upserts by id like a normal write
+      //
+      // The OLD client-side flow did a destructive "delete-the-dupe-then-
+      // retry-insert" pattern on 23505 collisions, which on 2026-05-03
+      // wiped a real bike when the retry never landed. Never again.
+      const { data: activeId, error } = await supabase.rpc(
+        'claim_or_revive_bike',
+        { p_bike: row }
+      )
+      if (error) {
+        const hint = String(error.hint || error.details || error.message || '')
+        if (hint.includes('owned_by_other')) {
+          const e = new Error('VIN_OWNED_BY_OTHER')
+          e.code = 'VIN_OWNED_BY_OTHER'
+          throw e
         }
+        if (hint.includes('already_in_garage')) {
+          const e = new Error('VIN_ALREADY_IN_GARAGE')
+          e.code = 'VIN_ALREADY_IN_GARAGE'
+          throw e
+        }
+        throw error
       }
-      if (error) throw error
+      // If the RPC revived a previously-archived row, the active id
+      // differs from what the client wrote with. Log it; the next pull
+      // brings the canonical row in and the existing localIdToUuid /
+      // rewriteLocalParentRefs path reconciles the local cache.
+      if (activeId && activeId !== row.id) {
+        console.info(
+          `[bikes] revived archived row: local ${row.id} → server ${activeId}`
+        )
+      }
       return
     }
     case 'deleteBike': {
-      // Hard delete by id (RLS lets the owner do this).
-      const { error } = await supabase
-        .from('garage_bikes')
-        .delete()
-        .eq('id', localIdToUuid(op.id))
+      // Soft-detach via SECURITY DEFINER RPC (migration 015). Sets
+      // archived_at = now() server-side and writes a deletions-log
+      // row so peers prune their local cache via the existing sync
+      // path. The bike's mods + service entries stay attached for
+      // the per-VIN ledger; if this rider re-adds the same VIN later,
+      // claim_or_revive_bike() reconnects them.
+      const { error } = await supabase.rpc('detach_bike', {
+        p_id: localIdToUuid(op.id)
+      })
       if (error) throw error
-      // Belt-and-suspenders: if a VIN was attached to the op,
-      // also scrub any other rows owned by the same user that
-      // claim the same active VIN. Catches stale duplicates from
-      // a prior failed sync that would otherwise re-collide on
-      // the partial unique-VIN index when the rider re-adds the
-      // bike.
-      if (op.vin) {
-        await supabase
-          .from('garage_bikes')
-          .delete()
-          .eq('vin', op.vin)
-          .eq('auth_user_id', currentUserId)
-          .is('archived_at', null)
-      }
       clearTombstone('bikes', op.id)
       return
     }
@@ -1520,7 +1605,24 @@ async function pullFromServer({ forceFull = false } = {}) {
     )
   }
   const deletions = Array.isArray(dels) ? dels : []
-  // Index deletions by table for O(1) lookup during local cleanup.
+
+  // Build "alive" sets per table — server ids the row queries above
+  // returned in this same pull. Used to suppress deletions for rows
+  // that were "resurrected" (delete trigger fired, then a new row
+  // was inserted with the same id soon after — most often by the
+  // VIN-collision self-heal in applyOp's upsertBike, which hard-
+  // deletes the old row and re-creates it). Without this filter,
+  // pruneDeleted would remove the just-merged row from local cache
+  // and the rider sees their bike disappear right after it appears.
+  const aliveIds = {
+    garage_bikes: new Set((bikes || []).map((r) => r.id)),
+    service_entries: new Set((entries || []).map((r) => r.id)),
+    bike_builds: new Set((builds || []).map((r) => r.id)),
+    bike_mods: new Set((mods || []).map((r) => r.id))
+  }
+
+  // Index deletions by table for O(1) lookup during local cleanup,
+  // skipping any row id that's also in the alive set for that table.
   const deletedIds = {
     garage_bikes: new Set(),
     service_entries: new Set(),
@@ -1528,6 +1630,8 @@ async function pullFromServer({ forceFull = false } = {}) {
     bike_mods: new Set()
   }
   for (const d of deletions) {
+    const alive = aliveIds[d.table_name]
+    if (alive && alive.has(d.row_id)) continue // resurrected — keep it
     if (deletedIds[d.table_name]) deletedIds[d.table_name].add(d.row_id)
   }
 
@@ -1581,12 +1685,18 @@ async function pullFromServer({ forceFull = false } = {}) {
   // *translated* uuid (localIdToUuid) so a local-id row and its server copy
   // collapse into one entry instead of showing as duplicates. Local rows
   // still "win" on conflict so the queue's in-flight writes aren't clobbered.
+  //
+  // `wantsFull` is passed through so the merge knows whether absence on the
+  // server means "deleted" (full pull saw the whole table) or "unchanged
+  // since cursor" (incremental pull only fetched .gte(updated_at)). Without
+  // this, an incremental pull would drop every uuid-id row that didn't
+  // happen to be updated in the cursor window.
   const existingBikes = getGarage()
-  const mergedBikes = mergeByTranslatedId(localBikes, existingBikes)
+  const mergedBikes = mergeByTranslatedId(localBikes, existingBikes, wantsFull)
   write(garageKey(), mergedBikes)
 
   const existingEntries = getAllServiceEntries()
-  const mergedEntries = mergeByTranslatedId(localEntries, existingEntries)
+  const mergedEntries = mergeByTranslatedId(localEntries, existingEntries, wantsFull)
   write(logKey(), mergedEntries)
 
   const localBuilds = filteredBuilds.map((r) => ({
@@ -1600,7 +1710,7 @@ async function pullFromServer({ forceFull = false } = {}) {
     updatedAt: r.updated_at
   }))
   const existingBuilds = getAllBuilds()
-  const mergedBuilds = mergeByTranslatedId(localBuilds, existingBuilds)
+  const mergedBuilds = mergeByTranslatedId(localBuilds, existingBuilds, wantsFull)
   write(buildsKey(), mergedBuilds)
 
   const localMods = filteredMods.map((r) => ({
@@ -1624,7 +1734,7 @@ async function pullFromServer({ forceFull = false } = {}) {
     updatedAt: r.updated_at
   }))
   const existingMods = getAllMods()
-  const mergedMods = mergeByTranslatedId(localMods, existingMods)
+  const mergedMods = mergeByTranslatedId(localMods, existingMods, wantsFull)
   write(modsKey(), mergedMods)
 
   // Self-heal step 1: if any child rows (mods/builds/entries) reference a
@@ -1873,13 +1983,21 @@ function hasPendingWriteFor(uuid) {
 // the local-id forever and any children of that row (mods pointing at a
 // bike's bikeId, etc.) stay misaligned with the server indefinitely.
 //
-// Authority rule: when a row in the local cache has a *uuid* id (meaning
-// it was previously accepted by the server), and the server did NOT return
-// it in the current pull, and no pending write would re-create it, we drop
-// the local copy. This is how the cache learns about rows deleted elsewhere
-// (another device, Supabase dashboard, etc.). Local-id rows are never
-// dropped — those are unconfirmed writes waiting for the server.
-function mergeByTranslatedId(server, local) {
+// Authority rule (FULL pulls only): when a row in the local cache has a
+// *uuid* id (meaning it was previously accepted by the server), and the
+// server did NOT return it in the current pull, and no pending write would
+// re-create it, we drop the local copy. This is how the cache learns about
+// rows deleted elsewhere (another device, Supabase dashboard, etc.) when
+// the deletions log is unavailable. Local-id rows are never dropped —
+// those are unconfirmed writes waiting for the server.
+//
+// On INCREMENTAL pulls (`isFullPull = false`), absence on the server only
+// means "row hasn't changed since the cursor", NOT "row was deleted". We
+// must NOT drop in that case — deletions on incremental pulls are handled
+// authoritatively by the deletions log (pruneDeleted in pullFromServer).
+// Dropping here would silently delete every untouched row from the cache
+// on every focus/visibility-driven pull.
+function mergeByTranslatedId(server, local, isFullPull = false) {
   const byKey = new Map()
   for (const r of server) byKey.set(localIdToUuid(r.id), r)
   for (const r of local) {
@@ -1894,14 +2012,14 @@ function mergeByTranslatedId(server, local) {
       // (preserves unflushed edits).
       byKey.set(key, r)
     } else {
-      // Server didn't return this row. Two cases:
-      //  1. Local row has a uuid id → it was once accepted by the server,
-      //     so absence on the server means it was deleted elsewhere.
-      //     Drop it, *unless* there's a pending write that would re-create
-      //     it (e.g. a queued upsert that hasn't flushed yet).
-      //  2. Local row has a local-id → it never made it to the server,
-      //     keep it so reconciliation can re-enqueue.
-      if (!isLocalId(r.id) && !hasPendingWriteFor(key)) {
+      // Server didn't return this row. Behavior depends on pull mode:
+      //  - Full pull: absence is authoritative. Drop uuid-id rows with no
+      //    pending write (deleted elsewhere). Keep local-id rows so
+      //    reconciliation can re-enqueue them.
+      //  - Incremental pull: absence just means "unchanged since cursor".
+      //    Always keep the local row. Real deletions arrive via the
+      //    deletions log and are applied by pruneDeleted().
+      if (isFullPull && !isLocalId(r.id) && !hasPendingWriteFor(key)) {
         // Drop. Don't add to byKey.
         continue
       }
