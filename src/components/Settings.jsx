@@ -9,7 +9,11 @@ import {
   clearDeadLetterQueue,
   subscribe as subscribeStorage
 } from '../data/storage.js'
-import { formatTimeAgo } from '../data/userPrefs.js'
+import {
+  formatTimeAgo,
+  formatDate,
+  formatCurrency
+} from '../data/userPrefs.js'
 
 // User Settings page — units of measurement and regional formatting.
 //
@@ -98,7 +102,7 @@ export default function Settings({ onBack }) {
         />
       </Section>
 
-      <Section title="Region" subtitle="Date format, language, currency.">
+      <Section title="Region" subtitle="Date, currency, and number formatting.">
         <SegmentedRow
           label="Date format"
           value={prefs.dateFormat}
@@ -123,7 +127,7 @@ export default function Settings({ onBack }) {
           </select>
         </Row>
 
-        <Row label="Locale">
+        <Row label="Number style">
           <select
             value={prefs.locale}
             onChange={(e) => setPref('locale', e.target.value)}
@@ -136,6 +140,8 @@ export default function Settings({ onBack }) {
             ))}
           </select>
         </Row>
+
+        <RegionPreview prefs={prefs} />
       </Section>
 
       <SyncIssuesSection />
@@ -194,6 +200,69 @@ function Row({ label, children }) {
     <div className="flex flex-col gap-2 rounded-md border border-hd-border bg-hd-dark p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="text-sm text-hd-text">{label}</div>
       <div>{children}</div>
+    </div>
+  )
+}
+
+// Live preview of how the chosen Region settings render an actual
+// date and number. Without this, a rider picking "France" sees no
+// change anywhere and assumes the setting is broken. With this,
+// the preview row updates in place and they can see "2 mai 2026 ·
+// 1 234,56 €" immediately.
+//
+// We also tell the rider explicitly that this isn't a language
+// switch — the app interface is English-only for now. That's the
+// honest framing; the previous "Français/Deutsch" labels implied
+// translation was happening when it wasn't.
+function RegionPreview({ prefs }) {
+  const today = new Date()
+  const sampleAmount = 1234.56
+  let dateStr = '—'
+  let currencyStr = '—'
+  let numberStr = '—'
+  let timeAgoStr = '—'
+  try {
+    dateStr = formatDate(today, { long: true })
+  } catch (_) {}
+  try {
+    currencyStr = formatCurrency(sampleAmount)
+  } catch (_) {}
+  try {
+    numberStr = new Intl.NumberFormat(prefs.locale).format(sampleAmount)
+  } catch (_) {}
+  try {
+    const fiveDaysAgo = new Date(today.getTime() - 5 * 86400000)
+    timeAgoStr = formatTimeAgo(fiveDaysAgo)
+  } catch (_) {}
+
+  return (
+    <div className="rounded-md border border-hd-border bg-hd-black/40 p-4">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-hd-orange">
+        Preview
+      </div>
+      <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+        <div className="flex justify-between gap-3">
+          <dt className="text-hd-muted">Today</dt>
+          <dd className="text-hd-text">{dateStr}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-hd-muted">Number</dt>
+          <dd className="font-mono text-hd-text">{numberStr}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-hd-muted">Currency</dt>
+          <dd className="font-mono text-hd-text">{currencyStr}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-hd-muted">5 days ago</dt>
+          <dd className="text-hd-text">{timeAgoStr}</dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-[11px] leading-relaxed text-hd-muted">
+        Region only changes how dates and numbers are <em>formatted</em>.
+        Sidestand's interface is currently English; full language
+        translation is on the roadmap.
+      </p>
     </div>
   )
 }
@@ -261,22 +330,27 @@ const CURRENCY_OPTIONS = [
   { code: 'ZAR', name: 'South African Rand' }
 ]
 
+// Number/date formatting locales. We label these by COUNTRY rather
+// than language because this isn't a UI translation switch — it
+// only controls how dates and numbers are formatted (1,234.56 vs
+// 1.234,56 etc.). The previous "Français/Deutsch" labels misled
+// riders into thinking the app would translate.
 const LOCALE_OPTIONS = [
-  { code: 'en-US', label: 'English (US)' },
-  { code: 'en-GB', label: 'English (UK)' },
-  { code: 'en-CA', label: 'English (Canada)' },
-  { code: 'en-AU', label: 'English (Australia)' },
-  { code: 'en-IN', label: 'English (India)' },
-  { code: 'fr-FR', label: 'Français' },
-  { code: 'de-DE', label: 'Deutsch' },
-  { code: 'es-ES', label: 'Español' },
-  { code: 'it-IT', label: 'Italiano' },
-  { code: 'nl-NL', label: 'Nederlands' },
-  { code: 'sv-SE', label: 'Svenska' },
-  { code: 'pt-BR', label: 'Português (Brasil)' },
-  { code: 'ja-JP', label: '日本語' },
-  { code: 'zh-CN', label: '中文 (简体)' },
-  { code: 'ar-AE', label: 'العربية' }
+  { code: 'en-US', label: 'United States' },
+  { code: 'en-GB', label: 'United Kingdom' },
+  { code: 'en-CA', label: 'Canada' },
+  { code: 'en-AU', label: 'Australia' },
+  { code: 'en-IN', label: 'India' },
+  { code: 'fr-FR', label: 'France' },
+  { code: 'de-DE', label: 'Germany' },
+  { code: 'es-ES', label: 'Spain' },
+  { code: 'it-IT', label: 'Italy' },
+  { code: 'nl-NL', label: 'Netherlands' },
+  { code: 'sv-SE', label: 'Sweden' },
+  { code: 'pt-BR', label: 'Brazil' },
+  { code: 'ja-JP', label: 'Japan' },
+  { code: 'zh-CN', label: 'China' },
+  { code: 'ar-AE', label: 'United Arab Emirates' }
 ]
 
 
