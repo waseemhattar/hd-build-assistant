@@ -33,4 +33,24 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+
+  # Pin every pod to iOS 16 (matches platform line above) and silence two
+  # build-blocking warnings that come from third-party pod source we don't
+  # control. Without these, Xcode 26's stricter defaults turn the warnings
+  # into errors:
+  #   1. PromisesObjC ships headers with "double-quoted" includes inside a
+  #      modular framework header — Clang warns and CocoaPods escalates it
+  #      to an error. Disabling CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER
+  #      restores the previous behaviour. Source isn't ours; PromisesObjC
+  #      arrives transitively via Firebase / Google Sign-In through
+  #      @capgo/capacitor-social-login.
+  #   2. NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULE is the matching escalation
+  #      for #imports of non-modular headers from inside a framework module.
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+      config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+      config.build_settings['CLANG_WARN_NON_MODULAR_INCLUDE_IN_FRAMEWORK_MODULE'] = 'NO'
+    end
+  end
 end
