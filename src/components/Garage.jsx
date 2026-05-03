@@ -6,6 +6,9 @@ import {
   addBike,
   updateBike,
   removeBike,
+  checkVinAvailability,
+  fetchNotifications,
+  markNotificationRead,
   setBikePublic,
   uploadCoverPhoto,
   uploadUserLogo,
@@ -56,6 +59,9 @@ export default function Garage({
   const [confirmingRemove, setConfirmingRemove] = useState(null)
   const [sharing, setSharing] = useState(null) // bike to share/publish
   const [brandOpen, setBrandOpen] = useState(false) // brand-settings modal
+  // Unread 'bike_claimed_by_other' notifications. We only surface this
+  // kind in Garage — the notifications inbox itself can render others.
+  const [vinClaimAlerts, setVinClaimAlerts] = useState([])
 
   function refresh() {
     setGarage(getGarage())
@@ -67,6 +73,32 @@ export default function Garage({
     const unsub = subscribe(() => setGarage(getGarage()))
     return unsub
   }, [])
+
+  // Pull unread notifications on mount and when the page regains focus.
+  // Keeps the surface proactive without polling: most of the time a
+  // user opens Garage right after foregrounding the app.
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const all = await fetchNotifications({ unreadOnly: true })
+      if (cancelled) return
+      setVinClaimAlerts(
+        all.filter((n) => n.kind === 'bike_claimed_by_other')
+      )
+    }
+    load()
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [])
+
+  async function dismissVinClaimAlert(id) {
+    setVinClaimAlerts((prev) => prev.filter((n) => n.id !== id))
+    await markNotificationRead(id)
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-32 pt-4 sm:px-6 sm:pb-24 sm:pt-8">
@@ -100,6 +132,36 @@ export default function Garage({
           </button>
         </div>
       </header>
+
+      {vinClaimAlerts.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {vinClaimAlerts.map((n) => {
+            const vin = n.payload?.vin || ''
+            const tail = vin ? `…${vin.slice(-6)}` : ''
+            return (
+              <div
+                key={n.id}
+                className="flex items-start gap-3 rounded-md border border-hd-orange/40 bg-hd-orange/10 px-4 py-3 text-sm"
+              >
+                <div className="flex-1 text-hd-text">
+                  <div className="font-semibold">A bike you removed has a new owner</div>
+                  <div className="mt-1 text-[13px] text-hd-muted">
+                    The bike with VIN ending {tail || '—'} is now active in
+                    another rider's garage. Your service history and mods
+                    stay attached to the VIN.
+                  </div>
+                </div>
+                <button
+                  onClick={() => dismissVinClaimAlert(n.id)}
+                  className="shrink-0 rounded border border-hd-border bg-hd-dark px-3 py-1 text-[12px] font-semibold text-hd-muted hover:text-hd-text"
+                >
+                  Got it
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {garage.length === 0 && !editing && (
         <EmptyState
@@ -819,18 +881,50 @@ function BikeEditor({ bike, onCancel, onSave }) {
   const hasYearModel = !!form.year && !!form.model
   const canSave = (vinValid || !!bike) && hasYearModel
 
-  function submit(e) {
+  // Pre-flight VIN error message (set when the safe RPC returns
+  // owned_by_other / already_in_garage). Cleared on every retry.
+  const [vinPreflightError, setVinPreflightError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function submit(e) {
     e.preventDefault()
-    if (!canSave) return
-    const enteredMileage = Number(form.mileage) || 0
-    const milesValue = userMetric
-      ? Math.round(enteredMileage / 1.609344)
-      : enteredMileage
-    onSave({
-      ...form,
-      year: Number(form.year) || null,
-      mileage: milesValue
-    })
+    if (!canSave || submitting) return
+    setSubmitting(true)
+    setVinPreflightError('')
+    try {
+      const enteredMileage = Number(form.mileage) || 0
+      const milesValue = userMetric
+        ? Math.round(enteredMileage / 1.609344)
+        : enteredMileage
+      // Pre-flight VIN check ONLY on add (when there's no existing bike
+      // record). Editing your own bike doesn't need a check; updates
+      // by-id never collide. The RPC is privacy-safe: server returns a
+      // status string only, no other-rider identity is leaked.
+      const normalizedVin = normalizeVin(form.vin)
+      if (!bike && normalizedVin) {
+        const status = await checkVinAvailability(normalizedVin)
+        if (status === 'owned_by_other') {
+          setVinPreflightError(
+            "This bike is already attached to another rider on Sidestand. If you've recently bought it, contact support to request a transfer."
+          )
+          return
+        }
+        if (status === 'already_in_garage') {
+          setVinPreflightError('This bike is already in your garage.')
+          return
+        }
+        // 'available_to_reclaim' falls through — the server-side RPC
+        // will revive the previously-archived row when this upsert runs,
+        // bringing the bike's mods + service history back with it.
+      }
+      onSave({
+        ...form,
+        year: Number(form.year) || null,
+        mileage: milesValue
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -901,6 +995,11 @@ function BikeEditor({ bike, onCancel, onSave }) {
           {scanError && (
             <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
               {scanError}
+            </div>
+          )}
+          {vinPreflightError && (
+            <div className="mt-2 rounded border border-red-500/50 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              {vinPreflightError}
             </div>
           )}
           <VinChip
@@ -1342,14 +1441,16 @@ function ConfirmRemove({ bike, onCancel, onConfirm }) {
         className="w-full max-w-md rounded-md border border-hd-border bg-hd-dark p-5"
       >
         <h2 className="font-display text-xl tracking-wider text-hd-orange">
-          REMOVE BIKE?
+          REMOVE FROM GARAGE?
         </h2>
         <p className="mt-2 text-sm text-hd-muted">
-          This will remove{' '}
+          This removes{' '}
           <span className="text-hd-text">
             {bike.nickname || bike.model || 'this bike'}
           </span>{' '}
-          and its service history. You can't undo this.
+          from your garage. Its service history and mods stay attached
+          to the VIN — if you re-add it later (or buy it back), it all
+          comes with it.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
