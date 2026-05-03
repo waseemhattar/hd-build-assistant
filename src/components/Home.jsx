@@ -90,17 +90,18 @@ export default function Home({
   // pull settles). We deliberately do NOT refetch on every storage tick
   // because that fires on every cache write, which thrashes the
   // network on slower devices like the iPhone WebView.
+  //
+  // Bumped from 4 to 100 so the streak + month stats up top operate on
+  // a real window of data. A power user does maybe 60 rides/month, so
+  // 100 covers ~6-8 weeks back — plenty for streak calculation.
   const [rides, setRides] = useState([])
   const ridesFetchedRef = useRef(false)
   useEffect(() => {
-    // Fetch once when the user is signed in and the initial server
-    // pull has completed — otherwise we'd race ahead and get an
-    // empty list.
     if (ridesFetchedRef.current) return
     if (pullPending) return
     ridesFetchedRef.current = true
     let cancelled = false
-    listRides({ limit: 4 })
+    listRides({ limit: 100 })
       .then((r) => {
         if (!cancelled) setRides(r || [])
       })
@@ -115,9 +116,23 @@ export default function Home({
   const today = useMemo(() => new Date(), [tick])
   const dateLabel = formatDate(today, { long: true })
 
+  // Streak — consecutive days with at least one ride. Same shape as
+  // Strava / Apple Fitness streaks: lapsing for >24h breaks it. We
+  // allow today OR yesterday as the active anchor so the rider's
+  // streak doesn't visibly "die" in the morning before they go ride.
+  const streakDays = useMemo(() => calculateStreak(rides), [rides])
+
+  // Stats strip — distance, ride count, total time for the calendar
+  // month. Computed client-side from the same rides array.
+  const monthStats = useMemo(() => statsForCurrentMonth(rides), [rides])
+
   return (
     <div className="mx-auto max-w-3xl pt-2 sm:pt-6">
-      {/* Today header */}
+      {/* Today header — date + greeting + streak. The streak line is
+          the engagement hook: it changes every day and pulls riders
+          back to keep it alive (Apple Fitness / Duolingo / Strava
+          pattern). When the rider has no streak yet we show a
+          contextual prompt instead of a 0. */}
       <header className="px-5 pb-4 pt-4 sm:px-6">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hd-orange">
           {dateLabel}
@@ -130,63 +145,79 @@ export default function Home({
             ? 'Loading your garage…'
             : garage.length === 0
             ? 'Add your first bike to get rolling.'
-            : `${garage.length} bike${garage.length > 1 ? 's' : ''} ready to roll.`}
+            : streakDays > 0
+            ? <>🔥 <span className="text-hd-text">{streakDays}-day riding streak.</span> Keep it up.</>
+            : rides.length === 0
+            ? 'Take your first ride to start a streak.'
+            : 'Ride today to start a new streak.'}
         </p>
       </header>
 
-      {/* Hero card */}
+      {/* Primary CTA — full-width "Start a ride". Replaces the prior
+          bike-or-ride hero card. The single thing the rider opens the
+          app to do, given top billing. Even on day zero (no garage,
+          no rides), tapping this still works — RideTracker handles
+          the no-bike case and prompts to attach one after. */}
       <div className="px-4 pb-4 sm:px-6">
-        {rides.length > 0 ? (
-          <RideHeroCard
-            ride={rides[0]}
-            garage={garage}
-            onOpenRides={onOpenRides}
-          />
-        ) : garage.length > 0 ? (
-          <BikeHeroCard
-            bike={garage[0]}
-            onOpenServiceBook={onOpenServiceBook}
-          />
-        ) : (
-          <EmptyHeroCard onOpenGarage={onOpenGarage} />
-        )}
+        <button
+          onClick={onStartRide}
+          className="group flex w-full items-center justify-between gap-4 rounded-3xl bg-hd-orange px-5 py-5 text-left text-white transition active:scale-[0.99] sm:px-6 sm:py-6"
+        >
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">
+              Ready to roll
+            </div>
+            <div className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+              Start a ride
+            </div>
+            <div className="mt-1 text-[13px] text-white/80">
+              GPS, weather, and route logged automatically.
+            </div>
+          </div>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/15 transition group-active:scale-95">
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polygon points="6 4 20 12 6 20" fill="currentColor" stroke="none" />
+            </svg>
+          </div>
+        </button>
       </div>
 
-      {/* Quick actions — these are ACTIONS, not nav. Bottom tab bar
-          handles nav (Home / Garage / Rides / Procedures). These four
-          let the rider start something useful in one tap. */}
+      {/* Month stats strip — small but addictive numbers that change
+          visibly whenever the rider does anything. The label uses the
+          actual month name ("MAY" / "JUNE") so the rider sees the
+          rollover on the 1st as a fresh canvas. */}
       <div className="px-4 pb-6 sm:px-6">
-        <div className="grid grid-cols-4 gap-2">
-          <QuickTile
-            label="Start a ride"
-            icon={<IconRide />}
-            tone="primary"
-            onClick={onStartRide}
+        <div className="grid grid-cols-3 gap-2">
+          <MonthStatTile
+            label={`${monthLabel(today)} · DISTANCE`}
+            value={formatDistance(monthStats.distanceM)}
           />
-          <QuickTile
-            label="Log service"
-            icon={<IconWrench />}
-            onClick={() =>
-              onLogService && onLogService(garage[0] || null)
+          <MonthStatTile
+            label={`${monthLabel(today)} · RIDES`}
+            value={
+              monthStats.rideCount === 0
+                ? '0'
+                : `${monthStats.rideCount}`
             }
-            disabled={garage.length === 0}
+            suffix={monthStats.rideCount === 1 ? 'ride' : 'rides'}
           />
-          <QuickTile
-            label="Plan a job"
-            icon={<IconClipboard />}
-            onClick={() => onPlanJob && onPlanJob(garage[0] || null)}
-            disabled={garage.length === 0}
-          />
-          <QuickTile
-            label={garage.length === 0 ? 'Add a bike' : 'Update mileage'}
-            icon={<IconGauge />}
-            onClick={() => {
-              if (garage.length === 0) {
-                onAddBike ? onAddBike() : onOpenGarage()
-              } else {
-                onOpenServiceBook && onOpenServiceBook(garage[0])
-              }
-            }}
+          <MonthStatTile
+            label="TOTAL TIME"
+            value={
+              monthStats.totalSeconds === 0
+                ? '0m'
+                : formatDuration(monthStats.totalSeconds)
+            }
           />
         </div>
       </div>
@@ -257,26 +288,9 @@ export default function Home({
         </Section>
       )}
 
-      {/* Totals footer */}
-      {(rides.length > 0 || garage.length > 0) && (
-        <Section title="Totals" subtitle="A quick look at the numbers.">
-          <div className="grid grid-cols-3 gap-2 p-1">
-            <StatTile
-              label="This month"
-              value={formatDistance(distanceThisMonth(rides))}
-            />
-            <StatTile
-              label="This year"
-              value={formatDistance(distanceThisYear(rides))}
-            />
-            <StatTile
-              label="Garage"
-              value={`${garage.length}`}
-              suffix={garage.length === 1 ? 'bike' : 'bikes'}
-            />
-          </div>
-        </Section>
-      )}
+      {/* Totals footer was here — moved up into the month-stats strip
+          near the top. Year totals + bike count can come back as a
+          smaller summary tile in chunk 4 if useful. */}
 
       <div className="h-6" />
     </div>
@@ -819,4 +833,108 @@ function greetingFor(date) {
 function capitalize(s) {
   if (!s) return s
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+// ============================================================
+// New dashboard helpers (chunk 1)
+// ============================================================
+
+// Number of consecutive days, ending today (or yesterday if today
+// has no ride yet), the rider has logged at least one ride.
+//
+// We allow yesterday as the anchor specifically so the streak
+// doesn't visually "die" before noon — riders who go for an evening
+// commute every day shouldn't see "0-day streak" the moment they
+// open the app in the morning. The streak only resets when an
+// ENTIRE calendar day passes with no ride.
+function calculateStreak(rides) {
+  if (!rides || rides.length === 0) return 0
+  const dayKeys = new Set()
+  for (const r of rides) {
+    const t = r.started_at
+    if (!t) continue
+    dayKeys.add(toDayKey(new Date(t)))
+  }
+  if (dayKeys.size === 0) return 0
+
+  // Anchor: today if there's a ride today, else yesterday if there's
+  // one then. If neither, the streak is broken.
+  const today = startOfDay(new Date())
+  const yesterday = startOfDay(addDays(today, -1))
+  let cursor
+  if (dayKeys.has(toDayKey(today))) cursor = today
+  else if (dayKeys.has(toDayKey(yesterday))) cursor = yesterday
+  else return 0
+
+  let count = 0
+  while (dayKeys.has(toDayKey(cursor))) {
+    count += 1
+    cursor = addDays(cursor, -1)
+  }
+  return count
+}
+
+function toDayKey(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+function startOfDay(d) {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+function addDays(d, n) {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
+}
+
+// Distance / count / total time for the calendar month containing
+// `now`. Computed client-side from the rides array. Bumping
+// listRides() limit upstream means this aggregates over the full
+// month for any reasonable user.
+function statsForCurrentMonth(rides, now = new Date()) {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+  let distanceM = 0
+  let rideCount = 0
+  let totalSeconds = 0
+  for (const r of rides || []) {
+    const t = r.started_at ? new Date(r.started_at).getTime() : 0
+    if (t < monthStart) continue
+    distanceM += r.distance_m || 0
+    rideCount += 1
+    totalSeconds += r.duration_seconds || 0
+  }
+  return { distanceM, rideCount, totalSeconds }
+}
+
+// Short month label ("MAY", "JUNE", "OCT") for the stats strip.
+// Local-month, not UTC, so a rider in Dubai sees the right month at
+// midnight rather than the previous one.
+function monthLabel(date) {
+  return date
+    .toLocaleString(undefined, { month: 'short' })
+    .toUpperCase()
+}
+
+// Stats-strip tile. Smaller and quieter than the BigStat used in the
+// old hero card — these are glanceable, not the headline.
+function MonthStatTile({ label, value, suffix }) {
+  return (
+    <div className="rounded-2xl bg-hd-dark px-3 py-3">
+      <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+        {label}
+      </div>
+      <div className="mt-1 flex items-baseline gap-1">
+        <span className="text-lg font-bold leading-none tracking-tight text-hd-text">
+          {value}
+        </span>
+        {suffix && (
+          <span className="text-[11px] text-hd-muted">{suffix}</span>
+        )}
+      </div>
+    </div>
+  )
 }
