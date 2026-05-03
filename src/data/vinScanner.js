@@ -32,7 +32,11 @@ function loadBarcode() {
 }
 function loadTextRec() {
   if (!textRecPromise) {
-    textRecPromise = import('@capacitor-mlkit/text-recognition')
+    // @capacitor-community/image-to-text wraps Apple Vision text
+    // recognition on iOS and Google ML Kit on Android. The exposed
+    // class is `Ocr`; call `Ocr.detectText({ filename })` to OCR a
+    // local image and get back { textDetections: [{ text, ... }] }.
+    textRecPromise = import('@capacitor-community/image-to-text')
   }
   return textRecPromise
 }
@@ -146,7 +150,7 @@ async function scanVinFromPhoto() {
   }
 
   const { Camera, CameraResultType, CameraSource } = cam
-  const { TextRecognition } = ocr
+  const { Ocr } = ocr
 
   let photo
   try {
@@ -182,15 +186,7 @@ async function scanVinFromPhoto() {
 
   let textResult
   try {
-    // Most plugin versions expose `detectText({ filename })`. Some
-    // earlier ones expose `recognizeText`. Prefer detectText.
-    if (typeof TextRecognition.detectText === 'function') {
-      textResult = await TextRecognition.detectText({ filename: path })
-    } else if (typeof TextRecognition.recognizeText === 'function') {
-      textResult = await TextRecognition.recognizeText({ filename: path })
-    } else {
-      throw new Error('Text recognition API not available')
-    }
+    textResult = await Ocr.detectText({ filename: path })
   } catch (e) {
     return {
       ok: false,
@@ -198,15 +194,13 @@ async function scanVinFromPhoto() {
     }
   }
 
-  // Plugin returns either { matches: [{ text, ... }] } or a flat string.
-  const allText =
-    typeof textResult === 'string'
-      ? textResult
-      : Array.isArray(textResult?.matches)
-      ? textResult.matches.map((m) => m.text || '').join('\n')
-      : Array.isArray(textResult?.lines)
-      ? textResult.lines.map((l) => l.text || '').join('\n')
-      : textResult?.text || ''
+  // Plugin returns { textDetections: [{ text, bottomLeft, ... }, ...] }.
+  // Concatenate every detected text fragment so our VIN regex can
+  // match across line breaks and whitespace.
+  const detections = Array.isArray(textResult?.textDetections)
+    ? textResult.textDetections
+    : []
+  const allText = detections.map((d) => d.text || '').join('\n')
 
   const vin = extractVinFromText(allText)
   if (vin) return { ok: true, vin }
