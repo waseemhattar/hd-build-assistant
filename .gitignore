@@ -11,3 +11,4 @@ dist
 
 # Claude Code's local project notes (per-checkout, not for sharing)
 .claude/
+.env.seed
