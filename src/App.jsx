@@ -23,8 +23,15 @@ import {
   markOnboardingComplete
 } from './data/userPrefs.js'
 import { bikes as bikeCatalog } from './data/bikes.js'
-import { setStorageUser, getUserLogoUrl, subscribe, getBike } from './data/storage.js'
+import {
+  setStorageUser,
+  getUserLogoUrl,
+  subscribe,
+  getBike,
+  forceFullPull
+} from './data/storage.js'
 import { migrateLegacyLocalDataIfNeeded } from './auth/userStorageMigration.js'
+import usePullToRefresh from './hooks/usePullToRefresh.jsx'
 
 // URL → public-bike-slug helper. /b/<slug> is the share-link route.
 function readPublicBikeSlug() {
@@ -227,6 +234,13 @@ function AuthedApp() {
 
   return (
     <div className="min-h-screen bg-hd-black pb-24 text-hd-text sm:pb-0">
+      {/* Global pull-to-refresh — drag down at the top of any page
+          and the spinner runs forceFullPull(), which re-syncs the
+          garage / service log / mods / builds + applies any
+          server-side deletions. The storage subscribe channel pushes
+          fresh data into every mounted component automatically. */}
+      <GlobalPullToRefresh />
+
       <TopNav
         activeSection={activeSection()}
         onNavigate={navigate}
@@ -460,3 +474,23 @@ function AuthedApp() {
   )
 }
 
+
+
+// Global pull-to-refresh — listens at the document level so any
+// page that's scrolled to the top gets the iOS-native "drag down to
+// refresh" gesture. Calls forceFullPull() so the rider sees newly
+// added bikes / service entries from another device, and any
+// server-side deletions get applied immediately.
+function GlobalPullToRefresh() {
+  const { indicator } = usePullToRefresh(
+    async () => {
+      try {
+        await forceFullPull()
+      } catch (e) {
+        console.warn('pull-to-refresh sync failed', e)
+      }
+    },
+    { attachToWindow: true }
+  )
+  return indicator
+}
