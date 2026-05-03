@@ -34,7 +34,8 @@ export default function TopNav({
   const links = [
     { id: 'garage', label: 'My Garage' },
     { id: 'manual', label: 'Service Procedures' },
-    { id: 'rides', label: 'Rides' }
+    { id: 'rides', label: 'Rides' },
+    { id: 'discover', label: 'Discover' }
   ]
 
   return (

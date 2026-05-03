@@ -3,6 +3,7 @@ import {
   listRides,
   getRideDetail,
   deleteRide,
+  setRidePublic,
   formatDistance,
   formatDuration,
   formatSpeed
@@ -225,36 +226,39 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
             </div>
           )}
           {detail && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <button
-                onClick={handleShareClick}
-                className="inline-flex items-center gap-2 rounded-full bg-hd-orange px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
+            <>
+              <CommunityShareToggle ride={detail} />
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  onClick={handleShareClick}
+                  className="inline-flex items-center gap-2 rounded-full bg-hd-orange px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
                 >
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
-                Share ride
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-xs text-hd-muted hover:text-red-400 disabled:opacity-50"
-              >
-                {deleting ? 'Deleting…' : 'Delete ride'}
-              </button>
-            </div>
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                  Share ride
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-xs text-hd-muted hover:text-red-400 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting…' : 'Delete ride'}
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -267,5 +271,68 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
         weather={detail?.weather || ride.weather || null}
       />
     </li>
+  )
+}
+
+
+// Community-share toggle for a single ride. Distinct from the
+// share-card sheet (the orange "Share ride" button which renders a
+// 1080×1920 image to send to friends): this opts the route into the
+// Discover map for nearby riders. Server-side trims the start/end
+// privacy radius before exposing.
+function CommunityShareToggle({ ride }) {
+  const [isPublic, setIsPublic] = useState(!!ride.is_public)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  async function toggle() {
+    if (busy) return
+    setBusy(true)
+    setErr(null)
+    const next = !isPublic
+    setIsPublic(next) // optimistic
+    try {
+      await setRidePublic(ride.id, next)
+    } catch (e) {
+      setIsPublic(!next) // revert on failure
+      setErr(e?.message || 'Could not update share state.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-md border border-hd-border bg-hd-dark p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-hd-text">
+            Share to community
+          </div>
+          <div className="mt-0.5 text-[12px] leading-snug text-hd-muted">
+            Adds this route to the Discover map for riders nearby.
+            The first and last 300 m of the polyline are trimmed
+            server-side so your start and end stay private.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={busy}
+          aria-pressed={isPublic}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition ${
+            isPublic ? 'bg-hd-orange' : 'bg-hd-card'
+          } ${busy ? 'opacity-50' : ''}`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+              isPublic ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+      {err && (
+        <div className="mt-2 text-[11px] text-red-300">{err}</div>
+      )}
+    </div>
   )
 }

@@ -16,6 +16,7 @@ const TABS = [
   { id: 'home', label: 'Home', icon: IconHome },
   { id: 'garage', label: 'Garage', icon: IconGarage },
   { id: 'rides', label: 'Rides', icon: IconRide },
+  { id: 'discover', label: 'Discover', icon: IconCompass },
   { id: 'manual', label: 'Procedures', icon: IconManual }
 ]
 
@@ -27,7 +28,7 @@ export default function BottomTabBar({ activeSection, onNavigate }) {
       aria-label="Primary navigation"
       data-tour-anchor="bottom-tabs"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {TABS.map((t) => {
           const Icon = t.icon
           const active = activeSection === t.id
@@ -97,6 +98,14 @@ function IconManual({ className }) {
       <path d="M4 5a2 2 0 0 1 2-2h11v18H6a2 2 0 0 1-2-2V5z" />
       <path d="M4 19a2 2 0 0 1 2-2h11" />
       <path d="M9 7h5M9 11h5" />
+    </svg>
+  )
+}
+function IconCompass({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <polygon points="14 8 11 13 10 16 13 11" />
     </svg>
   )
 }

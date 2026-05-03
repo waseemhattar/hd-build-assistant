@@ -177,6 +177,60 @@ export async function updateRide(rideId, patch) {
   return data
 }
 
+// Toggle a ride's public-share state. Sharing turns the ride into a
+// nearby-discoverable route for other Sidestand riders. The route is
+// privacy-trimmed server-side (first/last share_radius_m of the
+// polyline are clipped) so the rider's start/end coordinates aren't
+// exposed in the public payload.
+//
+// Pass extras like share_name + tags to enrich the listing card.
+export async function setRidePublic(rideId, isPublic, extras = {}) {
+  const patch = {
+    is_public: !!isPublic,
+    ...(extras.share_name !== undefined ? { share_name: extras.share_name || null } : {}),
+    ...(extras.tags !== undefined ? { tags: extras.tags || [] } : {}),
+    ...(extras.share_radius_m !== undefined
+      ? { share_radius_m: extras.share_radius_m }
+      : {})
+  }
+  return updateRide(rideId, patch)
+}
+
+// Discover-feature query: rides shared by other riders whose route
+// bounding box intersects a circle of `radiusKm` around the given
+// location. Returns the privacy-trimmed shape from the
+// nearby_public_rides RPC (no raw start/end coordinates).
+export async function listNearbyPublicRides({
+  lat,
+  lng,
+  radiusKm = 50,
+  limit = 100
+}) {
+  const sb = getSupabaseClient()
+  const { data, error } = await sb.rpc('nearby_public_rides', {
+    p_center_lat: Number(lat),
+    p_center_lng: Number(lng),
+    p_radius_km: Number(radiusKm),
+    p_limit: Number(limit)
+  })
+  if (error) throw error
+  // Normalize shape for the UI. The RPC's `route_public` is a JSONB
+  // array of [lat, lng, ts_ms?, speed?] tuples; expose it as `route`
+  // so the same rendering helpers used elsewhere work unchanged.
+  return (data || []).map((r) => ({
+    id: r.id,
+    title: r.share_name,
+    tags: r.tags || [],
+    started_at: r.started_at,
+    duration_seconds: r.duration_seconds,
+    distance_m: r.distance_m,
+    weather: r.weather,
+    display_name: r.display_name,
+    bike_label: r.bike_label,
+    route: r.route_public || []
+  }))
+}
+
 // ---------- formatting ----------
 //
 // These are kept as thin wrappers for callers that already pass an

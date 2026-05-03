@@ -6,6 +6,7 @@ import Walkthrough from './components/Walkthrough.jsx'
 import JobCardDetail from './components/JobCardDetail.jsx'
 import RidesPage from './components/RidesPage.jsx'
 import RideTracker from './components/RideTracker.jsx'
+import Discover from './components/Discover.jsx'
 import Garage from './components/Garage.jsx'
 import ServiceBook from './components/ServiceBook.jsx'
 import Home from './components/Home.jsx'
@@ -196,6 +197,7 @@ function AuthedApp() {
       return 'manual'
     }
     if (view === 'rides' || view === 'ride-tracker') return 'rides'
+    if (view === 'discover') return 'discover'
     return null
   }
 
@@ -226,6 +228,10 @@ function AuthedApp() {
       // a "+ Start a ride" button that pushes view to 'ride-tracker'.
       setGarageBike(null)
       setView('rides')
+    } else if (section === 'discover') {
+      // Discover is global — community rides nearby. No bike scope.
+      setGarageBike(null)
+      setView('discover')
     } else {
       setGarageBike(null)
       setView('home')
@@ -360,6 +366,17 @@ function AuthedApp() {
         <RideTracker
           onBack={() => setView('rides')}
           onSaved={() => setView('rides')}
+        />
+      )}
+
+      {view === 'discover' && (
+        <Discover
+          onBack={() => navigate('home')}
+          onOpenRide={() => {
+            // Phase 1 — tapping a community ride opens the same
+            // detail card. Wishlist + "ride this route" come in
+            // a later phase.
+          }}
         />
       )}
 
