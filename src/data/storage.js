@@ -145,39 +145,66 @@ function deadLetterKey() {
 }
 
 // High-water mark per user — the most recent `updated_at` we've seen
-// for each synced table. Subsequent pulls filter with .gte() so we
-// only re-download rows that actually changed since the last sign-in
-// or device wake. A 5-year power user with thousands of service
-// entries pays the full-pull cost ONCE, then ~kilobytes per pull
-// after that.
+// for each synced table, plus a separate cursor for hard-delete
+// events captured by the server-side `deletions` log (migration 013).
+// Subsequent pulls filter with .gte()/.gt() so we only re-download
+// rows that actually changed since the last sign-in or device wake.
+// A 5-year power user with thousands of service entries pays the
+// full-pull cost ONCE, then ~kilobytes per pull after that.
+//
+// Cursor schema is versioned. Bump PULL_CURSOR_VERSION when the
+// cursor's shape changes (or when a code change requires every
+// client to do a one-time full re-pull, e.g. a new column was added
+// to a synced table that older cursors don't know to ignore). The
+// version is stored on the cursor itself; on read, a mismatched
+// version is treated as "no cursor" and the next pull goes full.
+const PULL_CURSOR_VERSION = 2
+
 function pullCursorKey() {
-  return currentUserId
-    ? `hd-ba:${currentUserId}:pull-cursor:v1`
-    : 'hd-ba:pull-cursor:v1'
+  // User-scoped key. Sign-out clears currentUserId; sign-in as a
+  // different user gets a different cursor key, so cursors never
+  // leak across accounts on a shared device. The version is in the
+  // key too so cursors written by an older app version are
+  // automatically ignored.
+  const u = currentUserId || 'anon'
+  return `hd-ba:${u}:pull-cursor:v${PULL_CURSOR_VERSION}`
+}
+
+function emptyPullCursor() {
+  return {
+    version: PULL_CURSOR_VERSION,
+    bikes: null,
+    entries: null,
+    builds: null,
+    mods: null,
+    deletionsAt: null,
+    fullSyncAt: null
+  }
 }
 
 function readPullCursor() {
-  return (
-    read(pullCursorKey(), null) || {
-      bikes: null,
-      entries: null,
-      builds: null,
-      mods: null,
-      fullSyncAt: null
-    }
-  )
+  // Defensive: never read a cursor without a real user id, even if
+  // some caller invokes us mid-sign-out. Returning an empty cursor
+  // forces the next pull to behave like a first pull.
+  if (!currentUserId) return emptyPullCursor()
+  const c = read(pullCursorKey(), null)
+  if (!c || c.version !== PULL_CURSOR_VERSION) return emptyPullCursor()
+  return c
 }
 function writePullCursor(c) {
+  // Same guard. Don't persist anonymous cursors — they have nothing
+  // useful to save (no auth, no pull) and would only clutter
+  // localStorage on shared devices.
+  if (!currentUserId) return
   write(pullCursorKey(), c)
 }
 
-// Hard deletions can't be surfaced via "updated_at > cursor" — the
-// row is gone, so it has no updated_at. We compensate by forcing a
-// full reconciliation pull periodically. 30 days is the sweet spot:
-// frequent enough that "I deleted this on phone B" eventually
-// converges on phone A, infrequent enough that the bandwidth cost
-// is negligible. A user can also sign out / sign back in to force
-// a fresh full pull.
+// Periodic full pull serves as a safety net for any divergence the
+// incremental + deletions cursors miss (rare server-side schema
+// changes, dropped trigger, manual DB edits). 30 days is far enough
+// out that bandwidth is negligible but tight enough that a stale
+// device doesn't carry inconsistencies forever. Users can also call
+// forceFullPull() to converge on demand.
 const FULL_SYNC_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
 
 // How many times we'll retry a failing sync op before giving up and
@@ -1455,20 +1482,53 @@ async function pullFromServer({ forceFull = false } = {}) {
     return q
   }
 
+  // Deletions log query — runs alongside the table queries. We
+  // ALWAYS pull deletions incrementally (no full-mode shortcut)
+  // because the deletions table only contains delta info; full
+  // mode for the row tables already reconciles via row-absence.
+  const deletionsQuery = supabase
+    .from('deletions')
+    .select('table_name, row_id, deleted_at')
+    .eq('user_id', myAuthUserId)
+    .gt('deleted_at', cursor.deletionsAt || '1970-01-01T00:00:00Z')
+    .order('deleted_at', { ascending: true })
+
   const [
     { data: bikes, error: bErr },
     { data: entries, error: eErr },
     { data: builds, error: buErr },
-    { data: mods, error: mErr }
+    { data: mods, error: mErr },
+    { data: dels, error: dErr }
   ] = await Promise.all([
     tableQuery('garage_bikes', cursor.bikes),
     tableQuery('service_entries', cursor.entries),
     tableQuery('bike_builds', cursor.builds),
-    tableQuery('bike_mods', cursor.mods)
+    tableQuery('bike_mods', cursor.mods),
+    deletionsQuery
   ])
   if (bErr || eErr || buErr || mErr) {
     console.warn('pull failed', bErr || eErr || buErr || mErr)
     return
+  }
+  // Deletions log is best-effort: a fresh Supabase project pre-013
+  // won't have it. Log + continue — periodic full sync will catch
+  // up via row absence.
+  if (dErr) {
+    console.warn(
+      'deletions log unavailable; relying on periodic full sync',
+      dErr.message || dErr
+    )
+  }
+  const deletions = Array.isArray(dels) ? dels : []
+  // Index deletions by table for O(1) lookup during local cleanup.
+  const deletedIds = {
+    garage_bikes: new Set(),
+    service_entries: new Set(),
+    bike_builds: new Set(),
+    bike_mods: new Set()
+  }
+  for (const d of deletions) {
+    if (deletedIds[d.table_name]) deletedIds[d.table_name].add(d.row_id)
   }
 
   // Suppress server rows that we locally deleted but haven't flushed yet.
@@ -1592,23 +1652,59 @@ async function pullFromServer({ forceFull = false } = {}) {
     reconcileLocalOnlyWrites(localBikes, localEntries, localBuilds, localMods)
   }
 
+  // Apply the deletions log: rows that were hard-deleted on another
+  // device. We remove them from the local cache so the next render
+  // doesn't show stale entries. The merge functions above can't see
+  // these because the rows are gone server-side and never come back
+  // in the row-table queries.
+  function pruneDeleted(rows, idSet, kind) {
+    if (idSet.size === 0) return rows
+    const before = rows.length
+    const next = rows.filter((r) => !idSet.has(localIdToUuid(r.id)))
+    if (next.length !== before) {
+      console.info(
+        `applied ${before - next.length} server-side deletion(s) to ${kind}`
+      )
+    }
+    return next
+  }
+  if (deletedIds.garage_bikes.size > 0) {
+    write(garageKey(), pruneDeleted(getGarage(), deletedIds.garage_bikes, 'bikes'))
+  }
+  if (deletedIds.service_entries.size > 0) {
+    write(
+      logKey(),
+      pruneDeleted(getAllServiceEntries(), deletedIds.service_entries, 'entries')
+    )
+  }
+  if (deletedIds.bike_builds.size > 0) {
+    write(
+      buildsKey(),
+      pruneDeleted(getAllBuilds(), deletedIds.bike_builds, 'builds')
+    )
+  }
+  if (deletedIds.bike_mods.size > 0) {
+    write(modsKey(), pruneDeleted(getAllMods(), deletedIds.bike_mods, 'mods'))
+  }
+
   // Advance the high-water mark per table to the latest updated_at we
   // saw in the response. We do NOT advance to "now" because clock skew
   // between the device and server could swallow a row written during
   // the pull window. Taking the row-level max means the next pull's
   // .gte() catches everything we haven't already merged.
-  function maxUpdatedAt(rows, current) {
+  function maxTimestamp(rows, field, current) {
     let max = current || ''
     for (const r of rows || []) {
-      const t = r.updated_at || r.created_at || ''
+      const t = r[field] || ''
       if (t > max) max = t
     }
     return max || current
   }
-  cursor.bikes = maxUpdatedAt(filteredBikes, cursor.bikes)
-  cursor.entries = maxUpdatedAt(filteredEntries, cursor.entries)
-  cursor.builds = maxUpdatedAt(filteredBuilds, cursor.builds)
-  cursor.mods = maxUpdatedAt(filteredMods, cursor.mods)
+  cursor.bikes = maxTimestamp(filteredBikes, 'updated_at', cursor.bikes)
+  cursor.entries = maxTimestamp(filteredEntries, 'updated_at', cursor.entries)
+  cursor.builds = maxTimestamp(filteredBuilds, 'updated_at', cursor.builds)
+  cursor.mods = maxTimestamp(filteredMods, 'updated_at', cursor.mods)
+  cursor.deletionsAt = maxTimestamp(deletions, 'deleted_at', cursor.deletionsAt)
   if (wantsFull) cursor.fullSyncAt = new Date().toISOString()
   writePullCursor(cursor)
 
