@@ -308,3 +308,49 @@ voice we landed on in the in-app rewrite:
   bursts.
 - **No jargon.** "VIN" is fine (riders know it). "Per-VIN scoping" is
   not.
+
+---
+
+## Test account for Apple Review
+
+When submitting to App Store Review, provide a test account with pre-populated
+content so reviewers see real data instead of an empty garage.
+
+### Running the seed script
+
+```bash
+# Set your Supabase credentials (from Dashboard → Project Settings → API)
+export SUPABASE_URL=https://<ref>.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Run the seed script
+node scripts/seed-test-account.mjs reviewer@apple.com temppassword123
+```
+
+The script creates a fully-seeded account with:
+- **2 bikes** (1 public, 1 private) — real specs and placeholder photos
+- **2 public rides** — synthetic GPS routes (~35km and ~12km loops in LA area) with tags and share info
+- **5 service entries** — oil changes, brake pads, air filter, spark plugs, fork seals
+- **3 mods** — 2 installed (exhaust, sissy bar), 1 planned (cam upgrade)
+
+The script is idempotent — running it twice on the same email is safe; it skips
+existing rows by natural key (VIN, started_at, mod title).
+
+### Pasting into App Store Connect
+
+In **App Store Connect → App Review Information → Demo Account**:
+
+```
+Email: reviewer@apple.com
+Password: temppassword123
+
+This test account is pre-populated with:
+• 2 motorcycles (a 2020 Street Glide and 2022 CVO)
+• Service history (oil changes, brake service, filters)
+• Ride tracking (2 recorded rides, one public for Discover)
+• Mods and builds (exhaust, rider comfort upgrades, planned engine work)
+
+The public bike and public ride are visible without sign-in via the bike's
+public page and Discover surface (search LA area). Private content is visible
+only after signing in with these credentials.
+```
