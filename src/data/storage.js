@@ -138,6 +138,19 @@ function jobCardsKey() {
     : 'hd-ba:jobCards:v1'
 }
 
+function deadLetterKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:dead-letter:v1`
+    : 'hd-ba:dead-letter:v1'
+}
+
+// How many times we'll retry a failing sync op before giving up and
+// shunting it to the dead-letter queue. Keeps a single bad row from
+// blocking every subsequent write for the user (the "poison pill"
+// problem). Tuned so transient network/server hiccups still resolve
+// before we declare the op permanently broken.
+const MAX_SYNC_RETRIES = 5
+
 // User-level brand prefs (e.g. a custom logo URL the user has uploaded).
 // Stored locally for now; when we build a real `user_profile` table in
 // Supabase later, swap these two functions to talk to it. Call sites
@@ -964,6 +977,7 @@ async function flushQueue() {
   flushInFlight = (async () => {
     const supabase = getSupabaseClient()
     let q = readQueue()
+    let movedToDLQ = false
     while (q.length > 0) {
       const op = q[0]
       try {
@@ -971,9 +985,52 @@ async function flushQueue() {
         q.shift()
         writeQueue(q)
       } catch (e) {
-        console.warn('sync op failed, will retry', op.op, e?.message || e)
-        return // leave the op at the head of the queue, stop flushing
+        // Track per-op retry count + last error so the queue head
+        // can age toward the dead-letter rather than block forever.
+        const retries = (op.retries || 0) + 1
+        const errorMsg = String(e?.message || e || 'unknown')
+        op.retries = retries
+        op.lastError = errorMsg
+        op.lastFailedAt = new Date().toISOString()
+
+        if (retries >= MAX_SYNC_RETRIES) {
+          // Poison pill: this op has failed too many times. Move it
+          // out of the way so subsequent ops can flush. Surfaced via
+          // getDeadLetterQueue() so the UI can show "N writes failed —
+          // review" and offer a one-tap retry.
+          const dlq = readDeadLetterQueue()
+          dlq.push({ ...op, deadLetteredAt: new Date().toISOString() })
+          writeDeadLetterQueue(dlq)
+          q.shift()
+          writeQueue(q)
+          movedToDLQ = true
+          console.warn(
+            `sync op moved to dead-letter after ${retries} failures:`,
+            op.op,
+            errorMsg
+          )
+          // Continue to the next op — don't let one bad row stall
+          // every subsequent write.
+          continue
+        }
+
+        // Persist the updated retry count then stop flushing for now.
+        // The next scheduleFlush() (kicked by another write or focus
+        // event) will pick up where we left off.
+        q[0] = op
+        writeQueue(q)
+        console.warn(
+          `sync op failed (${retries}/${MAX_SYNC_RETRIES}), will retry:`,
+          op.op,
+          errorMsg
+        )
+        return
       }
+    }
+    if (movedToDLQ) {
+      // Notify subscribers so any UI showing a "sync issues" badge
+      // updates.
+      notify()
     }
   })()
   try {
@@ -981,6 +1038,86 @@ async function flushQueue() {
   } finally {
     flushInFlight = null
   }
+}
+
+// ---------- Dead-letter queue (public API) ----------
+
+function readDeadLetterQueue() {
+  return read(deadLetterKey(), [])
+}
+function writeDeadLetterQueue(q) {
+  write(deadLetterKey(), q)
+}
+
+// Returns ops that exceeded MAX_SYNC_RETRIES. Each entry has the
+// original op shape plus { retries, lastError, lastFailedAt,
+// deadLetteredAt } so the UI can show what failed and why. Read-only
+// snapshot — mutate via the helpers below.
+export function getDeadLetterQueue() {
+  return readDeadLetterQueue()
+}
+
+// Push a dead-lettered op back onto the main queue so it gets
+// retried. We reset the retry counter so the rider's correction
+// (e.g. fixed credentials, deleted the duplicate row) gets a fresh
+// MAX_SYNC_RETRIES attempts.
+export function retryDeadLetterOp(opId) {
+  const dlq = readDeadLetterQueue()
+  const idx = dlq.findIndex((o) => opIdentity(o) === opId)
+  if (idx < 0) return false
+  const op = dlq[idx]
+  delete op.retries
+  delete op.lastError
+  delete op.lastFailedAt
+  delete op.deadLetteredAt
+  const main = readQueue()
+  main.push(op)
+  writeQueue(main)
+  dlq.splice(idx, 1)
+  writeDeadLetterQueue(dlq)
+  scheduleFlush()
+  notify()
+  return true
+}
+
+// Permanently discard a dead-lettered op. Useful when the rider
+// decides the failed write was bogus (e.g. a stale upsert against a
+// row they then deleted via another device).
+export function discardDeadLetterOp(opId) {
+  const dlq = readDeadLetterQueue().filter((o) => opIdentity(o) !== opId)
+  writeDeadLetterQueue(dlq)
+  notify()
+}
+
+// Bulk operations — useful for a "Retry all" / "Clear all" button.
+export function retryAllDeadLetterOps() {
+  const dlq = readDeadLetterQueue()
+  if (dlq.length === 0) return 0
+  const main = readQueue()
+  for (const op of dlq) {
+    delete op.retries
+    delete op.lastError
+    delete op.lastFailedAt
+    delete op.deadLetteredAt
+    main.push(op)
+  }
+  writeQueue(main)
+  writeDeadLetterQueue([])
+  scheduleFlush()
+  notify()
+  return dlq.length
+}
+
+export function clearDeadLetterQueue() {
+  writeDeadLetterQueue([])
+  notify()
+}
+
+// Stable identity for a queued op. We use the queuedAt timestamp
+// (set by enqueue()) which is unique per op even if the op shape
+// repeats (e.g. two different upsertBike calls for the same bike).
+function opIdentity(op) {
+  return op.queuedAt || `${op.op}:${op.id || op.bike?.id || op.entry?.id || ''}`
 }
 
 async function applyOp(supabase, op) {
