@@ -54,6 +54,7 @@ export default function Home({
   onOpenServiceBook,
   onOpenRides,
   onStartRide,
+  onOpenDiscover,
   // Action-flavored quick tiles. Each accepts the picked bike (the
   // first in the garage) and a "tab" hint that App.jsx threads into
   // the destination so the rider lands on the right tab.
@@ -142,54 +143,45 @@ export default function Home({
         </h1>
         <p className="mt-1 text-[15px] text-hd-muted">
           {pullPending
-            ? 'Loading your garage…'
+            ? 'Pulling your garage in…'
             : garage.length === 0
-            ? 'Add your first bike to get rolling.'
+            ? "Add a bike and let's get you rolling."
             : streakDays > 0
-            ? <>🔥 <span className="text-hd-text">{streakDays}-day riding streak.</span> Keep it up.</>
+            ? <>🔥 <span className="text-hd-text">{streakDays} days in a row.</span> Don't break the chain.</>
             : rides.length === 0
-            ? 'Take your first ride to start a streak.'
-            : 'Ride today to start a new streak.'}
+            ? "Save your first ride and we'll start counting."
+            : 'Get on the bike today and start a new streak.'}
         </p>
       </header>
 
-      {/* Primary CTA — full-width "Start a ride". Replaces the prior
-          bike-or-ride hero card. The single thing the rider opens the
-          app to do, given top billing. Even on day zero (no garage,
-          no rides), tapping this still works — RideTracker handles
-          the no-bike case and prompts to attach one after. */}
+      {/* Primary actions — Start a ride + Discover, side by side.
+          The old single full-width orange CTA was visually loud and
+          left no room for Discover, which is now equally important
+          to the app's daily loop. Two equal-height tiles let the
+          rider choose between "go ride right now" and "find a route
+          first." Start-a-ride keeps the orange fill so it still reads
+          as the dominant action; Discover uses the dark card surface
+          with an orange-tinted icon chip, so it's clearly clickable
+          but quieter. Both tiles work on day zero — RideTracker
+          handles the no-bike case, and Discover surfaces curated
+          routes even before you've ridden anywhere. */}
       <div className="px-4 pb-4 sm:px-6">
-        <button
-          onClick={onStartRide}
-          className="group flex w-full items-center justify-between gap-4 rounded-3xl bg-hd-orange px-5 py-5 text-left text-white transition active:scale-[0.99] sm:px-6 sm:py-6"
-        >
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">
-              Ready to roll
-            </div>
-            <div className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-              Start a ride
-            </div>
-            <div className="mt-1 text-[13px] text-white/80">
-              GPS, weather, and route logged automatically.
-            </div>
-          </div>
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/15 transition group-active:scale-95">
-            <svg
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polygon points="6 4 20 12 6 20" fill="currentColor" stroke="none" />
-            </svg>
-          </div>
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <ActionTile
+            tone="primary"
+            icon={<IconPlay />}
+            title="Start a ride"
+            sub="Track it · share it"
+            onClick={onStartRide}
+          />
+          <ActionTile
+            tone="secondary"
+            icon={<IconCompass />}
+            title="Discover"
+            sub="See where others ride"
+            onClick={onOpenDiscover}
+          />
+        </div>
       </div>
 
       {/* Month stats strip — small but addictive numbers that change
@@ -224,7 +216,7 @@ export default function Home({
 
       {/* Service health */}
       {garage.length > 0 && (
-        <Section title="Service health" subtitle="How current each bike is.">
+        <Section title="Service health" subtitle="How each bike is doing on maintenance.">
           <div className="grid grid-cols-3 gap-3 px-1 py-1 sm:grid-cols-4">
             {garage.map((b) => (
               <ServiceRing
@@ -241,7 +233,7 @@ export default function Home({
       {summary.dueSoon.length > 0 && (
         <Section
           title="Heads up"
-          subtitle="What's due now or coming up."
+          subtitle="Service that's due, or about to be."
           accent="warn"
         >
           <Rows>
@@ -268,7 +260,7 @@ export default function Home({
       {rides.length > 1 && (
         <Section
           title="Recent rides"
-          subtitle="Last few trips."
+          subtitle="What you've been up to lately."
           action={
             onOpenRides && (
               <button
@@ -457,17 +449,18 @@ function EmptyHeroCard({ onOpenGarage }) {
   return (
     <div className="rounded-3xl bg-hd-dark p-7 text-center">
       <div className="text-2xl font-bold text-hd-text">
-        Add your first bike
+        Let's get your bike in here
       </div>
       <p className="mx-auto mt-2 max-w-md text-[14px] text-hd-muted">
-        Track service, plan mods, follow procedures from the manual,
-        record GPS rides — all scoped to your bike.
+        Once your bike's set up, you can save your rides, share
+        them with friends, keep tabs on service, plan mods, and
+        walk through any factory procedure step by step.
       </p>
       <button
         onClick={onOpenGarage}
         className="mt-5 rounded-full bg-hd-orange px-6 py-3 text-[15px] font-semibold text-white"
       >
-        Open garage
+        Add a bike
       </button>
     </div>
   )
@@ -723,6 +716,66 @@ function StatTile({ label, value, suffix }) {
 // ============================================================
 // Icons
 // ============================================================
+
+// Primary-action tile used by the Start-a-ride / Discover pair at the
+// top of the dashboard. Two-tone system:
+//   - tone="primary"   — solid orange fill, white content. The strongest
+//                        action on the screen.
+//   - tone="secondary" — dark card fill, orange-tinted icon chip. Same
+//                        physical size and visual weight as primary, but
+//                        clearly subordinate.
+// Same height in either tone so the grid stays clean.
+function ActionTile({ tone, icon, title, sub, onClick }) {
+  const isPrimary = tone === 'primary'
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex h-full flex-col items-start gap-3 rounded-3xl p-4 text-left transition active:scale-[0.98] sm:p-5 ${
+        isPrimary
+          ? 'bg-hd-orange text-white'
+          : 'bg-hd-dark text-hd-text'
+      }`}
+    >
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-full ${
+          isPrimary
+            ? 'bg-white/15 text-white'
+            : 'bg-hd-orange/15 text-hd-orange'
+        }`}
+      >
+        {icon}
+      </div>
+      <div className="mt-auto">
+        <div className="text-[15px] font-bold leading-tight sm:text-base">
+          {title}
+        </div>
+        <div
+          className={`mt-0.5 text-[12px] ${
+            isPrimary ? 'text-white/75' : 'text-hd-muted'
+          }`}
+        >
+          {sub}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function IconPlay() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+      <polygon points="6 4 20 12 6 20" />
+    </svg>
+  )
+}
+function IconCompass() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <polygon points="14.5 9.5 13 13 9.5 14.5 11 11" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 
 function IconRide() {
   return (

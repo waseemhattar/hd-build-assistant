@@ -129,24 +129,24 @@ export default function Discover({ onBack, onOpenRide }) {
           RIDES NEAR YOU
         </h1>
         <p className="mt-1 text-sm text-hd-muted">
-          Routes that other Sidestand riders have shared in your
-          area. Start and end points are privacy-trimmed so you only
-          see the road, not the rider's driveway.
+          Roads near you that other Sidestand riders loved enough to
+          share. We trim the start and end of every route a bit, so
+          you see the good roads — not where someone parks at night.
         </p>
       </div>
 
       {state.status === 'locating' && (
         <div className="card text-center text-sm text-hd-muted">
-          Finding your location…
+          One sec — finding where you are…
         </div>
       )}
 
       {state.status === 'permission-denied' && (
         <EmptyState
-          title="Location access needed"
+          title="We need to know where you are"
           description={
-            'Discover uses your location to show rides near you. ' +
-            'Enable location for Sidestand in iOS Settings → Privacy & Security → Location Services, then come back.'
+            'Discover shows you rides nearby — for that, it needs your location. ' +
+            'Open iOS Settings → Privacy & Security → Location Services, turn it on for Sidestand, and pop back here.'
           }
           icon={<CompassIcon />}
         />
@@ -155,7 +155,7 @@ export default function Discover({ onBack, onOpenRide }) {
       {state.status === 'error' && (
         <div className="card text-center">
           <div className="font-display text-xl tracking-wider text-hd-orange">
-            COULDN'T LOAD
+            SOMETHING WENT SIDEWAYS
           </div>
           <p className="mt-2 text-sm text-hd-muted">{state.reason}</p>
         </div>
@@ -163,17 +163,17 @@ export default function Discover({ onBack, onOpenRide }) {
 
       {state.status === 'loading' && (
         <div className="card text-center text-sm text-hd-muted">
-          Loading rides within {DEFAULT_RADIUS_KM} km…
+          Looking for rides within {DEFAULT_RADIUS_KM} km…
         </div>
       )}
 
       {state.status === 'ready' && rides.length === 0 && (
         <EmptyState
-          title="No rides shared in your area yet"
+          title="No one's shared a ride here yet"
           description={
-            'Be the first. Open one of your saved rides, tap Share to community, ' +
-            'and your route will show up here for nearby riders. Start and end ' +
-            'points are clipped automatically so your home stays private.'
+            'You could be the first. Open one of your saved rides, tap Share to community, ' +
+            'and it shows up here for everyone nearby. We trim the ends of the route automatically, ' +
+            'so where you park stays your business.'
           }
           icon={<CompassIcon />}
         />

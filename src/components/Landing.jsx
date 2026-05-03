@@ -5,10 +5,20 @@ import Logo from './Logo.jsx'
 // Pre-auth landing page. Tells the story in 5 seconds, then offers a
 // big "Get started" that opens the dedicated sign-in page.
 //
+// Positioning: Sidestand is the all-in-one motorcycle companion app.
+// The original pitch was "service manual + build log" (passive
+// reference). Now that ride tracking, Discover (community + curated
+// routes), and shareable build sheets are first-class, the headline
+// has to bridge active riding AND the static side. "BUILT FOR THE
+// WHOLE RIDE" works on two levels — every ride you take, and every
+// part of riding life.
+//
 // Sections:
 //   1. TopNav (with "Sign in" on the right instead of the user widget)
 //   2. Hero — headline + sub + CTAs + brand mark as graphic
-//   3. Feature strip — three columns: Garage / Manual / Build sheets
+//   3. Feature strip — three columns: Ride / Service & mods /
+//      Discover & share. Rebalanced from the old Garage/Manual/Build
+//      so rides + community routes are visible above the fold.
 //   4. CTA strip
 //   5. Footer — disclaimer (brand-neutral) + copyright
 //
@@ -29,22 +39,24 @@ export default function Landing({ onSignIn, onSampleBike }) {
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:grid-cols-12 sm:gap-12 sm:px-6 sm:py-20">
           <div className="sm:col-span-7">
             <div className="text-xs uppercase tracking-widest text-hd-orange">
-              Sidestand · for builders & riders
+              Sidestand · the all-in-one motorcycle app
             </div>
             <h1 className="mt-3 font-display text-5xl tracking-wider text-hd-text sm:text-6xl md:text-7xl">
-              WHERE YOUR BUILD<br />LIVES BETWEEN RIDES.
+              BUILT FOR<br />THE WHOLE RIDE.
             </h1>
             <p className="mt-5 max-w-xl text-base text-hd-muted sm:text-lg">
-              Track service. Log mods. Walk through factory procedures
-              step by step. Share your build with a single link. One
-              place for everything that happens between rides.
+              Save your rides and share them with friends. Show off
+              your build with one link. Stay on top of service
+              without thinking about it. Find new roads near you,
+              posted by riders who've been there. Everything you'd
+              want from your motorcycle — all in one place.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <button
                 onClick={onSignIn}
                 className="rounded bg-hd-orange px-6 py-3 text-base font-semibold text-white hover:brightness-110"
               >
-                Get started — it's free
+                Get started
               </button>
               {onSampleBike && (
                 <button
@@ -56,7 +68,7 @@ export default function Landing({ onSignIn, onSampleBike }) {
               )}
             </div>
             <div className="mt-6 text-xs text-hd-muted">
-              Free while in beta. No credit card. Cancel anytime.
+              No credit card. Sign in and you're in.
             </div>
           </div>
 
@@ -71,7 +83,7 @@ export default function Landing({ onSignIn, onSampleBike }) {
                   <Logo size={48} />
                 </div>
                 <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-hd-muted">
-                  build · log · share
+                  ride · log · build · share
                 </div>
               </div>
             </div>
@@ -86,23 +98,23 @@ export default function Landing({ onSignIn, onSampleBike }) {
             What's inside
           </div>
           <h2 className="mt-2 font-display text-3xl tracking-wider sm:text-4xl">
-            EVERYTHING YOU NEED, NOTHING YOU DON'T.
+            MADE FOR THE WAY YOU ACTUALLY RIDE.
           </h2>
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             <FeatureCard
-              kicker="01 · Garage"
-              title="Every bike, in one place"
-              body="Log every motorcycle you own — VIN, mileage, photos, install dates. Service intervals follow you, not the bike."
+              kicker="01 · Ride"
+              title="Save your rides. Share them."
+              body="Hit start before you take off, hit stop when you're back. We'll keep the route, distance, time, and weather. Send it to a friend, post it on social, or just look back on it later."
             />
             <FeatureCard
-              kicker="02 · Manual"
-              title="Step-by-step procedures"
-              body="The factory service manual, organized by platform. Torque specs, part numbers, tool lists, figures — every job."
+              kicker="02 · Service & mods"
+              title="Never forget what you did to your bike"
+              body="Every oil change, brake job, and part you've added — written down where you'll actually find it again. The whole story stays with the bike, even if you sell it down the road."
             />
             <FeatureCard
-              kicker="03 · Build sheets"
-              title="Share your build"
-              body="One toggle and your bike has a public page with cover photo, mods list, and service history. Your link, your story."
+              kicker="03 · Discover & share"
+              title="Find new roads. Show off your build."
+              body="See routes nearby that other riders loved, plus a few we've handpicked. When your bike's dialed in, flip a switch and it gets its own page — photos, mods, history — share it with one link."
             />
           </div>
         </div>
@@ -116,7 +128,7 @@ export default function Landing({ onSignIn, onSampleBike }) {
               READY WHEN YOU ARE.
             </h2>
             <p className="mt-1 text-sm text-hd-muted">
-              No setup, no install. Sign in and add your first bike in under a minute.
+              Nothing to install. Sign in, add your bike, and you're good to go in about a minute.
             </p>
           </div>
           <button
@@ -132,16 +144,28 @@ export default function Landing({ onSignIn, onSampleBike }) {
       <footer className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="text-xs leading-relaxed text-hd-muted">
           <strong className="text-hd-text">Heads up —</strong> Sidestand
-          is a personal reference tool. Procedures, torque values, and
-          part numbers are provided for convenience. Always verify
-          against the printed service manual or your manufacturer's
-          current bulletins before final assembly. Brand names, model
-          names, and trademarks belong to their respective owners —
-          Sidestand is not affiliated with or endorsed by any motorcycle
-          manufacturer.
+          is a reference tool, not your service manual. Always
+          double-check torque values and part numbers against the real
+          manual before you bolt anything together. Brand names, model
+          names, and logos belong to their owners — we're not
+          affiliated with any motorcycle manufacturer.
         </div>
-        <div className="mt-3 text-xs text-hd-muted">
-          © Sidestand · sidestand.app
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-hd-muted">
+          <span>© Sidestand · sidestand.app</span>
+          {/* Anchor tags (not buttons) so right-click → Open in New
+              Tab works, Apple's reviewers can copy the URLs, and
+              search engines crawl the links. The router handles
+              /privacy and /support as top-level routes regardless
+              of auth state. */}
+          <a href="/privacy" className="hover:text-hd-orange">
+            Privacy policy
+          </a>
+          <a href="/support" className="hover:text-hd-orange">
+            Support
+          </a>
+          <a href="mailto:hello@sidestand.app" className="hover:text-hd-orange">
+            Contact
+          </a>
         </div>
       </footer>
     </div>

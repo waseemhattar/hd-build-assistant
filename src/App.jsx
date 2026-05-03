@@ -13,6 +13,8 @@ import Home from './components/Home.jsx'
 import Landing from './components/Landing.jsx'
 import SignInPage from './components/SignInPage.jsx'
 import PublicBike from './components/PublicBike.jsx'
+import Privacy from './components/Privacy.jsx'
+import Support from './components/Support.jsx'
 import Settings from './components/Settings.jsx'
 import TopNav from './components/TopNav.jsx'
 import BottomTabBar from './components/BottomTabBar.jsx'
@@ -50,6 +52,22 @@ function isSignInPath() {
   return /^\/sign-in\/?/.test(window.location.pathname)
 }
 
+// URL → "are we on /privacy?" — privacy policy is a top-level route
+// because Apple and the Landing-page footer both link directly to it.
+// Reachable signed-in OR signed-out, no auth gate.
+function isPrivacyPath() {
+  if (typeof window === 'undefined') return false
+  return /^\/privacy\/?/.test(window.location.pathname)
+}
+
+// URL → "are we on /support?" — same deal as /privacy. Apple's
+// "Support URL" field in App Store Connect points here, and the
+// Landing footer links to it. No auth gate.
+function isSupportPath() {
+  if (typeof window === 'undefined') return false
+  return /^\/support\/?/.test(window.location.pathname)
+}
+
 // Tiny URL helpers that update the browser URL without a real router.
 // Keeps deep links shareable ("send your buddy /sign-in" etc.) while
 // staying within the existing state-machine approach.
@@ -60,18 +78,27 @@ function pushPath(path) {
   }
 }
 
-// Top-level router. Three big modes:
+// Top-level router. Five big modes:
 //   1. /b/<slug>          — public bike share page (no auth gate)
-//   2. /sign-in           — dedicated sign-in page (signed-out)
-//   3. everything else    — Landing (signed out) or AuthedApp (signed in)
+//   2. /privacy           — privacy policy page (no auth gate; the URL
+//                           we hand to Apple in App Store Connect, also
+//                           linked from the Landing footer)
+//   3. /support           — support page (no auth gate; same deal as
+//                           /privacy — Apple "Support URL" + footer)
+//   4. /sign-in           — dedicated sign-in page (signed-out)
+//   5. everything else    — Landing (signed out) or AuthedApp (signed in)
 export default function App() {
   const [publicSlug, setPublicSlug] = useState(() => readPublicBikeSlug())
   const [signInRoute, setSignInRoute] = useState(() => isSignInPath())
+  const [privacyRoute, setPrivacyRoute] = useState(() => isPrivacyPath())
+  const [supportRoute, setSupportRoute] = useState(() => isSupportPath())
 
   useEffect(() => {
     function onPop() {
       setPublicSlug(readPublicBikeSlug())
       setSignInRoute(isSignInPath())
+      setPrivacyRoute(isPrivacyPath())
+      setSupportRoute(isSupportPath())
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -84,9 +111,13 @@ export default function App() {
   function goToLanding() {
     pushPath('/')
     setSignInRoute(false)
+    setPrivacyRoute(false)
+    setSupportRoute(false)
   }
 
   if (publicSlug) return <PublicBike slug={publicSlug} />
+  if (privacyRoute) return <Privacy onBack={goToLanding} />
+  if (supportRoute) return <Support onBack={goToLanding} />
 
   return <RootRouter signInRoute={signInRoute} goToLanding={goToLanding} goToSignIn={goToSignIn} />
 }
@@ -309,6 +340,7 @@ function AuthedApp() {
           onOpenManual={() => navigate('manual')}
           onOpenRides={() => navigate('rides')}
           onStartRide={() => setView('ride-tracker')}
+          onOpenDiscover={() => navigate('discover')}
           onOpenServiceBook={(b) => {
             setGarageBike(b)
             setView('service')

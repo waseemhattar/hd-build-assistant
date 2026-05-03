@@ -119,40 +119,49 @@ function Welcome() {
         Sidestand
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed text-hd-muted">
-        Track your build, follow service procedures, record GPS rides,
-        and ask the AI mechanic anything.
+        The app for everyone who actually rides — save your rides,
+        share them, stay on top of service, and find new roads to
+        try out.
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-hd-muted">
-        Two quick setup steps before you add your first bike — your
-        units, then how we handle your data.
+        Two quick things before you add your first bike — pick
+        your units, then have a quick read of how we handle
+        your data.
       </p>
       <ul className="mt-5 space-y-2.5 text-[14px] text-hd-text">
         <li className="flex items-start gap-3">
           <Check />
           <span>
-            <strong className="font-semibold">Garage</strong> — bikes,
-            mods, service history.
+            <strong className="font-semibold">Rides</strong> — save
+            every ride and share it with friends or on social.
           </span>
         </li>
         <li className="flex items-start gap-3">
           <Check />
           <span>
-            <strong className="font-semibold">Manual</strong> — step-by-step
-            procedures matched to your bike.
+            <strong className="font-semibold">Garage</strong> — every
+            bike, mod, and service in one place.
           </span>
         </li>
         <li className="flex items-start gap-3">
           <Check />
           <span>
-            <strong className="font-semibold">Rides</strong> — GPS-tracked
-            trips with weather and route maps.
+            <strong className="font-semibold">Service</strong> — walk
+            through any factory job step by step.
           </span>
         </li>
         <li className="flex items-start gap-3">
           <Check />
           <span>
-            <strong className="font-semibold">Mechanic</strong> — AI that
-            knows your bike and quotes your service manual.
+            <strong className="font-semibold">Discover</strong> —
+            find new roads near you, posted by other riders.
+          </span>
+        </li>
+        <li className="flex items-start gap-3">
+          <Check />
+          <span>
+            <strong className="font-semibold">Mechanic</strong> —
+            ask anything; it knows your bike and your service manual.
           </span>
         </li>
       </ul>
@@ -174,9 +183,9 @@ function PreferencesStep({ prefs, update }) {
         How do you measure things?
       </h2>
       <p className="mt-2 text-[14px] text-hd-muted">
-        We pre-filled this from your device's region. Change anything
-        here, and the whole app updates instantly. You can also tweak
-        them later in Settings.
+        We took a guess from your phone's region — change whatever
+        looks off and the rest of the app updates right away. You
+        can always tweak this later in Settings.
       </p>
 
       <div className="mt-5 space-y-3">
@@ -231,8 +240,9 @@ function ConsentStep({ agreed, setAgreed }) {
         Your data, your bike
       </h2>
       <p className="mt-2 text-[14px] leading-relaxed text-hd-muted">
-        Sidestand stores everything you add so you can come back to it.
-        Here's exactly what we collect, where it lives, and who can see it.
+        We hold onto whatever you put in so you can pick up where
+        you left off. Here's exactly what we keep, where it lives,
+        and who else can see it.
       </p>
 
       <div className="mt-4 space-y-3">

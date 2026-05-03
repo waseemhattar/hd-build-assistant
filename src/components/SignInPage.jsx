@@ -42,7 +42,7 @@ export default function SignInPage({ onBack }) {
         <div className="mb-6 flex flex-col items-center gap-3">
           <Logo size={36} />
           <div className="text-xs uppercase tracking-widest text-hd-orange">
-            {mode === 'signin' ? 'Welcome to Sidestand' : 'Join Sidestand'}
+            {mode === 'signin' ? 'Welcome back' : 'Welcome to Sidestand'}
           </div>
         </div>
 
@@ -53,8 +53,8 @@ export default function SignInPage({ onBack }) {
             </div>
             <div className="mt-1 text-xs text-hd-muted">
               {mode === 'signin'
-                ? 'Pick how you want to continue'
-                : 'Create an account in 30 seconds'}
+                ? 'Pick how you want to sign in.'
+                : 'Takes about 30 seconds.'}
             </div>
           </div>
 
@@ -99,6 +99,30 @@ export default function SignInPage({ onBack }) {
                 </button>
               </>
             )}
+          </div>
+
+          {/* Consent line. Shown on both signin and signup since
+              even returning users benefit from the privacy/support
+              links, and Apple's App Store Review Guidelines (5.1.1)
+              expect a clear privacy-policy reference at the auth
+              moment. Anchor tags (not buttons) so the URLs are
+              copyable and crawlable. */}
+          <div className="mt-3 text-center text-[11px] leading-relaxed text-hd-muted">
+            By continuing, you agree to our{' '}
+            <a
+              href="/privacy"
+              className="text-hd-orange hover:brightness-110"
+            >
+              Privacy Policy
+            </a>
+            . Need a hand? Visit{' '}
+            <a
+              href="/support"
+              className="text-hd-orange hover:brightness-110"
+            >
+              Support
+            </a>
+            .
           </div>
         </div>
 
@@ -266,7 +290,7 @@ function EmailForm({ mode }) {
         })
         if (error) throw error
         if (!data?.session) {
-          setInfo('Check your email to confirm your account.')
+          setInfo("We sent you an email — click the link to confirm and you're in.")
         }
       }
     } catch (e) {
