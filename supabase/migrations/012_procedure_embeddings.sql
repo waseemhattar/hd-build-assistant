@@ -235,13 +235,16 @@ security definer
 set search_path = public
 as $$
 declare
-  v_updated boolean;
+  v_count int;
 begin
   update public.procedures
      set embedding = p_embedding::vector
    where id = p_id;
-  get diagnostics v_updated = row_count;
-  return v_updated > 0;
+  -- GET DIAGNOSTICS ... = ROW_COUNT returns int, so v_count must be
+  -- numeric — declaring it as boolean (an earlier mistake) blew up
+  -- with `operator does not exist: boolean > integer` on every call.
+  get diagnostics v_count = row_count;
+  return v_count > 0;
 end;
 $$;
 
