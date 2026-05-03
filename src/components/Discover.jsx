@@ -3,6 +3,7 @@ import { listNearbyPublicRides, formatDistance, formatDuration } from '../data/r
 import { listNearbySuggested } from '../data/suggestedRides.js'
 import EmptyState from './ui/EmptyState.jsx'
 import { useUserPrefs } from '../hooks/useUserPrefs.js'
+import RideDetailSheet from './RideDetailSheet.jsx'
 
 // Discover — community rides on a map.
 //
@@ -24,6 +25,15 @@ export default function Discover({ onBack, onOpenRide }) {
   const [state, setState] = useState({ status: 'idle' })
   const [rides, setRides] = useState([])
   const [center, setCenter] = useState(null) // { lat, lng }
+
+  // The ride the user has tapped on — drives the RideDetailSheet
+  // bottom sheet at the bottom of the page. Sheet shows the route,
+  // stats, and the "Open in Apple/Google Maps" CTA which decimates
+  // the GPS polyline to ~8 waypoints and hands the URL to the OS so
+  // the rider can navigate the same roads turn-by-turn. The legacy
+  // `onOpenRide` prop is still called (parent might want to navigate
+  // away on tap) but the sheet is the primary interaction now.
+  const [selectedRide, setSelectedRide] = useState(null)
 
   // Acquire location once on mount. We keep the prompt to a single
   // shot — if it fails, we fall back to a manually-pickable region
@@ -180,8 +190,23 @@ export default function Discover({ onBack, onOpenRide }) {
       )}
 
       {state.status === 'ready' && rides.length > 0 && center && (
-        <RidesMapAndList rides={rides} center={center} onOpenRide={onOpenRide} />
+        <RidesMapAndList
+          rides={rides}
+          center={center}
+          onOpenRide={(r) => {
+            setSelectedRide(r)
+            onOpenRide && onOpenRide(r)
+          }}
+        />
       )}
+
+      {/* Ride detail bottom sheet — opens when the rider taps any
+          ride card. Carries the "Open in Maps" CTA. */}
+      <RideDetailSheet
+        ride={selectedRide}
+        open={Boolean(selectedRide)}
+        onClose={() => setSelectedRide(null)}
+      />
     </div>
   )
 }

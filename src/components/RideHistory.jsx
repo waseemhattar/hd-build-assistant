@@ -13,6 +13,10 @@ import EmptyState from './ui/EmptyState.jsx'
 import usePullToRefresh from '../hooks/usePullToRefresh.jsx'
 import { useUserPrefs } from '../hooks/useUserPrefs.js'
 import ShareRideSheet from './ShareRideSheet.jsx'
+import {
+  openInMaps,
+  defaultMapsProvider
+} from '../data/routeNavigation.js'
 
 // Ride history list. Two flavors:
 //   - bikeId provided → list rides for that bike only
@@ -229,27 +233,30 @@ function RideRow({ ride, isOpen, onToggle, garage, onDeleted }) {
             <>
               <CommunityShareToggle ride={detail} />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <button
-                  onClick={handleShareClick}
-                  className="inline-flex items-center gap-2 rounded-full bg-hd-orange px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleShareClick}
+                    className="inline-flex items-center gap-2 rounded-full bg-hd-orange px-4 py-2 text-[13px] font-semibold text-white transition active:scale-95 disabled:opacity-50"
                   >
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                    <polyline points="16 6 12 2 8 6" />
-                    <line x1="12" y1="2" x2="12" y2="15" />
-                  </svg>
-                  Share ride
-                </button>
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                      <polyline points="16 6 12 2 8 6" />
+                      <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg>
+                    Share ride
+                  </button>
+                  <OpenInMapsButton route={detail.route} />
+                </div>
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
@@ -334,5 +341,64 @@ function CommunityShareToggle({ ride }) {
         <div className="mt-2 text-[11px] text-red-300">{err}</div>
       )}
     </div>
+  )
+}
+
+// "Open in Maps" pill — sits next to the orange Share-ride button on
+// the expanded ride detail card. Single tap opens the rider's default
+// Maps app (Apple on iOS, Google elsewhere) with turn-by-turn
+// directions that follow the recorded route's road choices via
+// decimated waypoints. See src/data/routeNavigation.js for the
+// decimation + URL-builder logic.
+function OpenInMapsButton({ route }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const provider = defaultMapsProvider()
+  const hasRoute = Array.isArray(route) && route.length >= 2
+
+  async function tap() {
+    if (!hasRoute || busy) return
+    setBusy(true)
+    setErr(null)
+    try {
+      await openInMaps(route, provider)
+    } catch (e) {
+      setErr(e?.message || 'Could not open Maps.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={tap}
+        disabled={!hasRoute || busy}
+        className="inline-flex items-center gap-2 rounded-full border border-hd-border bg-hd-dark px-4 py-2 text-[13px] font-semibold text-hd-text transition active:scale-95 disabled:opacity-40"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 21s-7-7-7-12a7 7 0 1 1 14 0c0 5-7 12-7 12z" />
+          <circle cx="12" cy="9" r="2.5" />
+        </svg>
+        {busy
+          ? 'Opening…'
+          : provider === 'apple'
+          ? 'Open in Apple Maps'
+          : 'Open in Google Maps'}
+      </button>
+      {err && (
+        <div className="mt-1 w-full text-[11px] text-red-300">{err}</div>
+      )}
+    </>
   )
 }
