@@ -144,6 +144,42 @@ function deadLetterKey() {
     : 'hd-ba:dead-letter:v1'
 }
 
+// High-water mark per user — the most recent `updated_at` we've seen
+// for each synced table. Subsequent pulls filter with .gte() so we
+// only re-download rows that actually changed since the last sign-in
+// or device wake. A 5-year power user with thousands of service
+// entries pays the full-pull cost ONCE, then ~kilobytes per pull
+// after that.
+function pullCursorKey() {
+  return currentUserId
+    ? `hd-ba:${currentUserId}:pull-cursor:v1`
+    : 'hd-ba:pull-cursor:v1'
+}
+
+function readPullCursor() {
+  return (
+    read(pullCursorKey(), null) || {
+      bikes: null,
+      entries: null,
+      builds: null,
+      mods: null,
+      fullSyncAt: null
+    }
+  )
+}
+function writePullCursor(c) {
+  write(pullCursorKey(), c)
+}
+
+// Hard deletions can't be surfaced via "updated_at > cursor" — the
+// row is gone, so it has no updated_at. We compensate by forcing a
+// full reconciliation pull periodically. 30 days is the sweet spot:
+// frequent enough that "I deleted this on phone B" eventually
+// converges on phone A, infrequent enough that the bandwidth cost
+// is negligible. A user can also sign out / sign back in to force
+// a fresh full pull.
+const FULL_SYNC_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
+
 // How many times we'll retry a failing sync op before giving up and
 // shunting it to the dead-letter queue. Keeps a single bad row from
 // blocking every subsequent write for the user (the "poison pill"
@@ -1372,7 +1408,7 @@ function sha1Hex(msg) {
 
 // ---------- pull from server ----------
 
-async function pullFromServer() {
+async function pullFromServer({ forceFull = false } = {}) {
   if (!isSupabaseConfigured()) return
   if (!currentUserId) return
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
@@ -1391,32 +1427,44 @@ async function pullFromServer() {
     return
   }
 
+  // Decide between incremental and full sync. We do a full pull on:
+  //   - First sign-in on this device (no cursor saved yet).
+  //   - Explicit forceFull (pull-to-refresh, "Sync now", post-error).
+  //   - Stale full-sync timestamp (older than FULL_SYNC_INTERVAL_MS),
+  //     so hard deletes on other devices eventually converge here.
+  const cursor = readPullCursor()
+  const fullSyncAge = cursor.fullSyncAt
+    ? Date.now() - new Date(cursor.fullSyncAt).getTime()
+    : Infinity
+  const isFirstPull = !cursor.fullSyncAt
+  const isFullSyncDue = fullSyncAge > FULL_SYNC_INTERVAL_MS
+  const wantsFull = forceFull || isFirstPull || isFullSyncDue
+
+  // Build a query with an optional .gte(updated_at, cursor) clause.
+  // For incremental pulls this is what shrinks a multi-megabyte
+  // payload to a few kilobytes for an active user.
+  function tableQuery(tableName, sinceCursor) {
+    let q = supabase
+      .from(tableName)
+      .select('*')
+      .eq('auth_user_id', myAuthUserId)
+      .order('updated_at', { ascending: true })
+    if (!wantsFull && sinceCursor) {
+      q = q.gte('updated_at', sinceCursor)
+    }
+    return q
+  }
+
   const [
     { data: bikes, error: bErr },
     { data: entries, error: eErr },
     { data: builds, error: buErr },
     { data: mods, error: mErr }
   ] = await Promise.all([
-    supabase
-      .from('garage_bikes')
-      .select('*')
-      .eq('auth_user_id', myAuthUserId)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('service_entries')
-      .select('*')
-      .eq('auth_user_id', myAuthUserId)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('bike_builds')
-      .select('*')
-      .eq('auth_user_id', myAuthUserId)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('bike_mods')
-      .select('*')
-      .eq('auth_user_id', myAuthUserId)
-      .order('created_at', { ascending: true })
+    tableQuery('garage_bikes', cursor.bikes),
+    tableQuery('service_entries', cursor.entries),
+    tableQuery('bike_builds', cursor.builds),
+    tableQuery('bike_mods', cursor.mods)
   ])
   if (bErr || eErr || buErr || mErr) {
     console.warn('pull failed', bErr || eErr || buErr || mErr)
@@ -1534,10 +1582,46 @@ async function pullFromServer() {
   // so their parent references are already healed.
   // Note: the `local*` arrays above hold the server-returned rows after
   // snake_case→camelCase mapping, which is what this function needs.
-  reconcileLocalOnlyWrites(localBikes, localEntries, localBuilds, localMods)
+  //
+  // Skip this step on incremental pulls — the server-returned set is
+  // intentionally narrow (only rows changed since the cursor), so any
+  // "missing" local-only rows would all look like un-synced writes
+  // and we'd noisily re-enqueue everything the user already has on
+  // the server. Reconciliation is a full-sync responsibility.
+  if (wantsFull) {
+    reconcileLocalOnlyWrites(localBikes, localEntries, localBuilds, localMods)
+  }
+
+  // Advance the high-water mark per table to the latest updated_at we
+  // saw in the response. We do NOT advance to "now" because clock skew
+  // between the device and server could swallow a row written during
+  // the pull window. Taking the row-level max means the next pull's
+  // .gte() catches everything we haven't already merged.
+  function maxUpdatedAt(rows, current) {
+    let max = current || ''
+    for (const r of rows || []) {
+      const t = r.updated_at || r.created_at || ''
+      if (t > max) max = t
+    }
+    return max || current
+  }
+  cursor.bikes = maxUpdatedAt(filteredBikes, cursor.bikes)
+  cursor.entries = maxUpdatedAt(filteredEntries, cursor.entries)
+  cursor.builds = maxUpdatedAt(filteredBuilds, cursor.builds)
+  cursor.mods = maxUpdatedAt(filteredMods, cursor.mods)
+  if (wantsFull) cursor.fullSyncAt = new Date().toISOString()
+  writePullCursor(cursor)
 
   // Opportunistically drain any queued writes now that we know we're online.
   flushQueue().catch(() => {})
+}
+
+// Public helper for the UI: forces a full reconciliation pull. Use
+// this on a "Sync now" button or after the user resolves dead-letter
+// ops, so deletions on other devices propagate immediately instead
+// of waiting up to FULL_SYNC_INTERVAL_MS.
+export async function forceFullPull() {
+  return pullFromServer({ forceFull: true })
 }
 
 // Rewrites parent references on local cache rows when we can prove the
