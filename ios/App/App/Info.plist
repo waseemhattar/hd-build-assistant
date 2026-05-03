@@ -73,5 +73,16 @@
 		<string>location</string>
 		<string>audio</string>
 	</array>
+	<!--
+	  Export-compliance flag. Sidestand uses encryption only via iOS's
+	  built-in networking stack (HTTPS / TLS) — we don't ship custom
+	  crypto code or bundle a third-party crypto library. Setting this
+	  to <false/> tells Apple at build time that we're exempt from
+	  export-compliance documentation under the EAR §740.17 mass-market
+	  exemption, which means App Store Connect skips the "App Encryption
+	  Documentation" dialog on every future build upload.
+	-->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
