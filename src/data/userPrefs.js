@@ -1,18 +1,39 @@
 // User preferences — units of measurement and regional formatting.
 //
-// Why local-only (for now):
-//   We persist to localStorage and skip Supabase sync. Preferences are
-//   per-device by design — a US user might have a phone in metric (long
-//   trip in Europe) without changing their permanent profile. If we
-//   eventually want device-syncing prefs we can layer it on; the storage
-//   and subscribe pattern here matches storage.js so adding a server
-//   round-trip later is mechanical.
+// Storage model (migration 018+):
+//   Source of truth is `public.user_settings` in Supabase, keyed to
+//   the auth user. localStorage is a fast-boot cache so the UI
+//   doesn't flash defaults while we round-trip the server. The
+//   public API (getPrefs / setPref / setPrefs / subscribe / isMetric)
+//   is intentionally unchanged from the local-only era — callers
+//   don't know server sync exists.
+//
+// Sync semantics:
+//   - On sign-in, App.jsx calls connectAuthUser(id). We fetch
+//     user_settings; if it exists, server wins and the local cache
+//     is replaced. If the row is missing (first time on this
+//     account), we push the local snapshot up so this device's
+//     locale-derived defaults become the new server baseline.
+//   - Every setPref/setPrefs persists locally immediately, then
+//     schedules a debounced (~400ms) upsert to user_settings.
+//   - Offline / supabase unreachable: writes pile up in localStorage
+//     and the next successful save flushes the latest snapshot.
 //
 // Pubsub: callers can subscribe() to be notified when any pref changes.
 // Useful for the formatters in rides.js — we don't want every consumer
 // to re-implement their own listener.
 
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.js'
+
 const STORAGE_KEY = 'sidestand:userPrefs/v1'
+
+// Server-sync state. None of this is exported — callers go through
+// connectAuthUser() / disconnectAuthUser() which App.jsx wires into the
+// auth lifecycle.
+let connectedUserId = null
+let pendingSaveTimer = null
+let pendingSavePromise = null
+const SAVE_DEBOUNCE_MS = 400
 
 // Defaults derived from the browser's locale at module load time.
 // We resolve once at startup; if the user later overrides, their pick
@@ -111,6 +132,7 @@ export function setPref(key, value) {
   prefs = { ...prefs, [key]: value }
   persist()
   notify()
+  scheduleServerSave()
 }
 
 export function setPrefs(patch) {
@@ -126,6 +148,7 @@ export function setPrefs(patch) {
   prefs = next
   persist()
   notify()
+  scheduleServerSave()
 }
 
 // Reset everything back to locale defaults. Wipes the user's overrides.
@@ -162,6 +185,107 @@ export function markOnboardingComplete() {
 
 export function markOnboardingSkipped() {
   setPref('onboardingSkipped', true)
+}
+
+// ---------- server sync (migration 018) ----------
+//
+// These are called by App.jsx on sign-in / sign-out. Callers that
+// just read or write prefs don't touch any of this — setPref()
+// schedules its own server save automatically.
+
+// Fetch the signed-in user's settings row, merge with local cache.
+// Returns the resolved prefs object once the server round-trip
+// completes (or fails). Safe to await with a timeout in App.jsx
+// so onboarding gating doesn't hang on a slow network.
+export async function connectAuthUser(authUserId) {
+  if (!authUserId) return prefs
+  connectedUserId = authUserId
+  if (!isSupabaseConfigured()) return prefs
+  try {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', authUserId)
+      .maybeSingle()
+    if (error) {
+      console.warn('userPrefs: server fetch failed', error.message || error)
+      return prefs
+    }
+    if (data?.settings && typeof data.settings === 'object') {
+      // Server wins. Merge over DEFAULTS so any pref keys added since
+      // the row was last written get sane fallbacks.
+      const merged = { ...DEFAULTS, ...data.settings }
+      let changed = false
+      for (const k of Object.keys(merged)) {
+        if (prefs[k] !== merged[k]) {
+          changed = true
+          break
+        }
+      }
+      if (changed) {
+        prefs = merged
+        persist()
+        notify()
+      }
+    } else {
+      // No row yet — first time signed-in on this account from anywhere.
+      // Push the local (locale-derived) snapshot up so this becomes the
+      // new server baseline. Subsequent devices will pull these values.
+      await saveToServerNow()
+    }
+  } catch (e) {
+    console.warn('userPrefs: connectAuthUser threw', e?.message || e)
+  }
+  return prefs
+}
+
+// Called on sign-out. Drops the server hookup but keeps the local
+// cache intact (so a returning user sees their last-known prefs
+// instantly while the next sign-in fetch resolves).
+export function disconnectAuthUser() {
+  connectedUserId = null
+  if (pendingSaveTimer) {
+    clearTimeout(pendingSaveTimer)
+    pendingSaveTimer = null
+  }
+}
+
+function scheduleServerSave() {
+  if (!connectedUserId || !isSupabaseConfigured()) return
+  if (pendingSaveTimer) clearTimeout(pendingSaveTimer)
+  pendingSaveTimer = setTimeout(() => {
+    pendingSaveTimer = null
+    saveToServerNow().catch((e) =>
+      console.warn('userPrefs: scheduled save failed', e?.message || e)
+    )
+  }, SAVE_DEBOUNCE_MS)
+}
+
+// Upsert the current local prefs into user_settings. Coalesces
+// concurrent calls so we never have two in flight at once.
+async function saveToServerNow() {
+  if (!connectedUserId || !isSupabaseConfigured()) return
+  if (pendingSavePromise) return pendingSavePromise
+  const supabase = getSupabaseClient()
+  const snapshot = { ...prefs }
+  const userId = connectedUserId
+  pendingSavePromise = (async () => {
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert(
+          { user_id: userId, settings: snapshot },
+          { onConflict: 'user_id' }
+        )
+      if (error) {
+        console.warn('userPrefs: server save failed', error.message || error)
+      }
+    } finally {
+      pendingSavePromise = null
+    }
+  })()
+  return pendingSavePromise
 }
 
 // ---------- formatters ----------

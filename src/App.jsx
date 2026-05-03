@@ -21,7 +21,9 @@ import OnboardingTour from './components/ui/OnboardingTour.jsx'
 import FirstTimeSetup from './components/FirstTimeSetup.jsx'
 import {
   isOnboardingComplete,
-  markOnboardingComplete
+  markOnboardingComplete,
+  connectAuthUser,
+  disconnectAuthUser
 } from './data/userPrefs.js'
 import { bikes as bikeCatalog } from './data/bikes.js'
 import {
@@ -116,41 +118,88 @@ function AuthedApp() {
   const { isSignedIn } = useAuth()
   const [setupOpen, setSetupOpen] = useState(false)
 
+  // Pre-warm iOS WKWebView's text-input subsystem so the first
+  // BikeEditor / form open feels instant. WebKit lazy-loads the
+  // keyboard, accessory toolbar, autofill stack, and dictation
+  // pipeline the first time an input gets focus on a real device —
+  // ~1-2s on iPhone. By focusing a hidden, off-screen input during
+  // app boot, we pay that cost while the user is reading the home
+  // screen instead of when they tap "+ Add". One-shot per app load.
   useEffect(() => {
-    if (isSignedIn && user?.id) {
-      // Supabase Auth manages tokens internally — storage just needs
-      // the user id to scope localStorage keys.
-      setStorageUser(user.id)
-      migrateLegacyLocalDataIfNeeded(user.id)
+    if (typeof document === 'undefined') return
+    const t = setTimeout(() => {
+      try {
+        const el = document.createElement('input')
+        el.setAttribute('aria-hidden', 'true')
+        el.setAttribute('tabindex', '-1')
+        el.style.cssText =
+          'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;'
+        document.body.appendChild(el)
+        el.focus({ preventScroll: true })
+        setTimeout(() => {
+          el.blur()
+          el.remove()
+        }, 50)
+      } catch (_) {
+        /* non-fatal — pre-warm is a perf hint, not a requirement */
+      }
+    }, 600)
+    return () => clearTimeout(t)
+  }, [])
 
-      // First-time setup gate. New users see the wizard once. Existing
-      // users (who already have at least one bike) are auto-marked
-      // complete so we don't re-prompt them.
-      if (!isOnboardingComplete()) {
-        // Defer the existing-user check by a tick so the storage cache
-        // has time to hydrate from Supabase before we read it.
-        const t = setTimeout(() => {
-          // Read garage size via dynamic import to avoid pulling getGarage
-          // into the import graph alongside the auth path.
-          import('./data/storage.js').then(({ getGarage }) => {
-            const garage = getGarage() || []
-            if (garage.length > 0) {
-              // Existing user — they pre-date the wizard. Mark complete
-              // silently so they're not interrupted.
-              markOnboardingComplete()
-            } else {
-              setSetupOpen(true)
-            }
-          })
-        }, 250)
-        return () => {
-          clearTimeout(t)
-          setStorageUser(null)
-        }
+  useEffect(() => {
+    if (!isSignedIn || !user?.id) {
+      return () => {
+        setStorageUser(null)
+        disconnectAuthUser()
       }
     }
+    // Supabase Auth manages tokens internally — storage just needs
+    // the user id to scope localStorage keys.
+    setStorageUser(user.id)
+    migrateLegacyLocalDataIfNeeded(user.id)
+
+    let cancelled = false
+    let timeoutId = null
+    ;(async () => {
+      // Pull server-side prefs (units + onboarding markers) into the
+      // local cache BEFORE deciding whether to show FirstTimeSetup.
+      // Without this gate, a fresh install would always fall through
+      // to "local cache empty → wizard pops" even when the rider
+      // already onboarded on a previous device.
+      //
+      // Capped at 3s so a slow/offline network doesn't leave the user
+      // staring at a blank screen — after the timeout we trust the
+      // local cache and continue, and the next successful sync will
+      // reconcile if needed.
+      const fetchPromise = connectAuthUser(user.id)
+      const timeoutPromise = new Promise((resolve) => {
+        timeoutId = setTimeout(resolve, 3000)
+      })
+      await Promise.race([fetchPromise, timeoutPromise])
+      if (cancelled) return
+
+      if (isOnboardingComplete()) return
+
+      // Existing-user fast-path: a rider with bikes already pre-dates
+      // the wizard (or is signing in on a new device after their first
+      // setup). Mark complete silently so they're not interrupted.
+      // Dynamic import avoids pulling getGarage onto the auth path.
+      const { getGarage } = await import('./data/storage.js')
+      if (cancelled) return
+      const garage = getGarage() || []
+      if (garage.length > 0) {
+        markOnboardingComplete()
+      } else {
+        setSetupOpen(true)
+      }
+    })()
+
     return () => {
+      cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
       setStorageUser(null)
+      disconnectAuthUser()
     }
   }, [isSignedIn, user?.id])
 
