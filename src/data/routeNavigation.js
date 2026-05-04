@@ -24,7 +24,6 @@
 // builders below don't know about it. If we ever swap Maps URL
 // schemes (Mapbox, Waze, etc.) this file is the only place to touch.
 
-import { App as CapApp } from '@capacitor/app'
 import { isNativeApp, getPlatform } from './platform.js'
 
 // Max waypoints we send to either Maps app. Apple's hard cap is ~16,
@@ -198,60 +197,54 @@ export function googleMapsUrl(route, { native = false } = {}) {
 
 // Open a Maps URL in the right place for the current platform.
 //
-// On iOS native: we use `App.openUrl()` from @capacitor/app, which
-// calls iOS's `UIApplication.shared.open()` directly. That respects
-// registered URL schemes (`maps://`, `comgooglemaps://`) and routes
-// the URL to the appropriate Maps app — Apple Maps for `maps://`,
-// Google Maps for `comgooglemaps://`. Crucially, this is NOT what
-// `@capacitor/browser`'s `Browser.open()` does: that plugin always
-// loads URLs inside an in-app `SFSafariViewController`, which means
-// the URL gets rendered as a webpage instead of deep-linking to the
-// native app. Always use App.openUrl() for app-to-app navigation.
+// The whole game on iOS is "deep-link to the Maps app, don't load a
+// webpage in an embedded browser." We achieve that with a single
+// `window.open(url, '_blank')` call — Capacitor's WKWebView bridge
+// intercepts `_blank` opens and routes them through
+// `UIApplication.shared.open(url)`, which respects iOS URL schemes:
 //
-// For Google Maps on iOS, `comgooglemaps://` requires the Google Maps
-// app to be installed. If it's not, App.openUrl() returns
-// `{ completed: false }` and we fall back to the https URL (which
-// loads in Safari — not great UX, but not broken).
+//   - `maps://?saddr=...&daddr=...` → opens Apple Maps app
+//   - `comgooglemaps://?...`        → opens Google Maps app (if installed)
+//   - `https://...`                  → opens system Safari (fallback)
 //
-// On web: window.open() in a new tab. On non-iOS native (Android):
-// also App.openUrl() with the https URL.
+// Note we do NOT use @capacitor/browser's Browser.open() — that plugin
+// forces the URL into an in-app SFSafariViewController, which loads
+// the page as web content and never deep-links. Hard-learned lesson.
+//
+// For Apple Maps: always use the `maps://` scheme on iOS native — it's
+// guaranteed to open the Maps app since Apple Maps is preinstalled.
+//
+// For Google Maps: we use the https URL universally. On iOS with the
+// Google Maps app installed, iOS Universal Links route it directly to
+// the app. Without Google Maps installed, it loads in Safari (slower
+// but still functional). Avoiding `comgooglemaps://` means we don't
+// need to declare it in `LSApplicationQueriesSchemes` in Info.plist
+// and we don't have a "Google Maps not installed" failure mode.
 //
 // `app` selects which provider:
 //   - 'apple'  → Apple Maps (default on iOS)
 //   - 'google' → Google Maps (default on web/Android)
 //
-// Returns the URL that was handed to the OS. Throws if the route
-// has no GPS data.
+// Returns the URL that was handed to the OS. Throws if the route has
+// no GPS data.
 export async function openInMaps(route, app = null) {
   const provider = app || defaultMapsProvider()
   const onIOS = getPlatform() === 'ios' && isNativeApp()
 
-  // Build the URL — native scheme on iOS native (deep-links to app),
-  // https scheme everywhere else (web fallback or universal-link).
+  // Apple Maps: native scheme on iOS, https everywhere else.
+  // Google Maps: always https (Universal Links handle iOS deep-link).
   const url =
     provider === 'google'
-      ? googleMapsUrl(route, { native: onIOS })
+      ? googleMapsUrl(route, { native: false })
       : appleMapsUrl(route, { native: onIOS })
   if (!url) {
     throw new Error('Route has no GPS data — nothing to navigate.')
   }
 
-  if (isNativeApp()) {
-    const result = await CapApp.openUrl({ url })
-    // If the native scheme didn't open (e.g. Google Maps not
-    // installed when we asked for comgooglemaps://), fall back to
-    // the https URL which loads in Safari.
-    if (result && result.completed === false) {
-      const httpsUrl =
-        provider === 'google'
-          ? googleMapsUrl(route, { native: false })
-          : appleMapsUrl(route, { native: false })
-      if (httpsUrl) {
-        await CapApp.openUrl({ url: httpsUrl })
-        return httpsUrl
-      }
-    }
-  } else if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined') {
+    // _blank target. On iOS native, Capacitor's WebView delegate
+    // captures this and forwards the URL to UIApplication.shared.open(),
+    // which deep-links to the app. On web it opens in a new tab.
     window.open(url, '_blank', 'noopener')
   }
   return url
