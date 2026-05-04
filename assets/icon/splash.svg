@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732">
+  <!-- Splash screen art. Same dark radial vignette + kickstand mark
+       as the App Store icon, but on a 2732×2732 canvas (the size iOS
+       expects for universal launch images) so the mark sits with
+       generous breathing room around it. iOS scales this to fit
+       any device's launch viewport, centred — phones, iPads, all
+       orientations. -->
+
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#1A1A1F"/>
+      <stop offset="100%" stop-color="#070709"/>
+    </radialGradient>
+  </defs>
+  <rect width="2732" height="2732" fill="url(#bg)"/>
+
+  <!-- Centre the same icon-v4 mark onto the splash. Icon coords are
+       0..1024; translating by 854 puts the icon canvas at 854..1878,
+       centered horizontally and vertically in the 2732 square. The
+       mark ends up taking ~37% of the splash width — small enough
+       that the iOS notch / Dynamic Island doesn't overlap it on any
+       device aspect ratio. -->
+  <g transform="translate(854, 854)">
+    <g fill="#D6322C">
+      <!-- Pivot head (chunky pentagonal bracket) -->
+      <path d="M 540 158
+               L 720 142
+               L 770 196
+               L 770 268
+               L 720 320
+               L 590 336
+               L 530 290
+               L 522 240
+               L 540 215
+               Z"/>
+      <!-- Tapered lever -->
+      <path d="M 593 336
+               L 718 320
+               L 535 760
+               L 455 760
+               Z"/>
+      <!-- Foot pad -->
+      <rect x="320" y="752" width="370" height="84" rx="22"/>
+    </g>
+    <!-- Pivot bolt detail (3-step recess) -->
+    <circle cx="650" cy="240" r="30" fill="#3A0F0D"/>
+    <circle cx="650" cy="240" r="22" fill="#88201D"/>
+    <circle cx="650" cy="240" r="14" fill="#0A0A0D"/>
+  </g>
+</svg>
