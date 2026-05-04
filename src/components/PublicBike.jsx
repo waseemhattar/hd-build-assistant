@@ -66,8 +66,18 @@ export default function PublicBike({ slug }) {
     const description = subline
       ? `${subline} — built and maintained on Sidestand.`
       : 'Built and maintained on Sidestand.'
-    const url =
-      typeof window !== 'undefined' ? window.location.href : ''
+    // Canonical URL for OG/Twitter cards. Inside the iOS app the
+    // WebView origin is "capacitor://localhost", which would poison
+    // any sharing preview. Force the production domain in that case.
+    const url = (() => {
+      if (typeof window === 'undefined') return ''
+      const href = window.location.href
+      if (href.startsWith('capacitor://') || href.startsWith('ionic://')) {
+        const slug = (window.location.pathname.match(/^\/b\/([^/]+)/) || [])[1]
+        return slug ? `https://sidestand.app/b/${slug}` : 'https://sidestand.app'
+      }
+      return href
+    })()
     const image = bike.coverPhotoUrl || ''
 
     const restorers = []

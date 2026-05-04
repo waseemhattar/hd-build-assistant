@@ -1285,10 +1285,22 @@ function Field({ label, wide, children }) {
 // show the same modal whether the bike is currently public or private —
 // just with different controls.
 function ShareSheet({ bike, onClose, onChange }) {
-  // Resolve public-page origin from the current location. Works in dev
-  // (localhost:5173/b/...) and in prod (harley.h-dbuilds.com/b/...).
-  const origin =
-    typeof window !== 'undefined' && window.location ? window.location.origin : ''
+  // Resolve public-page origin. Three cases to handle:
+  //   1. Web (localhost:5173, sidestand.app) — use window.location.origin
+  //   2. iOS native — window.location.origin is "capacitor://localhost",
+  //      which obviously won't load anywhere outside the app. Use the
+  //      production domain instead.
+  //   3. SSR / no window — empty fallback.
+  // Without this branch, the rider would copy a "capacitor://localhost/b/…"
+  // link and email it to a friend, who couldn't open it. Hard-fail.
+  const origin = (() => {
+    if (typeof window === 'undefined' || !window.location) return ''
+    const winOrigin = window.location.origin
+    if (winOrigin.startsWith('capacitor://') || winOrigin.startsWith('ionic://')) {
+      return 'https://sidestand.app'
+    }
+    return winOrigin
+  })()
   const [current, setCurrent] = useState(bike)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
