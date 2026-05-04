@@ -24,7 +24,7 @@
 // builders below don't know about it. If we ever swap Maps URL
 // schemes (Mapbox, Waze, etc.) this file is the only place to touch.
 
-import { Browser } from '@capacitor/browser'
+import { App as CapApp } from '@capacitor/app'
 import { isNativeApp, getPlatform } from './platform.js'
 
 // Max waypoints we send to either Maps app. Apple's hard cap is ~16,
@@ -113,10 +113,22 @@ function perpendicularDistance(p, a, b) {
 // "+to:". `&dirflg=d` requests driving directions (motorcycle uses the
 // driving routing engine).
 //
-// On iOS, https://maps.apple.com/?... auto-opens the Apple Maps app.
-// On macOS Safari, it opens the Maps app. On other platforms, it opens
-// the maps.apple.com web view.
-export function appleMapsUrl(route) {
+// Two URL schemes are supported:
+//   - `maps://?...`             — iOS native scheme. iOS's UIApplication
+//                                 URL handler routes this directly to the
+//                                 Apple Maps app, no embedded browser.
+//                                 Use this when calling from the native
+//                                 iOS app via App.openUrl().
+//   - `https://maps.apple.com/?...` — Universal-link form. Opens Apple
+//                                 Maps app on iOS Safari (sometimes),
+//                                 falls back to maps.apple.com web on
+//                                 other browsers / platforms.
+//
+// We default to the https scheme for the public API (so the URL is
+// safe to share, copy, paste in chat, etc.) and switch to `maps://`
+// inside openInMaps() when running on iOS native — that's where
+// Apple Maps app deep-linking actually matters.
+export function appleMapsUrl(route, { native = false } = {}) {
   const pts = decimateRoute(route, MAX_WAYPOINTS + 2)
   if (pts.length < 2) return null
   const start = pts[0]
@@ -124,26 +136,53 @@ export function appleMapsUrl(route) {
   const waypoints = pts.slice(1, -1)
   const fmt = (p) => `${p[0].toFixed(6)},${p[1].toFixed(6)}`
   const dest = [...waypoints.map(fmt), fmt(end)].join('+to:')
-  const url = new URL('https://maps.apple.com/')
-  url.searchParams.set('saddr', fmt(start))
-  url.searchParams.set('daddr', dest)
-  url.searchParams.set('dirflg', 'd')
-  return url.toString()
+  const params = new URLSearchParams({
+    saddr: fmt(start),
+    daddr: dest,
+    dirflg: 'd'
+  })
+  if (native) {
+    // iOS native scheme — routes to Apple Maps app via UIApplication.
+    return `maps://?${params.toString()}`
+  }
+  return `https://maps.apple.com/?${params.toString()}`
 }
 
-// Google Maps directions URL with waypoints. Uses the recommended
-// `?api=1` URL scheme rather than the deprecated `dir/...` path
-// format — works on iOS, Android, and web identically.
+// Google Maps directions URL with waypoints.
 //
-// `&waypoints=` is a `|`-separated list of intermediate stops. Up to
-// 9 in the public URL scheme.
-export function googleMapsUrl(route) {
+// Two URL schemes:
+//   - `comgooglemaps://?saddr=...&daddr=...&waypoints=...` — iOS native
+//                                 scheme. Routes to Google Maps app via
+//                                 UIApplication. Only works if the user
+//                                 has Google Maps installed (we should
+//                                 fall back to https if not).
+//   - `https://www.google.com/maps/dir/?api=1&...` — Universal URL. Works
+//                                 in any browser; on iOS with Google
+//                                 Maps installed, it deep-links via
+//                                 Universal Links.
+//
+// Google Maps caps waypoints at 9 in the public URL scheme.
+export function googleMapsUrl(route, { native = false } = {}) {
   const pts = decimateRoute(route, MAX_WAYPOINTS + 2)
   if (pts.length < 2) return null
   const start = pts[0]
   const end = pts[pts.length - 1]
   const waypoints = pts.slice(1, -1)
   const fmt = (p) => `${p[0].toFixed(6)},${p[1].toFixed(6)}`
+  if (native) {
+    // iOS native scheme — comgooglemaps:// routes to Google Maps app.
+    // Note: the native scheme uses different query keys than the https
+    // version (`saddr`/`daddr` not `origin`/`destination`).
+    const params = new URLSearchParams({
+      saddr: fmt(start),
+      daddr: fmt(end),
+      directionsmode: 'driving'
+    })
+    if (waypoints.length > 0) {
+      params.set('waypoints', waypoints.map(fmt).join('|'))
+    }
+    return `comgooglemaps://?${params.toString()}`
+  }
   const url = new URL('https://www.google.com/maps/dir/')
   url.searchParams.set('api', '1')
   url.searchParams.set('origin', fmt(start))
@@ -157,25 +196,61 @@ export function googleMapsUrl(route) {
 
 // ---------- open ----------
 
-// Open a Maps URL in the right place for the current platform. On
-// native iOS we use Capacitor's Browser plugin so iOS routes the
-// `maps.apple.com` URL into the Apple Maps app via the universal-link
-// handler. On web we open in a new tab.
+// Open a Maps URL in the right place for the current platform.
+//
+// On iOS native: we use `App.openUrl()` from @capacitor/app, which
+// calls iOS's `UIApplication.shared.open()` directly. That respects
+// registered URL schemes (`maps://`, `comgooglemaps://`) and routes
+// the URL to the appropriate Maps app — Apple Maps for `maps://`,
+// Google Maps for `comgooglemaps://`. Crucially, this is NOT what
+// `@capacitor/browser`'s `Browser.open()` does: that plugin always
+// loads URLs inside an in-app `SFSafariViewController`, which means
+// the URL gets rendered as a webpage instead of deep-linking to the
+// native app. Always use App.openUrl() for app-to-app navigation.
+//
+// For Google Maps on iOS, `comgooglemaps://` requires the Google Maps
+// app to be installed. If it's not, App.openUrl() returns
+// `{ completed: false }` and we fall back to the https URL (which
+// loads in Safari — not great UX, but not broken).
+//
+// On web: window.open() in a new tab. On non-iOS native (Android):
+// also App.openUrl() with the https URL.
 //
 // `app` selects which provider:
 //   - 'apple'  → Apple Maps (default on iOS)
 //   - 'google' → Google Maps (default on web/Android)
 //
-// Returns a promise that resolves when the URL has been handed off
-// to the OS.
+// Returns the URL that was handed to the OS. Throws if the route
+// has no GPS data.
 export async function openInMaps(route, app = null) {
   const provider = app || defaultMapsProvider()
-  const url = provider === 'google' ? googleMapsUrl(route) : appleMapsUrl(route)
+  const onIOS = getPlatform() === 'ios' && isNativeApp()
+
+  // Build the URL — native scheme on iOS native (deep-links to app),
+  // https scheme everywhere else (web fallback or universal-link).
+  const url =
+    provider === 'google'
+      ? googleMapsUrl(route, { native: onIOS })
+      : appleMapsUrl(route, { native: onIOS })
   if (!url) {
     throw new Error('Route has no GPS data — nothing to navigate.')
   }
+
   if (isNativeApp()) {
-    await Browser.open({ url })
+    const result = await CapApp.openUrl({ url })
+    // If the native scheme didn't open (e.g. Google Maps not
+    // installed when we asked for comgooglemaps://), fall back to
+    // the https URL which loads in Safari.
+    if (result && result.completed === false) {
+      const httpsUrl =
+        provider === 'google'
+          ? googleMapsUrl(route, { native: false })
+          : appleMapsUrl(route, { native: false })
+      if (httpsUrl) {
+        await CapApp.openUrl({ url: httpsUrl })
+        return httpsUrl
+      }
+    }
   } else if (typeof window !== 'undefined') {
     window.open(url, '_blank', 'noopener')
   }
