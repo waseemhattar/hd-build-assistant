@@ -4,6 +4,7 @@ import {
   getGarage,
   getServiceLog,
   getMods,
+  getJobCards,
   subscribe,
   isInitialPullPending
 } from '../data/storage.js'
@@ -86,6 +87,16 @@ export default function Home({
 
   const garage = useMemo(() => getGarage(), [tick])
   const summary = useMemo(() => buildSummary(garage), [garage])
+
+  // In-progress job cards across the whole garage. Cards that are
+  // status='in-progress' OR drafts with at least one procedure
+  // attached (= the rider has started planning real work on them).
+  // Surfaced at the top of the dashboard so the rider doesn't lose
+  // track of work they started yesterday and haven't finished.
+  const inProgressJobs = useMemo(
+    () => activeJobCardsAcrossGarage(garage),
+    [garage, tick]
+  )
 
   // Recent rides — fetched once on mount (and once after first server
   // pull settles). We deliberately do NOT refetch on every storage tick
@@ -214,9 +225,66 @@ export default function Home({
         </div>
       </div>
 
-      {/* Service health */}
+      {/* In progress — job cards the rider has started but not
+          finished. Sits up high (above the latest ride) because
+          unfinished work is more actionable than the last ride. Each
+          row taps to that bike's job-cards tab so the rider can
+          continue planning or check off procedures. */}
+      {inProgressJobs.length > 0 && (
+        <Section
+          title="In progress"
+          subtitle={
+            inProgressJobs.length === 1
+              ? "Pick up where you left off."
+              : `${inProgressJobs.length} jobs you're in the middle of.`
+          }
+        >
+          <Rows>
+            {inProgressJobs.slice(0, 4).map(({ card, bike }) => (
+              <Row
+                key={card.id}
+                title={card.title || 'Untitled job'}
+                sub={
+                  <>
+                    <span className="font-semibold text-hd-text">
+                      {bike.nickname || bike.model || 'bike'}
+                    </span>
+                    {' · '}
+                    {jobProgressSummary(card)}
+                  </>
+                }
+                onClick={() => onPlanJob && onPlanJob(bike)}
+              />
+            ))}
+          </Rows>
+        </Section>
+      )}
+
+      {/* Latest ride card with mini-map. Replaces the visual gap that
+          opened up after chunk 1 moved the bike-or-ride hero up into
+          the streak/CTA header. The Recent Rides section below uses
+          rides.slice(1) to skip the latest, since it's featured here.
+          The card is a real tap target — taps to open Rides where the
+          rider can drill into the route + share + open in Maps. */}
+      {rides.length > 0 && (
+        <div className="px-4 pb-6 sm:px-6">
+          <RideHeroCard
+            ride={rides[0]}
+            garage={garage}
+            onOpenRides={onOpenRides}
+          />
+        </div>
+      )}
+
+      {/* Service health. Subtitle now reflects actual state — "all
+          up to date" when everything's healthy, an overdue/due-soon
+          count when there's work pending. Subtle but answers the
+          rider's first question (am I OK?) before they drill in. */}
       {garage.length > 0 && (
-        <Section title="Service health" subtitle="How each bike is doing on maintenance.">
+        <Section
+          title="Service health"
+          subtitle={serviceHealthSubtitle(summary)}
+        >
           <div className="grid grid-cols-3 gap-3 px-1 py-1 sm:grid-cols-4">
             {garage.map((b) => (
               <ServiceRing
@@ -229,23 +297,46 @@ export default function Home({
         </Section>
       )}
 
-      {/* Heads up */}
+      {/* Heads up — overdue / due-soon items. "View all" appears when
+          there are more than 5 items so the dashboard doesn't grow
+          unbounded. Bike name in each row is now bolded so the rider
+          can scan by-bike at a glance. */}
       {summary.dueSoon.length > 0 && (
         <Section
           title="Heads up"
-          subtitle="Service that's due, or about to be."
+          subtitle={
+            summary.dueSoon.length > 5
+              ? `${summary.dueSoon.length} items need attention.`
+              : 'Service that\'s due, or about to be.'
+          }
           accent="warn"
+          action={
+            summary.dueSoon.length > 5 && onOpenServiceBook && garage[0] ? (
+              <button
+                onClick={() => onOpenServiceBook(garage[0])}
+                className="text-[13px] font-medium text-amber-400"
+              >
+                View all
+              </button>
+            ) : null
+          }
         >
           <Rows>
             {summary.dueSoon.slice(0, 5).map((d, i) => (
               <Row
                 key={i}
                 title={d.intervalLabel}
-                sub={`${d.bikeName} · ${
-                  d.status === 'overdue'
-                    ? `overdue ${formatMileage(d.milesOver)}`
-                    : `in ${formatMileage(d.milesLeft)}`
-                }`}
+                sub={
+                  <>
+                    <span className="font-semibold text-hd-text">
+                      {d.bikeName}
+                    </span>
+                    {' · '}
+                    {d.status === 'overdue'
+                      ? `overdue ${formatMileage(d.milesOver)}`
+                      : `in ${formatMileage(d.milesLeft)}`}
+                  </>
+                }
                 tone={d.status === 'overdue' ? 'bad' : 'warn'}
                 onClick={() =>
                   onOpenServiceBook && onOpenServiceBook(d.bike)
@@ -826,6 +917,71 @@ function IconBikeLarge() {
 // ============================================================
 // Helpers
 // ============================================================
+
+// Walk every bike in the garage and collect job cards the rider is
+// actively working on. Two states qualify:
+//   - status === 'in-progress'  (rider explicitly marked it active)
+//   - status === 'draft' AND has at least one procedure attached
+//     (rider is planning real work, not just a placeholder card)
+// Returned as { card, bike } pairs so the row can show the bike
+// name and route the tap to the right place. Sorted by updatedAt
+// descending so the freshest work bubbles to the top.
+function activeJobCardsAcrossGarage(garage) {
+  const out = []
+  for (const bike of garage || []) {
+    const cards = getJobCards(bike.id) || []
+    for (const card of cards) {
+      if (card.status === 'in-progress') {
+        out.push({ card, bike })
+      } else if (
+        card.status === 'draft' &&
+        Array.isArray(card.procedures) &&
+        card.procedures.length > 0
+      ) {
+        out.push({ card, bike })
+      }
+    }
+  }
+  out.sort((a, b) =>
+    (b.card.updatedAt || '').localeCompare(a.card.updatedAt || '')
+  )
+  return out
+}
+
+// Short progress line shown in the In-progress row. Counts how many
+// procedures on the card are checked off. Shape varies a bit across
+// older + newer cards, so this stays tolerant.
+function jobProgressSummary(card) {
+  const list = Array.isArray(card.procedures) ? card.procedures : []
+  if (list.length === 0) {
+    return card.status === 'in-progress' ? 'in progress' : 'draft'
+  }
+  const done = list.filter((p) => p.completed || p.completedAt).length
+  return `${done}/${list.length} step${list.length === 1 ? '' : 's'}`
+}
+
+// Contextual subtitle for the Service health section. Reads the
+// summary built by buildSummary() and tells the rider whether
+// they're in good shape or have something pending. Three states:
+//   - everything healthy → "All bikes are up to date."
+//   - overdue items → "X overdue · Y coming due."  (overdue first,
+//     because that's what the rider should act on)
+//   - only due-soon items → "X coming due."
+function serviceHealthSubtitle(summary) {
+  const overdue = summary.dueSoon.filter((d) => d.status === 'overdue').length
+  const dueSoon = summary.dueSoon.length - overdue
+  if (overdue === 0 && dueSoon === 0) {
+    return 'All bikes are up to date.'
+  }
+  const parts = []
+  if (overdue > 0) {
+    parts.push(`${overdue} overdue`)
+  }
+  if (dueSoon > 0) {
+    parts.push(`${dueSoon} coming due`)
+  }
+  return parts.join(' · ') + '.'
+}
 
 function buildSummary(garage) {
   const dueSoon = []
