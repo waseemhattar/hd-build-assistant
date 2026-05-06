@@ -53,7 +53,15 @@ export default function RideHistory({ bikeId = null, onStartRide, garage = [] })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bikeId])
 
-  if (loading) {
+  // Only show the "Loading rides…" placeholder on the FIRST load
+  // (when we have no data yet). Subsequent reloads — pull-to-refresh,
+  // post-delete, post-rename — keep the existing list visible and let
+  // the new data slot in when it arrives. Without this guard, the
+  // list unmounts on every refresh, which loses every RideRow's
+  // internal `detail` state (the lazily-fetched route polyline).
+  // Visible symptom: tapping a ride to expand its map, scrolling, then
+  // pull-to-refresh would close + reopen the map like a flicker.
+  if (loading && rides.length === 0) {
     return (
       <div className="card text-center text-sm text-hd-muted">
         Loading rides…
@@ -61,7 +69,7 @@ export default function RideHistory({ bikeId = null, onStartRide, garage = [] })
     )
   }
 
-  if (err) {
+  if (err && rides.length === 0) {
     return (
       <div className="card text-center">
         <div className="font-display text-xl tracking-wider text-hd-orange">
