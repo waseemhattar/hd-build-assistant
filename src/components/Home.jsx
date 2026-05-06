@@ -333,7 +333,11 @@ export default function Home({
           <Rows>
             {milestoneAlerts.map(({ bike, milestone }) => {
               const tone = milestone.overdueCount > 0 ? 'bad' : 'warn'
-              const label = `${milestone.milestone.toLocaleString()} mi service`
+              // formatMileage handles the unit conversion + label
+              // ("25,000 mi" or "40,000 km") based on the rider's
+              // preference. Milestone is computed in the rider's
+              // unit so the number always lands round.
+              const label = `${formatMileage(milestone.milestoneMiles)} service`
               const sub = (
                 <>
                   <span className="font-semibold text-hd-text">
@@ -978,7 +982,7 @@ function MilestoneSheet({ selection, onClose, onLogService, onOpenServiceBook })
   return (
     <BottomSheet open={Boolean(selection)} onClose={onClose} size="lg">
       <BottomSheet.Header
-        title={`${milestone.milestone.toLocaleString()} mi service`}
+        title={`${formatMileage(milestone.milestoneMiles)} service`}
         subtitle={
           <>
             {bike.nickname || bike.model || 'bike'}

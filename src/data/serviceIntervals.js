@@ -182,15 +182,25 @@ export function evaluateInterval(interval, currentMileage, lastServiceEntry) {
 // the dashboard can surface one actionable row per bike instead of a
 // dozen per-item rows.
 //
-// A "milestone" is the next multiple of MILESTONE_STEP (5,000 mi)
-// strictly above the bike's current mileage. We surface a milestone
-// alert when the rider is within ALERT_WITHIN_MILES of it OR when
-// they have overdue items they should clear at it.
+// Unit awareness: HD's source numbers are in miles, so per-item
+// intervals (engine oil at 5,000 mi etc.) stay in miles internally.
+// But milestones are surfaced to the rider, so we compute them in
+// the rider's preferred unit — a metric rider sees the next 5k km
+// milestone, an imperial rider sees the next 5k mi one. We convert
+// the chosen milestone back to miles internally so the per-item
+// dueAt comparison still works against the (mile-keyed) interval data.
+//
+// We surface a milestone alert when the rider is within
+// ALERT_WITHIN_MILES of it OR when they have overdue items they
+// should clear at it.
 //
 // The returned shape:
 //   {
-//     milestone:       Number (e.g. 25000),
-//     milesLeft:       Number (positive — distance to milestone)
+//     milestoneMiles:  Number — the milestone expressed in miles,
+//                      ready to feed into formatMileage() for display
+//                      (formatMileage handles unit conversion).
+//     milesLeft:       Number (positive — distance to milestone, in
+//                      miles; format with formatMileage for display)
 //     items:           Array<{ interval, status, milesLeft|milesOver }>
 //                      (everything the rider should attend to AT the
 //                       milestone — overdue items + items that come
@@ -200,14 +210,31 @@ export function evaluateInterval(interval, currentMileage, lastServiceEntry) {
 //     isUpcoming:      Boolean (within ALERT_WITHIN_MILES)
 //   }
 
+import { isMetric } from './userPrefs.js'
+
 const MILESTONE_STEP = 5000
 const ALERT_WITHIN_MILES = 1500
+const KM_PER_MI = 1.609344
 
 export function nextMilestoneForBike(bike, log) {
   const mi = Math.max(0, Number(bike?.mileage) || 0)
-  const milestone =
-    Math.floor(mi / MILESTONE_STEP) * MILESTONE_STEP + MILESTONE_STEP
-  const milesLeft = milestone - mi
+  const metric = isMetric()
+
+  // Compute the milestone in the rider's preferred unit so it lands
+  // on a round number there, then convert back to miles for internal
+  // due-date math.
+  let milestoneMiles
+  if (metric) {
+    const currentKm = mi * KM_PER_MI
+    const milestoneKm =
+      Math.floor(currentKm / MILESTONE_STEP) * MILESTONE_STEP +
+      MILESTONE_STEP
+    milestoneMiles = milestoneKm / KM_PER_MI
+  } else {
+    milestoneMiles =
+      Math.floor(mi / MILESTONE_STEP) * MILESTONE_STEP + MILESTONE_STEP
+  }
+  const milesLeft = milestoneMiles - mi
 
   const items = []
   let overdueCount = 0
@@ -220,7 +247,7 @@ export function nextMilestoneForBike(bike, log) {
     if (ev.status === 'overdue') {
       overdueCount += 1
       items.push({ interval, status: 'overdue', milesOver: ev.milesOver, dueAt: ev.dueAt })
-    } else if (ev.dueAt != null && ev.dueAt <= milestone) {
+    } else if (ev.dueAt != null && ev.dueAt <= milestoneMiles) {
       // The interval's next service falls at or before this milestone —
       // include it as something to address at the milestone visit.
       items.push({ interval, status: 'due-soon', milesLeft: ev.milesLeft, dueAt: ev.dueAt })
@@ -235,7 +262,7 @@ export function nextMilestoneForBike(bike, log) {
   })
 
   return {
-    milestone,
+    milestoneMiles,
     milesLeft,
     items,
     overdueCount,
