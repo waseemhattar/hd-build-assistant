@@ -32,7 +32,7 @@ import { isNativeApp } from '../data/platform.js'
 // and a `route` array of [lat, lng] tuples (which we fetch lazily via
 // getRideDetail because the listing query strips it for payload size).
 
-export default function RideDetailSheet({ ride, open, onClose }) {
+export default function RideDetailSheet({ ride, open, onClose, onRideThisRoute }) {
   const [route, setRoute] = useState(null)
   const [loading, setLoading] = useState(false)
   const [openingProvider, setOpeningProvider] = useState(null)
@@ -162,10 +162,38 @@ export default function RideDetailSheet({ ride, open, onClose }) {
 
       {/* Open-in-Maps CTAs */}
       <div className="space-y-2">
+        {/* "Ride this route" — primary action when available. Hands
+            the chosen ride to RideTracker, which overlays the route
+            on its live map so the rider can follow it visually
+            while their own GPS trail draws on top. The button only
+            renders when the parent passes onRideThisRoute (i.e.,
+            we're in Discover; doesn't make sense for, e.g., the
+            rider's own already-recorded rides). */}
+        {onRideThisRoute && (
+          <button
+            onClick={() => {
+              if (!route || route.length < 2) return
+              // Hand the ride object enriched with the fetched
+              // route polyline to the parent — App.jsx stashes it
+              // in state and switches to the tracker view.
+              onRideThisRoute({ ...ride, route })
+            }}
+            disabled={!route || route.length < 2}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-hd-orange px-4 py-3.5 text-[15px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-40"
+          >
+            <BikeIcon />
+            Ride this route
+          </button>
+        )}
+
         <button
           onClick={() => handleOpen(onIOS ? 'apple' : 'google')}
           disabled={openingProvider !== null || !route || route.length < 2}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-hd-orange px-4 py-3.5 text-[15px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-40"
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-medium transition active:scale-[0.99] disabled:opacity-40 ${
+            onRideThisRoute
+              ? 'border border-hd-border bg-hd-dark text-hd-text'
+              : 'bg-hd-orange py-3.5 text-[15px] font-semibold text-white'
+          }`}
         >
           {openingProvider !== null ? (
             <>Opening{openingProvider === 'apple' ? ' Apple Maps' : ' Google Maps'}…</>
@@ -237,6 +265,27 @@ function PinIcon() {
     >
       <path d="M12 21s-7-7-7-12a7 7 0 1 1 14 0c0 5-7 12-7 12z" />
       <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  )
+}
+
+function BikeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="17" r="3" />
+      <circle cx="18" cy="17" r="3" />
+      <path d="M6 17l3-7h6l3 7" />
+      <path d="M9 10V6h2" />
     </svg>
   )
 }

@@ -254,6 +254,11 @@ function AuthedApp() {
   // it to that card instead of starting a walkthrough.
   const [activeJobCardId, setActiveJobCardId] = useState(null)
   const [addingProceduresToJobCardId, setAddingProceduresToJobCardId] = useState(null)
+  // The Discover ride the rider has chosen to "ride this route" with.
+  // When non-null, RideTracker overlays the route on its live map and
+  // shows a banner so the rider knows they're being guided. Cleared on
+  // save / back-button / explicit dismiss.
+  const [targetRide, setTargetRide] = useState(null)
 
   // Live brand-logo URL so the top nav swaps when the user uploads.
   const [userLogoUrl, setUserLogoUrl] = useState(() => getUserLogoUrl())
@@ -445,14 +450,35 @@ function AuthedApp() {
 
       {view === 'ride-tracker' && (
         <RideTracker
-          onBack={() => setView('rides')}
-          onSaved={() => setView('rides')}
+          onBack={() => {
+            setTargetRide(null)
+            setView('rides')
+          }}
+          onSaved={() => {
+            // Ride finished — clear the target so the next ride
+            // starts unguided. Riders who want to re-do the same
+            // route again can re-tap "Ride this route" from
+            // Discover.
+            setTargetRide(null)
+            setView('rides')
+          }}
+          targetRide={targetRide}
+          onClearTarget={() => setTargetRide(null)}
         />
       )}
 
       {view === 'discover' && (
         <Discover
           onBack={() => navigate('home')}
+          onRideThisRoute={(ride) => {
+            // Stash the chosen ride and switch to the tracker. The
+            // tracker's map will overlay the target route in orange
+            // beneath the rider's live red trail so they can follow
+            // it visually. We don't auto-start recording — rider
+            // still hits Start when ready.
+            setTargetRide(ride)
+            setView('ride-tracker')
+          }}
           onOpenRide={() => {
             // Phase 1 — tapping a community ride opens the same
             // detail card. Wishlist + "ride this route" come in

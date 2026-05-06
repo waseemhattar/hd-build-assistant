@@ -20,7 +20,7 @@ import RideDetailSheet from './RideDetailSheet.jsx'
 
 const DEFAULT_RADIUS_KM = 50
 
-export default function Discover({ onBack, onOpenRide }) {
+export default function Discover({ onBack, onOpenRide, onRideThisRoute }) {
   useUserPrefs()
   const [state, setState] = useState({ status: 'idle' })
   const [rides, setRides] = useState([])
@@ -201,11 +201,21 @@ export default function Discover({ onBack, onOpenRide }) {
       )}
 
       {/* Ride detail bottom sheet — opens when the rider taps any
-          ride card. Carries the "Open in Maps" CTA. */}
+          ride card. Carries the "Open in Maps" CTA + a "Ride this
+          route" CTA that hands the route to RideTracker so the
+          rider can follow it on their own GPS trail. */}
       <RideDetailSheet
         ride={selectedRide}
         open={Boolean(selectedRide)}
         onClose={() => setSelectedRide(null)}
+        onRideThisRoute={
+          onRideThisRoute
+            ? (rideWithRoute) => {
+                setSelectedRide(null)
+                onRideThisRoute(rideWithRoute)
+              }
+            : null
+        }
       />
     </div>
   )

@@ -40,7 +40,7 @@ import BottomSheet from './ui/BottomSheet.jsx'
 //   - Tick the stopwatch from a useEffect interval; don't rely on
 //     route updates (which may stall when the bike is stopped).
 
-export default function RideTracker({ onBack, onSaved }) {
+export default function RideTracker({ onBack, onSaved, targetRide, onClearTarget }) {
   // Re-render whenever the rider flips a unit pref so live distance,
   // speed, and stopwatch labels swap mi ⇄ km without remounting.
   useUserPrefs()
@@ -276,6 +276,48 @@ export default function RideTracker({ onBack, onSaved }) {
         </p>
       </div>
 
+      {/* "Following" banner — shown when the rider chose to ride a
+          route from Discover. Surfaces the chosen ride's name + a
+          dismiss button so the rider knows they're being guided
+          and can opt out before tapping Start. The actual route
+          overlay is drawn on the live map below. */}
+      {targetRide && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-hd-orange/40 bg-hd-orange/10 p-4">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-hd-orange">
+              Following
+            </div>
+            <div className="mt-0.5 truncate text-[15px] font-bold text-hd-text">
+              {targetRide.title || 'Untitled ride'}
+            </div>
+            <div className="mt-0.5 text-[12px] text-hd-muted">
+              The route shows in orange on your map. Your trail
+              draws on top in red as you ride it.
+            </div>
+          </div>
+          <button
+            onClick={() => onClearTarget && onClearTarget()}
+            className="-mr-1 -mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-hd-muted hover:text-hd-text"
+            aria-label="Clear target route"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Bike picker (idle only) */}
       {phase === 'idle' && garage.length > 0 && (
         <div className="mb-6 rounded-md border border-hd-border bg-hd-dark p-4">
@@ -298,12 +340,18 @@ export default function RideTracker({ onBack, onSaved }) {
         </div>
       )}
 
-      {/* Live map — drawing the polyline as samples arrive */}
-      {(phase === 'recording' || phase === 'saving') && (
+      {/* Live map — draws the polyline as samples arrive. Renders
+          during recording/saving as before, AND on idle when there's
+          a target route so the rider can preview the planned route
+          before tapping Start. */}
+      {(phase === 'recording' ||
+        phase === 'saving' ||
+        (phase === 'idle' && targetRide)) && (
         <LiveRouteMap
           routeRef={routeRef}
           tick={tick}
           height={240}
+          targetRoute={targetRide?.route || null}
         />
       )}
 
@@ -469,12 +517,12 @@ export default function RideTracker({ onBack, onSaved }) {
 // pass it as the route prop. RideMap detects the new reference and
 // redraws.
 
-function LiveRouteMap({ routeRef, tick, height = 240 }) {
+function LiveRouteMap({ routeRef, tick, height = 240, targetRoute = null }) {
   // Spread on every tick so route is a fresh array reference — that's
   // what causes RideMap to re-draw. routeRef.current itself never
   // changes identity even as we push new samples.
   const route = useMemo(() => [...routeRef.current], [tick, routeRef])
-  if (route.length === 0) {
+  if (route.length === 0 && (!targetRoute || targetRoute.length < 2)) {
     return (
       <div
         className="mb-4 flex items-center justify-center rounded-3xl bg-hd-dark text-[13px] text-hd-muted"
@@ -488,6 +536,7 @@ function LiveRouteMap({ routeRef, tick, height = 240 }) {
     <div className="mb-4 overflow-hidden rounded-3xl">
       <RideMap
         route={route}
+        targetRoute={targetRoute}
         height={height}
         className="rounded-3xl border-0"
         live={true}

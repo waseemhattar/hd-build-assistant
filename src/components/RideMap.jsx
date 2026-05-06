@@ -30,6 +30,7 @@ const OSM_TILES =
 
 export default function RideMap({
   route,
+  targetRoute = null,
   height = 280,
   className = '',
   live = false
@@ -37,6 +38,11 @@ export default function RideMap({
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const polylineRef = useRef(null)
+  // Separate ref for the target-route polyline (the "guide" line
+  // drawn beneath the live route, e.g., when "Ride this route" is
+  // active). Held separately so it isn't recreated when the live
+  // route updates.
+  const targetPolylineRef = useRef(null)
   // Track whether we've already done the initial bounds fit. In live
   // mode we only fit once; subsequent route updates pan but don't zoom.
   const hasFittedOnceRef = useRef(false)
@@ -66,9 +72,17 @@ export default function RideMap({
         attribution: '© OpenStreetMap contributors'
       }).addTo(map)
 
+      // Draw the target route FIRST (underneath) so the live route
+      // appears on top. Target uses an orange dashed line so it's
+      // visually distinct from the rider's red live trail.
+      if (targetRoute && targetRoute.length >= 2) {
+        targetPolylineRef.current = drawTargetRoute(L, map, targetRoute)
+      }
+
       drawRoute(L, map, route, null, {
         live,
-        hasFittedOnceRef
+        hasFittedOnceRef,
+        targetRoute // include target's bounds in the initial fit
       })
       polylineRef.current = null // populated on draw
 
@@ -100,11 +114,33 @@ export default function RideMap({
         mapRef.current,
         route,
         polylineRef.current,
-        { live, hasFittedOnceRef }
+        { live, hasFittedOnceRef, targetRoute }
       )
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route, live])
+
+  // Re-draw target route when it changes. Separate effect from `route`
+  // so updates to the live trail don't redraw the static guide.
+  useEffect(() => {
+    if (!mapRef.current) return
+    import('leaflet').then((L) => {
+      if (targetPolylineRef.current) {
+        try {
+          targetPolylineRef.current.remove()
+        } catch (_) {}
+        targetPolylineRef.current = null
+      }
+      if (targetRoute && targetRoute.length >= 2) {
+        targetPolylineRef.current = drawTargetRoute(
+          L,
+          mapRef.current,
+          targetRoute
+        )
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetRoute])
 
   return (
     <div
@@ -120,7 +156,17 @@ export default function RideMap({
 //   - live=true  → fit ONLY on the first draw with ≥2 points; later
 //     updates leave the zoom alone but pan if the latest sample has
 //     drifted outside the visible area.
-function drawRoute(L, map, route, existingPolyline, { live, hasFittedOnceRef }) {
+//
+// When `targetRoute` is non-empty, the initial fit includes both the
+// live route's bounds AND the target route's bounds, so the rider can
+// see the planned route + their trail together.
+function drawRoute(
+  L,
+  map,
+  route,
+  existingPolyline,
+  { live, hasFittedOnceRef, targetRoute }
+) {
   if (!route || route.length === 0) return null
 
   // Strip out any non-[lat,lng] entries defensively
@@ -165,11 +211,25 @@ function drawRoute(L, map, route, existingPolyline, { live, hasFittedOnceRef }) 
     .addTo(map)
     .bindTooltip('End', { permanent: false, direction: 'top' })
 
+  // Combined bounds — if a target route is present, include its
+  // bounds so the initial fit shows the whole planned route plus
+  // the rider's start point. Important on the first frames of a
+  // "Ride this route" session when the rider has only one or two
+  // GPS samples and the natural fit-bounds would zoom in way too
+  // close on their start point.
+  const combinedBounds = polyline.getBounds()
+  if (targetRoute && targetRoute.length >= 2) {
+    const targetLatLngs = targetRoute
+      .map((p) => (Array.isArray(p) ? [p[0], p[1]] : null))
+      .filter(Boolean)
+    for (const ll of targetLatLngs) combinedBounds.extend(ll)
+  }
+
   if (live) {
     // First draw with at least 2 points → fit once. Subsequent draws
     // pan-to-latest-if-out-of-view but don't change zoom.
     if (!hasFittedOnceRef?.current && latlngs.length >= 2) {
-      map.fitBounds(polyline.getBounds(), {
+      map.fitBounds(combinedBounds, {
         padding: [40, 40],
         maxZoom: 16
       })
@@ -193,12 +253,33 @@ function drawRoute(L, map, route, existingPolyline, { live, hasFittedOnceRef }) 
       map.setView(latlngs[0], 15)
     }
   } else {
-    // Static (post-ride) — always fit.
-    map.fitBounds(polyline.getBounds(), {
+    // Static (post-ride) — always fit. Use combined bounds so the
+    // target route, if any, is included in the view.
+    map.fitBounds(combinedBounds, {
       padding: [20, 20],
       maxZoom: 15
     })
   }
 
   return polyline
+}
+
+// Draws the "guide" polyline (the route the rider chose to follow
+// via "Ride this route"). Renders BENEATH the live trail using a
+// dashed orange line so the two are easy to tell apart at a glance:
+// solid red = where you've been, dashed orange = where you're going.
+function drawTargetRoute(L, map, route) {
+  if (!route || route.length < 2) return null
+  const latlngs = route
+    .map((pt) => (Array.isArray(pt) ? [pt[0], pt[1]] : null))
+    .filter(Boolean)
+  if (latlngs.length < 2) return null
+  return L.polyline(latlngs, {
+    color: '#F47A26', // HD orange, distinct from the live trail's red
+    weight: 4,
+    opacity: 0.7,
+    dashArray: '8 6',
+    lineCap: 'round',
+    lineJoin: 'round'
+  }).addTo(map)
 }
