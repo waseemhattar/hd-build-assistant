@@ -8,6 +8,8 @@ import {
 } from '../data/geolocation.js'
 import {
   saveRide,
+  updateRide,
+  setRidePublic,
   haversineMeters,
   formatDistance,
   formatDuration,
@@ -18,6 +20,7 @@ import { formatMileage, formatTemperature } from '../data/userPrefs.js'
 import { useUserPrefs } from '../hooks/useUserPrefs.js'
 import { fetchCurrentWeather, formatWeatherShort } from '../data/weather.js'
 import RideMap from './RideMap.jsx'
+import BottomSheet from './ui/BottomSheet.jsx'
 
 // Live ride tracker.
 //
@@ -46,6 +49,10 @@ export default function RideTracker({ onBack, onSaved }) {
   const [bikeId, setBikeId] = useState(garage[0]?.id || null)
   const [phase, setPhase] = useState('idle') // 'idle' | 'recording' | 'saving' | 'done' | 'error'
   const [err, setErr] = useState(null)
+  // The just-saved ride row, used to drive the post-ride sheet that
+  // prompts the rider to name + optionally share their ride before
+  // routing back to the rides list. Null while idle / recording.
+  const [savedRide, setSavedRide] = useState(null)
   // When iOS denies (or has previously denied) location permission,
   // we surface a friendly modal with an "Open Settings" button rather
   // than failing silently with values stuck at 0.
@@ -171,7 +178,7 @@ export default function RideTracker({ onBack, onSaved }) {
       const distMi = Math.round(dist / 1609.344)
       const endMileage = startMileage != null ? startMileage + distMi : null
 
-      await saveRide(
+      const saved = await saveRide(
         {
           bikeId: bikeId || null,
           startedAtMs: startedAtRef.current,
@@ -198,8 +205,13 @@ export default function RideTracker({ onBack, onSaved }) {
         }
       }
 
+      // Hand the saved row to the post-ride sheet — that's where
+      // the rider names the ride and optionally flips the share
+      // toggle. We DON'T fire onSaved() here; the sheet does that
+      // when it closes (so the rider isn't bounced back to the
+      // ride list mid-thought).
+      setSavedRide(saved)
       setPhase('done')
-      onSaved && onSaved()
     } catch (e) {
       setErr(e?.message || 'Could not save ride.')
       setPhase('error')
@@ -428,6 +440,18 @@ export default function RideTracker({ onBack, onSaved }) {
           }}
         />
       )}
+
+      {/* Post-ride sheet — opens after the ride is saved. Riders name
+          the ride and optionally flip the share-to-Discover toggle.
+          We hold off on routing back until the sheet closes so the
+          rider can think for a moment without being yanked away. */}
+      <PostRideSheet
+        ride={savedRide}
+        onDone={() => {
+          setSavedRide(null)
+          onSaved && onSaved()
+        }}
+      />
     </div>
   )
 }
@@ -585,5 +609,209 @@ function Stat({ label, value, big }) {
         {value}
       </div>
     </div>
+  )
+}
+
+// ============================================================
+// Post-ride sheet
+// ============================================================
+
+// Bottom sheet shown immediately after a ride is saved. Two things
+// the rider does here that they otherwise have to dig for in Rides:
+//
+//   1. Name the ride. Untitled rides default to a date string ("May
+//      4 ride") which is fine but personal names ("Sunday backroads",
+//      "Mountain pass loop") make the ride list feel like a journal.
+//
+//   2. Share to Discover. Flipping is_public puts the route on the
+//      Discover map for nearby riders (server-side trims start/end
+//      privacy radius before exposing). Tags add searchable flavor —
+//      "scenic" / "twisty" / "highway" are common; we suggest a few
+//      as chips and the rider can tap to add. share_name doubles
+//      as the title shown to other riders on Discover.
+//
+// Sheet renders only when `ride` is non-null. When the rider taps
+// Done (or dismisses), we bubble up via onDone() — that's where the
+// caller routes back to the rides list.
+
+const SUGGESTED_TAGS = [
+  'scenic',
+  'twisty',
+  'mountain',
+  'coast',
+  'city',
+  'highway',
+  'curves',
+  'commute'
+]
+
+function PostRideSheet({ ride, onDone }) {
+  const [title, setTitle] = useState('')
+  const [shareToCommunity, setShareToCommunity] = useState(false)
+  const [tags, setTags] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  // Reset form when a new ride lands. We don't want stale state from
+  // a previous ride leaking in if the rider goes back, rides again.
+  useEffect(() => {
+    if (ride) {
+      setTitle(ride.title || '')
+      setShareToCommunity(false)
+      setTags([])
+      setErr(null)
+    }
+  }, [ride?.id])
+
+  if (!ride) return null
+
+  function toggleTag(t) {
+    setTags((curr) =>
+      curr.includes(t) ? curr.filter((x) => x !== t) : [...curr, t]
+    )
+  }
+
+  async function commit() {
+    setBusy(true)
+    setErr(null)
+    try {
+      const trimmed = title.trim()
+      // Save title only if the rider actually entered something.
+      // updateRide is idempotent so calling it with the same value
+      // is fine, but we save a round trip when it's empty.
+      if (trimmed && trimmed !== (ride.title || '')) {
+        await updateRide(ride.id, { title: trimmed })
+      }
+      // Share toggle. Only call setRidePublic when the rider opted
+      // in — we don't proactively flip it off here because the ride
+      // defaults to private already.
+      if (shareToCommunity) {
+        await setRidePublic(ride.id, true, {
+          share_name: trimmed || null,
+          tags
+        })
+      }
+      onDone && onDone()
+    } catch (e) {
+      setErr(e?.message || 'Could not save changes.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function skip() {
+    // Rider chose not to name / share. Their ride is already saved
+    // with default values (no title, private). Just close the sheet.
+    onDone && onDone()
+  }
+
+  const distance = formatDistance(ride.distance_m || 0)
+  const duration = formatDuration(ride.duration_seconds || 0)
+
+  return (
+    <BottomSheet open={Boolean(ride)} onClose={skip} size="lg">
+      <BottomSheet.Header
+        title="Nice ride"
+        subtitle={`${distance} · ${duration}`}
+        onClose={skip}
+      />
+
+      {/* Name the ride */}
+      <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+        Name this ride
+      </label>
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Sunday backroads loop"
+        className="input mb-4"
+        autoFocus
+        maxLength={80}
+      />
+
+      {/* Share toggle row */}
+      <div className="mb-2 flex items-start justify-between gap-3 rounded-2xl bg-hd-card p-4">
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-semibold text-hd-text">
+            Share with the community
+          </div>
+          <div className="mt-0.5 text-[12px] leading-relaxed text-hd-muted">
+            Other Sidestand riders nearby will see your route on
+            Discover. We trim the start and end automatically — your
+            home stays private.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShareToCommunity((v) => !v)}
+          aria-pressed={shareToCommunity}
+          className={`relative mt-0.5 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition ${
+            shareToCommunity ? 'bg-hd-orange' : 'bg-hd-black'
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+              shareToCommunity ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Tags — only relevant when the rider opts to share. We render
+          but disable when share is off, so the rider can preview the
+          chips. Picking tags off → on doesn't lose the picks. */}
+      {shareToCommunity && (
+        <>
+          <div className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+            Tags <span className="font-normal lowercase tracking-normal">(optional)</span>
+          </div>
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {SUGGESTED_TAGS.map((t) => {
+              const active = tags.includes(t)
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTag(t)}
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
+                    active
+                      ? 'bg-hd-orange text-white'
+                      : 'border border-hd-border bg-hd-card text-hd-muted hover:text-hd-text'
+                  }`}
+                >
+                  {t}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {err && (
+        <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-300">
+          {err}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={skip}
+          disabled={busy}
+          className="flex-1 rounded-2xl border border-hd-border bg-hd-dark px-4 py-3 text-[14px] font-medium text-hd-text transition active:scale-[0.99] disabled:opacity-50"
+        >
+          Skip
+        </button>
+        <button
+          type="button"
+          onClick={commit}
+          disabled={busy}
+          className="flex-[2] rounded-2xl bg-hd-orange px-4 py-3 text-[14px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : 'Done'}
+        </button>
+      </div>
+    </BottomSheet>
   )
 }
