@@ -435,6 +435,44 @@ export async function checkVinAvailability(vin) {
   }
 }
 
+// Permanently delete the signed-in user's account and all associated
+// data. Calls the `delete_my_account` RPC (migration 020) which runs
+// SECURITY DEFINER server-side to wipe rides, service entries, mods,
+// builds, bikes, settings, notifications, etc., then deletes the
+// auth.users row itself. After this call the session is invalid;
+// the caller is expected to sign out and route the rider to landing.
+//
+// Required for App Store Guideline 5.1.1(v) — apps with account
+// creation must offer in-app account deletion.
+//
+// Throws on RPC error so the caller can show the rider a meaningful
+// failure message.
+export async function deleteMyAccount() {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Account deletion is not available — Supabase not configured.')
+  }
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.rpc('delete_my_account')
+  if (error) {
+    throw new Error(error.message || 'Account deletion failed.')
+  }
+  // Best-effort local cleanup. The auth.users row is gone; clearing
+  // the local cache keeps the next signed-in rider from briefly
+  // seeing stale data on this device.
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const keysToClear = []
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i)
+        if (k && k.startsWith('sidestand:')) keysToClear.push(k)
+      }
+      for (const k of keysToClear) window.localStorage.removeItem(k)
+    }
+  } catch (_) {
+    /* non-fatal */
+  }
+}
+
 export function addBike(input) {
   const now = new Date().toISOString()
   const bike = {

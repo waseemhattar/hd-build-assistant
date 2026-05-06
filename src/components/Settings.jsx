@@ -7,8 +7,11 @@ import {
   retryAllDeadLetterOps,
   discardDeadLetterOp,
   clearDeadLetterQueue,
+  deleteMyAccount,
   subscribe as subscribeStorage
 } from '../data/storage.js'
+import { getSupabaseClient } from '../data/supabaseClient.js'
+import BottomSheet from './ui/BottomSheet.jsx'
 import {
   formatTimeAgo,
   formatDate,
@@ -155,6 +158,14 @@ export default function Settings({ onBack }) {
             {user?.primaryEmailAddress?.emailAddress || user?.email || '—'}
           </div>
         </div>
+
+        {/* Account deletion. Required by App Store Guideline 5.1.1(v):
+            any app with account creation must offer in-app account
+            deletion. The button opens a confirmation sheet that makes
+            the rider type "DELETE" to prevent accidental taps. On
+            confirm we hit the delete_my_account RPC (migration 020)
+            which wipes all rider-owned data + the auth.users row. */}
+        <DeleteAccountRow />
       </Section>
 
       <div className="mt-6 flex justify-end">
@@ -520,4 +531,150 @@ function humanizeOp(op) {
     default:
       return op || 'Unknown op'
   }
+}
+
+// ---------- Account deletion ----------
+//
+// "Delete account" row inside the Account section + a bottom sheet
+// confirmation that requires the rider to type "DELETE" to enable
+// the destructive button. Two-step confirmation prevents accidental
+// taps; typing-to-confirm is the standard pattern for irreversible
+// destructive actions (GitHub, Stripe, etc.).
+//
+// Flow on confirm:
+//   1. Call deleteMyAccount() — server-side RPC wipes all rider data
+//      + the auth.users row.
+//   2. Sign out via Supabase auth (terminates this session locally).
+//   3. Reload the page to bounce the rider back to the Landing page.
+//      Reload is heavy-handed but it's the cleanest way to flush all
+//      React state, react-query caches, etc.
+
+function DeleteAccountRow() {
+  const [open, setOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  const canDelete = confirmText.trim().toUpperCase() === 'DELETE'
+
+  async function commit() {
+    if (!canDelete || busy) return
+    setBusy(true)
+    setErr(null)
+    try {
+      await deleteMyAccount()
+      // Sign out the now-orphaned session and bounce to landing.
+      try {
+        const sb = getSupabaseClient()
+        await sb.auth.signOut()
+      } catch (_) {
+        // Session was already invalidated server-side by the RPC;
+        // ignore any signOut errors and proceed with the redirect.
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
+    } catch (e) {
+      setErr(e?.message || 'Could not delete the account.')
+      setBusy(false)
+    }
+  }
+
+  function close() {
+    if (busy) return
+    setOpen(false)
+    setConfirmText('')
+    setErr(null)
+  }
+
+  return (
+    <>
+      <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/5 p-4">
+        <div className="text-sm font-semibold text-red-300">
+          Delete this account
+        </div>
+        <p className="mt-1 text-[12px] leading-relaxed text-hd-muted">
+          Permanently removes your bikes, rides, service history,
+          mods, and account. This cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/10 px-4 py-2 text-[13px] font-medium text-red-300 transition active:scale-95"
+        >
+          Delete account
+        </button>
+      </div>
+
+      <BottomSheet open={open} onClose={close} size="md">
+        <BottomSheet.Header
+          title="Delete this account?"
+          subtitle="This is permanent. There's no undo."
+          onClose={close}
+        />
+
+        <p className="mb-4 text-[14px] leading-relaxed text-hd-text/85">
+          Tapping Delete will remove:
+        </p>
+        <ul className="mb-4 space-y-1.5 text-[13px] leading-relaxed text-hd-text/85">
+          <li className="flex gap-2">
+            <span className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-red-400" />
+            <span>All your bikes, mods, and service history</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-red-400" />
+            <span>All your saved rides and shared routes</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-red-400" />
+            <span>Your AI mechanic chat history</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-red-400" />
+            <span>Your sign-in (you can re-register with the same email later)</span>
+          </li>
+        </ul>
+
+        <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-hd-muted">
+          Type DELETE to confirm
+        </p>
+        <input
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="DELETE"
+          className="input mb-4"
+          autoCapitalize="characters"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+
+        {err && (
+          <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-300">
+            {err}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={close}
+            disabled={busy}
+            className="flex-1 rounded-2xl border border-hd-border bg-hd-dark px-4 py-3 text-[14px] font-medium text-hd-text transition active:scale-[0.99] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={commit}
+            disabled={!canDelete || busy}
+            className="flex-[2] rounded-2xl bg-red-500 px-4 py-3 text-[14px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-40"
+          >
+            {busy ? 'Deleting…' : 'Delete account'}
+          </button>
+        </div>
+      </BottomSheet>
+    </>
+  )
 }

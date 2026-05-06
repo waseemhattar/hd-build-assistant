@@ -68,10 +68,19 @@
 	<string>Sidestand may save processed images of your parts and rides to your photo library if you choose.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Sidestand may record a short voice note alongside ride photos. Disable this in Settings if you don't want microphone access.</string>
+	<!--
+	  Background modes. We declare ONLY `location` because the
+	  RideTracker keeps GPS recording when the rider locks the
+	  screen and rides. We do NOT use background audio (Apple
+	  rejected 1.0 for declaring it without a justifying feature —
+	  background audio is for music players / podcast apps that
+	  keep playing when the screen locks). Microphone use is
+	  foreground-only (ride voice notes), which doesn't need a
+	  background mode.
+	-->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
-		<string>audio</string>
 	</array>
 	<!--
 	  Export-compliance flag. Sidestand uses encryption only via iOS's
