@@ -11,8 +11,10 @@ import {
 import {
   intervals,
   evaluateInterval,
-  findLastMatchingEntry
+  findLastMatchingEntry,
+  nextMilestoneForBike
 } from '../data/serviceIntervals.js'
+import BottomSheet from './ui/BottomSheet.jsx'
 import {
   formatDistance,
   formatMileage,
@@ -97,6 +99,19 @@ export default function Home({
     () => activeJobCardsAcrossGarage(garage),
     [garage, tick]
   )
+
+  // Service milestones across the garage. One row per bike whose
+  // next 5k milestone is approaching (within 1,500 mi) OR has any
+  // overdue items. Riders think in milestones ("the 25k service",
+  // "the 50k service") not per-item, so we roll items up.
+  const milestoneAlerts = useMemo(
+    () => milestonesNeedingAttention(garage),
+    [garage, tick]
+  )
+
+  // The milestone the rider has tapped — drives the bottom sheet
+  // that lists the items rolled up under that milestone.
+  const [selectedMilestone, setSelectedMilestone] = useState(null)
 
   // Recent rides — fetched once on mount (and once after first server
   // pull settles). We deliberately do NOT refetch on every storage tick
@@ -297,55 +312,64 @@ export default function Home({
         </Section>
       )}
 
-      {/* Heads up — overdue / due-soon items. "View all" appears when
-          there are more than 5 items so the dashboard doesn't grow
-          unbounded. Bike name in each row is now bolded so the rider
-          can scan by-bike at a glance. */}
-      {summary.dueSoon.length > 0 && (
+      {/* Heads up — service milestones. One row per bike whose next
+          5k milestone is approaching or already past with overdue
+          items. Tapping a row opens a bottom sheet that lists the
+          individual items the rider should attend to at that
+          milestone (oil change, brake pads, plugs, etc.). This
+          matches how factory service schedules are organized — by
+          mile-marker, not by item — and how riders naturally think
+          ("when's my next service due?"). */}
+      {milestoneAlerts.length > 0 && (
         <Section
           title="Heads up"
           subtitle={
-            summary.dueSoon.length > 5
-              ? `${summary.dueSoon.length} items need attention.`
-              : 'Service that\'s due, or about to be.'
+            milestoneAlerts.length === 1
+              ? "Service milestone coming up."
+              : `${milestoneAlerts.length} bikes have service milestones.`
           }
           accent="warn"
-          action={
-            summary.dueSoon.length > 5 && onOpenServiceBook && garage[0] ? (
-              <button
-                onClick={() => onOpenServiceBook(garage[0])}
-                className="text-[13px] font-medium text-amber-400"
-              >
-                View all
-              </button>
-            ) : null
-          }
         >
           <Rows>
-            {summary.dueSoon.slice(0, 5).map((d, i) => (
-              <Row
-                key={i}
-                title={d.intervalLabel}
-                sub={
-                  <>
-                    <span className="font-semibold text-hd-text">
-                      {d.bikeName}
-                    </span>
-                    {' · '}
-                    {d.status === 'overdue'
-                      ? `overdue ${formatMileage(d.milesOver)}`
-                      : `in ${formatMileage(d.milesLeft)}`}
-                  </>
-                }
-                tone={d.status === 'overdue' ? 'bad' : 'warn'}
-                onClick={() =>
-                  onOpenServiceBook && onOpenServiceBook(d.bike)
-                }
-              />
-            ))}
+            {milestoneAlerts.map(({ bike, milestone }) => {
+              const tone = milestone.overdueCount > 0 ? 'bad' : 'warn'
+              const label = `${milestone.milestone.toLocaleString()} mi service`
+              const sub = (
+                <>
+                  <span className="font-semibold text-hd-text">
+                    {bike.nickname || bike.model || 'bike'}
+                  </span>
+                  {' · '}
+                  {milestone.overdueCount > 0
+                    ? `${milestone.overdueCount} overdue · ${milestone.items.length} items`
+                    : `in ${formatMileage(milestone.milesLeft)} · ${milestone.items.length} items`}
+                </>
+              )
+              return (
+                <Row
+                  key={bike.id}
+                  title={label}
+                  sub={sub}
+                  tone={tone}
+                  onClick={() => setSelectedMilestone({ bike, milestone })}
+                />
+              )
+            })}
           </Rows>
         </Section>
       )}
+
+      {/* Milestone detail sheet — opens when the rider taps a Heads-up
+          row. Lists the actual items rolled up under that milestone
+          (engine oil & filter, brake pads, plugs, etc.) with a "log
+          service" affordance per item. */}
+      <MilestoneSheet
+        selection={selectedMilestone}
+        onClose={() => setSelectedMilestone(null)}
+        onLogService={onLogService}
+        onOpenServiceBook={onOpenServiceBook}
+      />
+
 
       {/* Recent rides */}
       {rides.length > 1 && (
@@ -917,6 +941,115 @@ function IconBikeLarge() {
 // ============================================================
 // Helpers
 // ============================================================
+
+// Compute milestone-level service alerts across the whole garage.
+// One row per bike whose next 5k milestone needs attention (either
+// it's approaching within 1,500 mi OR there are overdue items the
+// rider should clear at it). Returns [] when nothing's pending.
+function milestonesNeedingAttention(garage) {
+  const alerts = []
+  for (const bike of garage || []) {
+    const log = getServiceLog(bike.id)
+    const milestone = nextMilestoneForBike(bike, log)
+    if (!milestone.hasItems) continue
+    if (!milestone.isUpcoming && milestone.overdueCount === 0) continue
+    alerts.push({ bike, milestone })
+  }
+  // Order: bikes with overdue items first, then by smallest milesLeft.
+  alerts.sort((a, b) => {
+    const aOver = a.milestone.overdueCount > 0 ? 0 : 1
+    const bOver = b.milestone.overdueCount > 0 ? 0 : 1
+    if (aOver !== bOver) return aOver - bOver
+    return a.milestone.milesLeft - b.milestone.milesLeft
+  })
+  return alerts
+}
+
+// Bottom sheet shown when the rider taps a milestone row in Heads up.
+// Lists the individual items rolled up under the milestone — engine
+// oil & filter, brake pads, plugs, etc. — with an inline "Log this"
+// per row that opens the service-entry editor pre-populated with the
+// item title. Tapping anywhere outside an item routes to the bike's
+// full service book so the rider can log against any item or browse
+// the full schedule.
+function MilestoneSheet({ selection, onClose, onLogService, onOpenServiceBook }) {
+  if (!selection) return null
+  const { bike, milestone } = selection
+  return (
+    <BottomSheet open={Boolean(selection)} onClose={onClose} size="lg">
+      <BottomSheet.Header
+        title={`${milestone.milestone.toLocaleString()} mi service`}
+        subtitle={
+          <>
+            {bike.nickname || bike.model || 'bike'}
+            {' · '}
+            {milestone.overdueCount > 0
+              ? `${milestone.overdueCount} overdue`
+              : `in ${formatMileage(milestone.milesLeft)}`}
+          </>
+        }
+        onClose={onClose}
+      />
+
+      <p className="mb-3 text-[13px] leading-relaxed text-hd-muted">
+        At your next service visit, attend to the following items.
+        Tap one to log it as done.
+      </p>
+
+      <ul className="overflow-hidden rounded-2xl bg-hd-card">
+        {milestone.items.map(({ interval, status, milesOver, milesLeft }) => (
+          <li
+            key={interval.id}
+            className="border-b border-white/5 last:border-b-0"
+          >
+            <button
+              onClick={() => {
+                onClose()
+                onLogService && onLogService(bike)
+              }}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition active:bg-white/5"
+            >
+              <div className="flex flex-1 items-start gap-3">
+                <span
+                  className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${
+                    status === 'overdue' ? 'bg-red-400' : 'bg-amber-400'
+                  }`}
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-medium text-hd-text">
+                    {interval.label}
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-hd-muted">
+                    {status === 'overdue'
+                      ? `Overdue ${formatMileage(milesOver)}`
+                      : `Due in ${formatMileage(milesLeft)}`}
+                  </div>
+                  {interval.description && (
+                    <div className="mt-1 text-[12px] leading-snug text-hd-muted/80">
+                      {interval.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Chevron />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={() => {
+          onClose()
+          onOpenServiceBook && onOpenServiceBook(bike)
+        }}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-hd-border bg-hd-dark px-4 py-3 text-[14px] font-medium text-hd-text transition active:scale-[0.99]"
+      >
+        Open the service book
+      </button>
+    </BottomSheet>
+  )
+}
 
 // Walk every bike in the garage and collect job cards the rider is
 // actively working on. Two states qualify:

@@ -172,6 +172,78 @@ export function evaluateInterval(interval, currentMileage, lastServiceEntry) {
   return { status: 'ok', dueAt, milesLeft: delta, lastAt }
 }
 
+// ---------- Milestones ----------
+//
+// Riders think in milestones — "the 25k service", "the 50k service" —
+// not in individual interval items. The factory schedule is laid out
+// the same way: at every 5,000 miles a chunk of items come due, with
+// bigger chunks at 10k / 25k / 50k. This helper rolls the per-item
+// intervals up into the next milestone the rider is approaching, so
+// the dashboard can surface one actionable row per bike instead of a
+// dozen per-item rows.
+//
+// A "milestone" is the next multiple of MILESTONE_STEP (5,000 mi)
+// strictly above the bike's current mileage. We surface a milestone
+// alert when the rider is within ALERT_WITHIN_MILES of it OR when
+// they have overdue items they should clear at it.
+//
+// The returned shape:
+//   {
+//     milestone:       Number (e.g. 25000),
+//     milesLeft:       Number (positive — distance to milestone)
+//     items:           Array<{ interval, status, milesLeft|milesOver }>
+//                      (everything the rider should attend to AT the
+//                       milestone — overdue items + items that come
+//                       due at or before the milestone)
+//     overdueCount:    Number (items already past their dueAt)
+//     hasItems:        Boolean
+//     isUpcoming:      Boolean (within ALERT_WITHIN_MILES)
+//   }
+
+const MILESTONE_STEP = 5000
+const ALERT_WITHIN_MILES = 1500
+
+export function nextMilestoneForBike(bike, log) {
+  const mi = Math.max(0, Number(bike?.mileage) || 0)
+  const milestone =
+    Math.floor(mi / MILESTONE_STEP) * MILESTONE_STEP + MILESTONE_STEP
+  const milesLeft = milestone - mi
+
+  const items = []
+  let overdueCount = 0
+
+  for (const interval of intervals) {
+    const last = findLastMatchingEntry(interval, log)
+    const ev = evaluateInterval(interval, mi, last)
+    if (ev.status === 'never-due') continue
+
+    if (ev.status === 'overdue') {
+      overdueCount += 1
+      items.push({ interval, status: 'overdue', milesOver: ev.milesOver, dueAt: ev.dueAt })
+    } else if (ev.dueAt != null && ev.dueAt <= milestone) {
+      // The interval's next service falls at or before this milestone —
+      // include it as something to address at the milestone visit.
+      items.push({ interval, status: 'due-soon', milesLeft: ev.milesLeft, dueAt: ev.dueAt })
+    }
+  }
+
+  // Order: overdue first (most urgent), then by smallest dueAt.
+  items.sort((a, b) => {
+    if (a.status === 'overdue' && b.status !== 'overdue') return -1
+    if (b.status === 'overdue' && a.status !== 'overdue') return 1
+    return (a.dueAt || 0) - (b.dueAt || 0)
+  })
+
+  return {
+    milestone,
+    milesLeft,
+    items,
+    overdueCount,
+    hasItems: items.length > 0,
+    isUpcoming: milesLeft <= ALERT_WITHIN_MILES
+  }
+}
+
 // Given a service log, return the most recent entry that matches an
 // interval (by substring match against title OR jobId being one of the
 // job ids we'd expect).
